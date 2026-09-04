@@ -1434,6 +1434,8 @@ class H2rgMainWindow(QMainWindow):
         self._fits_dir_ok: bool | None = None
         self._macie = None
         self._live_active = False
+        self._live_starting = False
+        self._live_start_gen = 0
         self._background: numpy.ndarray | None = None
         self._current_frame: numpy.ndarray | None = None
         self._central_value: float | None = None
@@ -1595,7 +1597,7 @@ class H2rgMainWindow(QMainWindow):
             "ok;"
             f"initialized={int(self._initialized)};"
             f"busy={int(self._macie_operation_busy or self._operation_lock.locked())};"
-            f"live={int(self._live_active)}"
+            f"live={int(self._live_session_busy())}"
         )
 
     def _remote_acquire_handler(self) -> str:
@@ -1603,7 +1605,7 @@ class H2rgMainWindow(QMainWindow):
             return "nok;shutting_down"
         if not self._initialized:
             return "nok;not_initialized"
-        if self._live_active:
+        if self._live_session_busy():
             return "nok;live_active"
         if self._macie_operation_busy or self._operation_lock.locked():
             return "nok;busy"
@@ -1621,7 +1623,7 @@ class H2rgMainWindow(QMainWindow):
         done = self._pending_remote_acquire_done
         self._pending_remote_acquire_done = None
         try:
-            if self._live_active:
+            if self._live_session_busy():
                 self._remote_op_error = "live_active"
                 self._on_operation_failed("Stop live mode before acquiring")
                 return
@@ -1671,7 +1673,7 @@ class H2rgMainWindow(QMainWindow):
         """Refresh the display when a new ramp appears on disk (e.g. script ZMQ)."""
         if self._shutting_down or not self._initialized:
             return
-        if self._live_active or self._macie_operation_busy:
+        if self._live_session_busy() or self._macie_operation_busy:
             return
         loaded = self._load_latest_frame(force=False, macie=self._macie)
         if loaded is None:
@@ -3141,7 +3143,7 @@ class H2rgMainWindow(QMainWindow):
         enabled = (
             self._initialized
             and not self._macie_operation_busy
-            and not self._live_active
+            and not self._live_session_busy()
         )
         self.ui.button_take_background.setEnabled(enabled)
         if getattr(self, "_button_acquire_background", None) is not None:
@@ -3164,7 +3166,7 @@ class H2rgMainWindow(QMainWindow):
             return
 
         self._update_next_frame_number()
-        if self._live_active:
+        if self._live_session_busy():
             self._set_live_dependent_controls(True)
             return
 
@@ -3191,7 +3193,17 @@ class H2rgMainWindow(QMainWindow):
         self._set_exposure_panel_enabled(enabled)
         self._sync_background_buttons_enabled()
 
+    def _live_session_busy(self) -> bool:
+        """True while Live is arming or running.
+
+        The Live button stays labeled "Live" until ZMQ apply+arm returns, so
+        Acquire / a second Live click must use this — not only ``_live_active``.
+        """
+        return bool(self._live_active or getattr(self, "_live_starting", False))
+
     def _stop_live_ui(self) -> None:
+        self._live_start_gen = getattr(self, "_live_start_gen", 0) + 1
+        self._live_starting = False
         self._live_active = False
         self._live_poll_stop.set()
         self._live_frame_available.set()
@@ -3206,7 +3218,24 @@ class H2rgMainWindow(QMainWindow):
         self._live_pending_frame = frame
         self._live_frame_available.set()
 
+    def _finish_live_start(self, gen: int) -> None:
+        """Activate Live UI only if this start is still the current attempt."""
+        if gen == getattr(self, "_live_start_gen", 0) and self._live_starting:
+            self._activate_live_ui()
+            return
+        # Abandoned start armed after Halt: stop only if nothing newer is live.
+        if (
+            not self._live_starting
+            and not self._live_active
+            and self._macie is not None
+        ):
+            try:
+                self._macie.stop_continuous_acquisition()
+            except Exception:
+                pass
+
     def _activate_live_ui(self) -> None:
+        self._live_starting = False
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
@@ -3612,7 +3641,7 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
-        if enabled and not self._macie_operation_busy and not self._live_active:
+        if enabled and not self._macie_operation_busy and not self._live_session_busy():
             self._set_exposure_panel_enabled(True)
         self._sync_background_buttons_enabled()
         if enabled:
@@ -3766,7 +3795,7 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def init_camera(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before initializing")
             return
         self.init_button_state.emit("busy")
@@ -3806,13 +3835,13 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def power_on(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before power on")
             return
         self._run_macie_operation("Power on", lambda: self._ensure_macie().power_on())
 
     def power_off(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before power off")
             return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
@@ -4041,7 +4070,7 @@ class H2rgMainWindow(QMainWindow):
         # Guard: QPushButton.clicked emits a bool; never treat that as done_event.
         if done_event is not None and not isinstance(done_event, threading.Event):
             done_event = None
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before acquiring")
             if isinstance(done_event, threading.Event):
                 done_event.set()
@@ -4801,6 +4830,10 @@ class H2rgMainWindow(QMainWindow):
             self._stop_live_ui()
             self._set_status("Live stopped")
             return
+        # Button still says "Live" during ZMQ apply+arm. A second click would
+        # arm again and snapshot nseq=1 as the restore target (1-of-N Acquire).
+        if self._live_starting:
+            return
         # GUI is re-enabled after ZMQ returns, but archive still holds
         # _operation_lock. Live writes new ramps into the same save dir and
         # would be collected as part of the in-progress science acquire.
@@ -4810,15 +4843,28 @@ class H2rgMainWindow(QMainWindow):
             )
             return
 
+        self._live_start_gen = getattr(self, "_live_start_gen", 0) + 1
+        start_gen = self._live_start_gen
+        self._live_starting = True
+        self._set_live_dependent_controls(True)
         self._set_status("Starting live acquisition…")
 
         def worker() -> None:
             try:
                 # Latch GUI DIT/mode before arming continuous acquires.
                 self._apply_exposure_settings(self._macie)
+                if start_gen != self._live_start_gen or not self._live_starting:
+                    return
                 # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
-                QTimer.singleShot(0, self._activate_live_ui)
+                if start_gen != self._live_start_gen or not self._live_starting:
+                    if not self._live_starting and not self._live_active:
+                        try:
+                            self._macie.stop_continuous_acquisition()
+                        except Exception:
+                            pass
+                    return
+                QTimer.singleShot(0, lambda: self._finish_live_start(start_gen))
                 self.status_updated.emit(
                     "Live acquiring… (1 ramp/frame, GigE keep-alive)"
                 )
@@ -4828,7 +4874,7 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def halt(self) -> None:
-        if self._live_active and self._macie is not None:
+        if self._live_session_busy() and self._macie is not None:
             self._macie.stop_continuous_acquisition()
             self._stop_live_ui()
 
@@ -5040,7 +5086,7 @@ class H2rgMainWindow(QMainWindow):
 
     def acquire_background(self) -> None:
         """Close shutters, acquire a dark, store as background, re-open shutters."""
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before taking background")
             return
         if self._opcua_conn is None:
@@ -5735,7 +5781,7 @@ class H2rgMainWindow(QMainWindow):
         """
         utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
         connected = self._macie is not None
-        live = bool(self._live_active)
+        live = bool(self._live_session_busy())
         acquiring = bool(self._macie_operation_busy) and not live
 
         frame = self._current_frame
@@ -5780,7 +5826,7 @@ class H2rgMainWindow(QMainWindow):
         self._shutting_down = True
 
         self._stop_gui_services()
-        halt_server = self._live_active
+        halt_server = self._live_session_busy()
         self._cursor_readout_timer.stop()
         self._live_poll_stop.set()
         self._stop_live_ui()
