@@ -87,6 +87,32 @@ class LiveArmNseqTests(unittest.TestCase):
         iface._restore_exposure_after_live()
         self.assertEqual(iface.read_exposure_settings()[2], 8)
 
+    def test_arm_write_failure_keeps_restore_snapshot(self) -> None:
+        """If expsettings applies then the ZMQ reply fails, keep nseq=N."""
+        iface = self._iface(10)
+        settings = [True, 1, 10, 2, 1, 0, 1]
+
+        def read():
+            return tuple(settings)
+
+        def write_then_fail(save, ncoadds, nseq_w, ngroups, nreads, ndrops, nresets):
+            settings[:] = [save, ncoadds, nseq_w, ngroups, nreads, ndrops, nresets]
+            raise RuntimeError("zmq timeout after expsettings")
+
+        iface.read_exposure_settings = read
+        iface.exposure_settings = write_then_fail
+        iface.start_continuous_acquisition()
+        self.assertIsNotNone(iface._live_restore_exposure)
+        self.assertEqual(iface._live_restore_exposure[2], 10)
+        self.assertEqual(iface.read_exposure_settings()[2], 1)
+
+        def write(save, ncoadds, nseq_w, ngroups, nreads, ndrops, nresets):
+            settings[:] = [save, ncoadds, nseq_w, ngroups, nreads, ndrops, nresets]
+
+        iface.exposure_settings = write
+        iface._restore_exposure_after_live()
+        self.assertEqual(iface.read_exposure_settings()[2], 10)
+
 
 if __name__ == "__main__":
     unittest.main()

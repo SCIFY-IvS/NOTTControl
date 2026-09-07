@@ -3207,6 +3207,10 @@ class H2rgMainWindow(QMainWindow):
         self._live_active = False
         self._live_poll_stop.set()
         self._live_frame_available.set()
+        # Live forced nseq=1. Restore can fail (ReconfigureASIC after
+        # livesession close); drop the fingerprint so the next Acquire
+        # re-latches the GUI's N instead of silently recording 1 of N.
+        self._applied_exposure_fingerprint = None
         if self.ui is not None:
             self.ui.button_live.setText("Live")
         self._set_live_dependent_controls(False)
@@ -4857,6 +4861,9 @@ class H2rgMainWindow(QMainWindow):
                     return
                 # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
+                # Fingerprint still describes the GUI's N-frame request. Drop
+                # it now — Stop Live restore can fail and leave nseq=1 latched.
+                self._applied_exposure_fingerprint = None
                 if start_gen != self._live_start_gen or not self._live_starting:
                     if not self._live_starting and not self._live_active:
                         try:

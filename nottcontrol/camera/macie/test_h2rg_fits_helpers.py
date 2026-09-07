@@ -552,6 +552,26 @@ class ApplyWindowGeometryTests(unittest.TestCase):
         acquire_src = inspect.getsource(H2rgMainWindow.acquire)
         self.assertIn("_live_session_busy()", acquire_src)
 
+    def test_live_stop_drops_fingerprint_so_next_acquire_relatches_nseq(self) -> None:
+        """Take Background already drops the fingerprint after override_nseq.
+
+        Live restore can fail (ReconfigureASIC after livesession close) and
+        leave nseq=1. Without this, the next Acquire skips reconfigure and
+        silently records 1 of N.
+        """
+        import inspect
+
+        stop_src = inspect.getsource(H2rgMainWindow._stop_live_ui)
+        self.assertIn("self._applied_exposure_fingerprint = None", stop_src)
+        live_src = inspect.getsource(H2rgMainWindow.live_clicked)
+        arm_at = live_src.index("start_continuous_acquisition")
+        drop_at = live_src.index("self._applied_exposure_fingerprint = None")
+        self.assertGreater(
+            drop_at,
+            arm_at,
+            "Live must drop the N-ramp fingerprint after forcing nseq=1",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

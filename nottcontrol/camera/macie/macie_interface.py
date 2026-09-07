@@ -616,14 +616,14 @@ class MacieInterface():
 
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
-        previous_restore = self._live_restore_exposure
         try:
             self._arm_live_single_ramp()
         except Exception as exc:
             print(f"Live single-ramp arm failed: {exc}")
-            # Keep a successful earlier snapshot if a second arm fails.
-            if previous_restore is None:
-                self._live_restore_exposure = None
+            # Arm stores the pre-nseq=1 snapshot before the write. Keep it —
+            # the ASIC may already be at nseq=1 if the write landed and only
+            # the ZMQ reply failed. Wiping left Stop Live with nothing to
+            # restore and the next Acquire silently recorded 1 of N.
         # Keep GigE open between single-ramp acquires so cadence tracks the
         # detector instead of open/close overhead every frame.
         try:
