@@ -1,104 +1,31 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import multiprocessing as mp
 from time import sleep, time
 from tqdm import tqdm
 from copy import copy
-from datetime import datetime, timedelta, timezone
+from datetime import datetime,timedelta,timezone
 from xaosim.shmlib import shm
 from scipy.linalg import hadamard
 
 import sys
-
 sys.path.append("/home/labo/src/NOTTControl/")
 sys.path.append("/home/labo/src/NOTTControl/script/lib/")
 
 dburl = "redis://nott-server.ster.kuleuven.be:6379"
 
-x_filter = np.array(
-    [
-        0.000003332231310433949,
-        0.000003359090941083894,
-        0.0000033818181178322115,
-        0.0000033962809146615277,
-        0.000003416942128401158,
-        0.000003431404925230474,
-        0.0000034438015830896854,
-        0.0000034561982409488967,
-        0.000003474793315718422,
-        0.0000034975206684281573,
-        0.0000035285124010568945,
-        0.0000035574379947155264,
-        0.000003604958663143684,
-        0.000003640082497751213,
-        0.000003664875989431053,
-        0.0000037082643799190013,
-        0.000003741322251517843,
-        0.000003784710642005791,
-        0.000003823966930514947,
-        0.0000038528925241735795,
-        0.000003919008091409845,
-        0.000003943801583089685,
-        0.000003966528759838003,
-        0.000003978925593658632,
-        0.000003989256112547738,
-        0.0000040037189093770535,
-        0.00000401404942826616,
-        0.000004032644503035686,
-        0.000004047107299865002,
-        0.0000040760328935236335,
-        0.0000042206610377782125,
-    ]
-)
-y_filter = np.array(
-    [
-        0.0017543387818981376,
-        0.004561388410207326,
-        0.014385942578987246,
-        0.036842100544856524,
-        0.2277192639592904,
-        0.45789470381399533,
-        0.6599999760939395,
-        0.7863157750042266,
-        0.8508771992735247,
-        0.8705263076110844,
-        0.9028070197457336,
-        0.89017544583122,
-        0.8873684260854863,
-        0.9056140394914672,
-        0.9014035098728668,
-        0.8410526451047448,
-        0.8410526451047448,
-        0.8621052782564592,
-        0.916842103533114,
-        0.9210526331517145,
-        0.8957894703813994,
-        0.8957894703813994,
-        0.9028070197457336,
-        0.8803508916624401,
-        0.7975438539871611,
-        0.4761403471025518,
-        0.2726315201258773,
-        0.07473679240582154,
-        0.028420951659928514,
-        0.005964793694059473,
-        0.0017543387818981376,
-    ]
-)
-mean_wl = np.sum(x_filter * y_filter) / np.sum(y_filter)
+x_filter = np.array([0.000003332231310433949, 0.000003359090941083894, 0.0000033818181178322115, 0.0000033962809146615277, 0.000003416942128401158, 0.000003431404925230474, 0.0000034438015830896854, 0.0000034561982409488967, 0.000003474793315718422, 0.0000034975206684281573, 0.0000035285124010568945, 0.0000035574379947155264, 0.000003604958663143684, 0.000003640082497751213, 0.000003664875989431053, 0.0000037082643799190013, 0.000003741322251517843, 0.000003784710642005791, 0.000003823966930514947, 0.0000038528925241735795, 0.000003919008091409845, 0.000003943801583089685, 0.000003966528759838003, 0.000003978925593658632, 0.000003989256112547738, 0.0000040037189093770535, 0.00000401404942826616, 0.000004032644503035686, 0.000004047107299865002, 0.0000040760328935236335, 0.0000042206610377782125])
+y_filter = np.array([0.0017543387818981376, 0.004561388410207326, 0.014385942578987246, 0.036842100544856524, 0.2277192639592904, 0.45789470381399533, 0.6599999760939395, 0.7863157750042266, 0.8508771992735247, 0.8705263076110844, 0.9028070197457336, 0.89017544583122, 0.8873684260854863, 0.9056140394914672, 0.9014035098728668, 0.8410526451047448, 0.8410526451047448, 0.8621052782564592, 0.916842103533114, 0.9210526331517145, 0.8957894703813994, 0.8957894703813994, 0.9028070197457336, 0.8803508916624401, 0.7975438539871611, 0.4761403471025518, 0.2726315201258773, 0.07473679240582154, 0.028420951659928514, 0.005964793694059473, 0.0017543387818981376])
+mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.delayline import DelayLine
-from nottcontrol.script.lib.nott_utils import MotorError
-from nottcontrol.components.netgear.netgear_interface import NetGearInterface
 from nottcontrol.camera.frame import Frame
-from nottcontrol.lucid.lib.lucid_utils import LucidUtils, ref_state
+from nottcontrol.lucid.lib.lucid_utils import LucidUtils
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
-from nottcontrol import config
+from nottcontrol import config 
 
 INFRATEC_SECTION = "INFRATEC CAMERA"
 
@@ -106,28 +33,25 @@ opcuad = config["DEFAULT"]["opcuaaddress"]
 
 # Time stamping functions
 
-
 def unix_to_datetime(unix_stamp):
     # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
-    epoch = datetime.fromtimestamp(0, timezone.utc)
+    epoch = datetime.fromtimestamp(0,timezone.utc)
     dt = timedelta(milliseconds=unix_stamp)
     utc_stamp = epoch + dt
     return utc_stamp
-
 
 def datetime_to_id(utc_stamp):
     # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
     Ymd = utc_stamp.strftime("%Y%m%d")
     HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
-    frame_id = Ymd + "_" + HMS
+    frame_id = Ymd+"_"+HMS
     return frame_id
-
 
 # Classes for transfer to shm object, wrapping shmlib.py
 
-
 class RollingShm2D(object):
-    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm", depth=10, nax_1=100):
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
+                    depth=10, nax_1=100):
         """
             Wrapper of shm to harbour a rolling buffer of 2D data, used for plotting time series
             of dispersed flux / null readouts side-by-side ("waterfall plot") by shmview.
@@ -139,15 +63,11 @@ class RollingShm2D(object):
         """
         self.shape = (depth, nax_1)
         self.buffer = np.zeros(shape=self.shape, dtype=float)
-        self.shm = shm(
-            fname,
-            data=self.buffer,
-            verbose=False,
-        )
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
 
     def get_data(self, *args, **kwargs):
         """
-        Loads data from the shm object
+            Loads data from the shm object
         """
         self.buffer = self.shm.get_data(*args, **kwargs)
         return self.buffer
@@ -163,13 +83,14 @@ class RollingShm2D(object):
 
     def close(self):
         """
-        Is used to remove the shm
+            Is used to remove the shm
         """
         self.shm.close()
-
+    
 
 class RollingShm3D(object):
-    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm", depth=10, nax_2=10):
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
+                    depth=10, nax_2=10):
         """
             Wrapper of shm to harbour a rolling buffer of 3D data, used for plotting time series
             of broadband flux / null readouts separately by shmplot.
@@ -182,15 +103,12 @@ class RollingShm3D(object):
         """
         self.shape = (2, depth, nax_2)
         self.buffer = np.zeros(shape=self.shape, dtype=float)
-        self.shm = shm(
-            fname,
-            data=self.buffer,
-            verbose=False,
-        )
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
+
 
     def get_data(self, *args, **kwargs):
         """
-        Loads data from the shm object
+            Loads data from the shm object
         """
         self.buffer = self.shm.get_data(*args, **kwargs)
         return self.buffer
@@ -200,10 +118,10 @@ class RollingShm3D(object):
             Push new data at the back of the buffer, then
         writes to the shm. The oldest data is erased.
         """
-        self.buffer = self.buffer.transpose((1, 0, 2))
+        self.buffer = self.buffer.transpose((1,0,2))
         self.buffer = np.roll(self.buffer, -1, axis=0)
         self.buffer[-1] = data
-        self.buffer = self.buffer.transpose((1, 0, 2))
+        self.buffer = self.buffer.transpose((1,0,2))
         std = self.get_std()
         # Push buffer data and std to shm
         self.shm.set_data(self.buffer)
@@ -213,7 +131,7 @@ class RollingShm3D(object):
         """
            Computes the standard deviation of the dataframe's "value" field (index 0 on axis 0) across the frames kept in the buffer (axis 1).
         Only non-zero values, i.e. portions of the dataframe that have been filled with data, are taken into account in this calculation.
-        Zero values are masked for that purpose.
+        Zero values are masked for that purpose. 
         """
         vals = self.buffer[0]
         vals_masked = np.where(vals == 0.0, np.nan, vals)
@@ -221,15 +139,13 @@ class RollingShm3D(object):
 
     def close(self):
         """
-        Is used to remove the shm
+            Is used to remove the shm
         """
         self.shm.close()
 
-
 class SimpleShm(object):
-    def __init__(
-        self, fname="/dev/shm/rtdisp/default.plt.shm", shape=None, dtype=float
-    ):
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
+                    shape=None, dtype=float):
         """
             Wrapper of shm to harbour a non-rolling, simple buffer of 2D data, used for plotting the latest IR/VIS camera images
             and the latest dispersed flux / null readouts side-by-side ("waterfall plot").
@@ -242,35 +158,31 @@ class SimpleShm(object):
                 - shape = (2, 3 * nwls)
         """
         if shape is None:
-            shape = (10, 10)
+            shape = (10,10)
         self.shape = shape
         self.buffer = np.zeros(shape=self.shape, dtype=dtype)
-        self.shm = shm(
-            fname,
-            data=self.buffer,
-            verbose=False,
-        )
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
+
 
     def get_data(self, *args, **kwargs):
         """
-        Loads data from the shm object
+            Loads data from the shm object
         """
         self.buffer = self.shm.get_data(*args, **kwargs)
         return self.buffer
 
     def push(self, data):
         """
-        This is not a rolling buffer, so just set the data
+            This is not a rolling buffer, so just set the data
         """
 
         self.shm.set_data(data)
 
     def close(self):
         """
-        Is used to remove the shm
+            Is used to remove the shm
         """
         self.shm.close()
-
 
 # Functions to construct probes:
 
@@ -288,12 +200,12 @@ def hadamard_modulation(ntel, amp, drop_common=True):
     """
     mat = hadamard(4)
     if drop_common:
-        mat = mat[1:, :]
-    return mat * amp
+        mat = mat[1:,:]
+    return mat*amp
 
 
 def shutter_probe(ntel):
-    mod_shutters = np.eye(ntel + 1, ntel)
+    mod_shutters = np.eye(ntel+1, ntel)
     mod_shutters = np.roll(mod_shutters, 1, axis=0)
     return mod_shutters
 
@@ -317,32 +229,27 @@ def randomized_probe(n, ntel=4, scale=1.0e-6, func=np.random.normal):
 
 
 class HumInt(object):
-    def __init__(
-        self,
-        lam_mean=mean_wl,
-        pad=0.15,
-        shutter_pad=5.5,
-        bs_pad=11.0,
-        interf=None,
-        act_index=0,
-        non_motorized=0,
-        nb_beams=4,
-        offset=8.0,
-        db_server=None,
-        rois_interest=np.arange(1, 10),
-        opcuad=opcuad,
-        snr_thresh=5,
-        verbose=False,
-    ):
+    def __init__(self, lam_mean=mean_wl,
+                pad=0.15,
+                shutter_pad=5.5,
+                interf=None,
+                act_index=0,
+                non_motorized=0,
+                nb_beams=4,
+                offset=8.0,
+                db_server=None,
+                rois_interest=np.arange(1,10),
+                opcuad=opcuad,
+                snr_thresh=5,
+                verbose=False):
         # self.lamb_min = lam_range[0]
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
         self.pad = pad
         self.shutter_pad = shutter_pad
-        self.bs_pad = bs_pad
         self.interf = interf
         self.act_index = act_index
-        self.non_motorized = non_motorized  # Index of the non-motorized beam
+        self.non_motorized = non_motorized # Index of the non-motorized beam
         self.nb_beams = nb_beams
         self.offset = offset * np.ones(self.nb_beams)
         self.offset[self.non_motorized] = 0
@@ -353,93 +260,43 @@ class HumInt(object):
         self.bg_noise = None
         self.opcua_conn = OPCUAConnection(opcuad)
         self.opcua_conn.connect()
-
-        # Create shm directory
-        os.makedirs("/dev/shm/rtdisp", exist_ok=True)
-
-        shutter_address = config.get("SHUTTERS", "shutter_address")
-        shutter_name = config.get("SHUTTERS", "shutter_name")
-        shutter_speed = config.getfloat("SHUTTERS", "shutter_speed")
-        shutter_pos_min = config.getfloat("SHUTTERS", "shutter_pos_min")
-        shutter_pos_max = config.getfloat("SHUTTERS", "shutter_pos_max")
         self.shutters = [
-            Shutter(
-                self.opcua_conn,
-                f"ns=4;s={shutter_address}.{shutter_name}{shutterid + 1}",
-                f"{shutter_name}{shutterid + 1}",
-                speed=shutter_speed * 1e3,
-                open_pos=shutter_pos_min,
-                close_pos=shutter_pos_max,
-            )
-            for shutterid in range(4)
+            Shutter(self.opcua_conn,
+                f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutterid+1}",
+                f"NSH{shutterid+1}",
+                speed=15.0*1e3,
+                open_pos=5.0,
+                close_pos=35.0)\
+             for shutterid in range(4)
         ]
-
-        bs_address = config.get("BEAMSPLITTER", "bs_address")
-        bs_name = config.get("BEAMSPLITTER", "bs_name")
-        bs_speed = config.getfloat("BEAMSPLITTER", "bs_speed")
-        bs_pos_min = config.getfloat("BEAMSPLITTER", "bs_pos_min")
-        bs_pos_max = config.getfloat("BEAMSPLITTER", "bs_pos_max")
-        self.beamsplitter = Shutter(
-            self.opcua_conn,
-            f"ns=4;s={bs_address}.{bs_name}",
-            f"{bs_name}",
-            speed=bs_speed * 1e3,
-            open_pos=bs_pos_min,
-            close_pos=bs_pos_max,
-            rtol=0.2,
-        )
-
-        # self.dl is an ActuatorCluster object wrapping all four NDL actuators.
-        # self.delay_lines is a list of the individual Actuator objects
-        self.dl = DelayLine(self.opcua_conn)
-        self.delay_lines = self.dl.motors
-
+        self.delay_lines = [
+            DelayLine(self.opcua_conn,
+                f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{dlid+1}",
+                f"NDL{dlid+1}") for dlid in range(4)
+        ]
         self.frame_VIS_pup = None
         self.frame_VIS_im = None
 
-        self._stream_process = {"im_cam": None, "pup_cam": None}
-        # Netgear PoE switch
-        self._ng = NetGearInterface(host=config["netgear"]["host"])
-        self._ng_im_port = config.getint("netgear", "im_port")
-        self._ng_pup_port = config.getint("netgear", "pup_port")
-        # Lucid visible cameras streaming
-        self._stream_process = {"im_cam": None, "pup_cam": None}
-        self._stream_stop_event = {"im_cam": None, "pup_cam": None}
-
         # Getting link between outputs and ROI indices from config
-        channel_labels = config.getarray(INFRATEC_SECTION, "channel_labels", str)
-        roi_indices = config.getarray(INFRATEC_SECTION, "roi_indices", np.int32)
-        self.channel_roi_link = dict(zip(channel_labels, roi_indices))
-
-        self.move(np.array([0.0, 0.0, 0.0, 0.0]))
+        channel_labels = config.getarray(INFRATEC_SECTION, 'channel_labels', str)
+        roi_indices = config.getarray(INFRATEC_SECTION, 'roi_indices', np.int32)
+        self.channel_roi_link = dict(zip(channel_labels,roi_indices))
+        
+        self.move(np.array([0., 0., 0., 0.]))
         self.auto_display = False
 
         self.disp_roi_mask = np.ones(self.rois.shape, dtype=bool)
-        self.disp_waterfall_broad = (False,)
+        self.disp_waterfall_broad = False,
         self.disp_waterfall_dispersed = False
         self.disp_depth = 30
         self.disp_calls = []
-
-    # ---------------------#
+        
+    #---------------------#
     # Auxiliary functions |
     # --------------------#
-
+    
     def __del__(self):
         self.opcua_conn.disconnect()
-
-        # Stop any active processes streaming to buffers.
-        for name, process in self._stream_process.items():
-            # Try soft stop first (via stop-event flag)
-            if process is not None:
-                stop_event = self._stream_stop_event.get(name)
-                if stop_event is not None:
-                    stop_event.set()
-                process.join(timeout=5)
-                if process.is_alive():
-                    # Resort to hard stop if necessary
-                    process.terminate()
-                    process.join()
-
         if hasattr(self, "buffer_im_IR"):
             self.buffer_im_IR.close()
         if hasattr(self, "buffer_im_VIS_pup"):
@@ -463,72 +320,45 @@ class HumInt(object):
 
     def disp_initialize_shm_IR_cam(self):
         """
-        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR camera images.
-            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout.
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
+            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
         """
-        self.buffer_im_IR = SimpleShm(
-            "/dev/shm/rtdisp/nott_window.im.shm", shape=self.dark.master_full[0].shape
-        )
-
-    def _init_shm_VIS_cam(self, name, frame):
-        """
-        Static function that initializes or re-initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from camera {name}.
-        Use a freshly-snapped frame {frame} to correctly set the buffer shape and datatype.
-        Upon re-initialization, close the existing buffer.
-        """
-        if name == "im_cam":
-            if hasattr(self, "buffer_im_VIS_im"):
-                self.buffer_im_VIS_im.close()
-            self.buffer_im_VIS_im = SimpleShm(
-                "/dev/shm/rtdisp/vis_cam_image.im.shm",
-                shape=frame.shape,
-                dtype=frame.dtype,
-            )
-        elif name == "pup_cam":
-            if hasattr(self, "buffer_im_VIS_pup"):
-                self.buffer_im_VIS_pup.close()
-            self.buffer_im_VIS_pup = SimpleShm(
-                "/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-                shape=frame.shape,
-                dtype=frame.dtype,
-            )
-        else:
-            raise ValueError(
-                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
-            )
-
+        self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+                                        shape=self.dark.master_full[0].shape)
+        
     def disp_initialize_shm_VIS_cam(self):
         """
-        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from both cameras.
-        Snaps a frame from each to determine the correct shape and data type.
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
             - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
-            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout.
+            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout. 
         """
-
+        # Snapping camera views
         with LucidUtils() as myut:
-            for name in ("im_cam", "pup_cam"):
-                # Snapping camera view and initializing buffer
-                frame = myut.snap(name)
-                self._init_shm_VIS_cam(name, frame)
+            frame_pup = self.get_pupil_view(ut=myut, refresh=True)
+            frame_im = self.get_image_view(ut=myut, refresh=True)
+         
+        self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
+                                        shape=self.frame_VIS_pup.shape, dtype=frame_pup.dtype)
+        self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
+                                        shape=self.frame_VIS_im.shape, dtype=frame_im.dtype)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of broadband data, deduced from the ROIs defined on the IR camera frame.
             - buffer_broad; (2, depth, width); Broadband flux and error for the latest "depth" amount of readouts, in selected ROIs (# nROIs = "width")
             - buffer_broad_null; (2, depth, 3); Broadband null depth and error for the latest "depth" amount of readouts and null depths N2, N3 and Ndiff.
-
+        
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
-        self.buffer_broad = RollingShm3D(
-            "/dev/shm/rtdisp/nott_buffer_broad.im.shm", depth=depth, nax_2=width
-        )
+        self.buffer_broad = RollingShm3D("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
+                                        depth=depth, nax_2=width)
 
-        self.buffer_broad_null = RollingShm3D(
-            "/dev/shm/rtdisp/nott_buffer_broad_null.im.shm", depth=depth, nax_2=3
-        )
+        self.buffer_broad_null = RollingShm3D("/dev/shm/rtdisp/nott_buffer_broad_null.im.shm",
+                                        depth=depth, nax_2=3)
 
-    def disp_initialize_shm_dispersed(self, depth=30, width=None, nwls=None):
+    def disp_initialize_shm_dispersed(self, depth=30, width=None,
+                                        nwls=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of dispersed data, deduced from the ROIs defined on the IR camera frame.
                 buffer name           buffer dim.          buffer content
@@ -543,28 +373,22 @@ class HumInt(object):
             nwls = int(np.count_nonzero(self.sc_mask))
 
         # Buffers with latest "depth" entries
-        self.buffer_disp = RollingShm2D(
-            "/dev/shm/rtdisp/nott_buffer_disp.im.shm", depth=depth, nax_1=width * nwls
-        )
-        self.buffer_disp_null = RollingShm2D(
-            "/dev/shm/rtdisp/nott_buffer_disp_null.im.shm", depth=depth, nax_1=3 * nwls
-        )
+        self.buffer_disp = RollingShm2D("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
+                                        depth=depth, nax_1=width*nwls)        
+        self.buffer_disp_null = RollingShm2D("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
+                                        depth=depth, nax_1=3*nwls)
         # Buffers with latest entry
-        self.buffer_disp_last = SimpleShm(
-            "/dev/shm/rtdisp/nott_buffer_disp_last.im.shm", shape=(2, width * nwls)
-        )
-        self.buffer_disp_null_last = SimpleShm(
-            "/dev/shm/rtdisp/nott_buffer_null_last.im.shm", shape=(2, 3 * nwls)
-        )
-
-        spacers = nwls * np.arange(width + 1)
+        self.buffer_disp_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_disp_last.im.shm", shape=(2, width*nwls))
+        self.buffer_disp_null_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_null_last.im.shm", shape=(2, 3*nwls))
+        
+        spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
     # Wavelength calibration
 
     def solve_spectral_cal_linear(self):
         """
-            This simple spectral calibration writes to `self.lambs` the
+            This simple spectral calibration writes to `self.lambs` the 
         wavelength value [m] of each roi pixel. Relies on `low_lamb` ...
         `low_index` ... from config file. This method creates a *linear*
         range based on these values for basic correspondance to pixels.
@@ -575,19 +399,17 @@ class HumInt(object):
         up_index = config.getint(INFRATEC_SECTION, "up_index")
         low_index = config.getint(INFRATEC_SECTION, "low_index")
         roi_len = int(round(config.getarray(INFRATEC_SECTION, "ROI 1")[3]))
-        lamb_per_pix = (up_lamb - low_lamb) / (up_index - low_index)
+        lamb_per_pix = (up_lamb-low_lamb) / (up_index-low_index)
         lamb_0 = up_lamb - up_index * lamb_per_pix
         lamb_max = lamb_0 + roi_len * lamb_per_px
         calibration = np.linspace(lamb_0, lamb_max, roi_len)
         self.lambs = 1.0e-6 * calibration
-        self.sc_mask = np.logical_and(
-            self.lambs >= 1.0e-6 * low_lamb, self.lambs <= 1.0e-6 * up_lamb
-        )
-
+        self.sc_mask = np.logical_and(self.lambs >= 1.0e-6 * low_lamb, self.lambs <= 1.0e-6 * up_lamb )
+        
     @property
     def sc_lambs(self):
         """
-        This is the array of wavelengths limited to the science mask.
+            This is the array of wavelengths limited to the science mask.
         """
         return self.lambs[self.sc_mask]
 
@@ -602,78 +424,45 @@ class HumInt(object):
     def four2three(self, position):
         return position - position[self.non_motorized]
 
-    def deltaval2p(self, deltaval, frac, amp=800.0):
+    def deltaval2p(self, deltaval, frac, amp=800.):
         lam_micron = 1.0e6 * self.lam_mean
         deltap = lam_micron * frac
-        inner = -deltaval / (amp * 2 * np.sin(2 * np.pi / lam_micron * deltap))
-        p = lam_micron / (2 * np.pi) * np.arcsin(inner)
+        inner = -deltaval / (amp * 2 * np.sin(2*np.pi/lam_micron * deltap))
+        p = lam_micron /(2*np.pi) * np.arcsin(inner)
         return p
 
-    # -----------------------------------------#
-    # Shutter / beamsplitter control functions |
-    # -----------------------------------------#
-    # WIP: Integrate state and status checks in Motor.py, inheriting the methods here for both shutters and beamsplitter.
-
+    #---------------------------#
+    # Shutter control functions |
+    # --------------------------#
+    
     class ShutterError(OSError):
         pass
-
-    class BeamSplitterError(OSError):
-        pass
-
+    
     @property
     def shutter_state(self):
-
+        
         # Shutters' (treated like motors) status
-        motor_status = np.array(
-            [ashutter.getStatusInformation()[0] for ashutter in self.shutters]
-        )
-        standing = motor_status == "STANDING"
+        motor_status = np.array([ashutter.getStatusInformation()[0] for ashutter in self.shutters])
+        standing = (motor_status == 'STANDING')
 
-        shutter_state = np.zeros(len(self.shutters), dtype=np.int32)
+        shutter_state = np.zeros(len(self.shutters),dtype=np.int32)
         for i, ashutter in enumerate(self.shutters):
             # Throw error if a shutter is still moving.
             if not standing[i]:
-                raise self.ShutterError(
-                    "Shutter " + str(ashutter.name) + " is still moving."
-                )
-            # Throw error if a shutter is neither moving, neither standing still in an open/closed position.
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is still moving.")
+            # Throw error if a shutter is neither moving, neither standing still in an open/closed position. 
             if not (ashutter.is_open or ashutter.is_closed):
-                raise self.ShutterError(
-                    "Shutter "
-                    + str(ashutter.name)
-                    + " is neither moving, nor in an open/closed position."
-                )
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is neither moving, nor in an open/closed position.")
             if ashutter.is_open:
                 shutter_state[i] = 1
         return shutter_state
-
-    @property
-    def beamsplitter_state(self):
-
-        bs_state = 0
-        # Beamsplitter (motor) status
-        motor_status = self.beamsplitter.getStatusInformation()[0]
-        standing = motor_status == "STANDING"
-        # Throw error if beamsplitter is still moving.
-        if not standing:
-            raise self.BeamSplitterError("Beamsplitter is still moving.")
-        # Throw error if the beamsplitter is neither moving, neither standing still in an open/closed position.
-        if not (self.beamsplitter.is_open or self.beamsplitter.is_closed):
-            raise self.BeamSplitterError(
-                "Beamsplitter is neither moving, nor in an open/closed position."
-            )
-        if self.beamsplitter.is_open:
-            bs_state = 1
-        return bs_state
-
+    
     def shutter_set(self, values, wait=True, verbose=False):
-
+        
         # Shutters state on motor level : operational?
-        motor_state = np.array(
-            [ashutter.getStatusInformation()[1] for ashutter in self.shutters]
-        )
-        operational = motor_state == "OPERATIONAL"
-
+        motor_state = np.array([ashutter.getStatusInformation()[1] for ashutter in self.shutters])
+        operational = (motor_state == 'OPERATIONAL')
+        
         # Shutter state on surface level : open/closed?
         shutter_state = self.shutter_state
         # Input shutter state
@@ -682,13 +471,11 @@ class HumInt(object):
         else:
             thevalues = values
         shutter_change = np.invert(shutter_state == thevalues)
-
+            
         for i, ashutter in enumerate(self.shutters):
             # Throw error if a shutter is not operational.
             if not operational[i]:
-                raise self.ShutterError(
-                    "Shutter " + str(ashutter.name) + " is not in operational state."
-                )
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is not in operational state.")
             values_bool = thevalues.astype(bool)
             # Only move if current and input state differ
             if shutter_change[i]:
@@ -700,42 +487,9 @@ class HumInt(object):
             sleep(self.shutter_pad)
         if verbose:
             for i, ashutter in enumerate(self.shutters):
-                print(
-                    i,
-                    ashutter.getStatusInformation()[1],
-                    ashutter.getPositionAndSpeed()[0],
-                )
+                print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
 
-    def beamsplitter_set(self, value: int, wait=True, verbose=False):
-
-        # Beamsplitter state on motor level; operational?
-        motor_state = self.beamsplitter.getStatusInformation()[1]
-        operational = motor_state == "OPERATIONAL"
-
-        # Beamsplitter state on surface level : open/closed?
-        bs_state = self.beamsplitter_state
-        # Compare to input beamsplitter state
-        bs_change = np.invert(bs_state == value)
-
-        # Throw error if beamsplitter is not operational.
-        if not operational:
-            raise self.BeamSplitterError("Beamsplitter is not in operational state.")
-        value_bool = bool(value)
-        # Only move if current and input state differ.
-        if bs_change:
-            if value_bool:
-                self.beamsplitter.open()
-            else:
-                self.beamsplitter.close()
-        if wait and bs_change:
-            sleep(self.bs_pad)
-        if verbose:
-            print(
-                self.beamsplitter.getStatusInformation()[1],
-                self.beamsplitter.getPositionAndSpeed()[0],
-            )
-
-    # ------------------------------#
+    #------------------------------#
     # Delay line control functions |
     # -----------------------------#
 
@@ -746,74 +500,114 @@ class HumInt(object):
     def dl_state(self):
         """
             Return an array of floats with the current delay line positions (um).
-        Raises a DelayLineError if any delay line is not OPERATIONAL or not STANDING.
+        Raises a DelayLineError if any delay line is not OPERATIONAL or not STANDING. 
         """
         positions = np.nan * np.zeros(len(self.delay_lines))
 
         for i, dl in enumerate(self.delay_lines):
             if not dl.is_operational:
-                raise self.DelayLineError(
-                    f"Delay line {dl.name} is not in OPERATIONAL state."
-                )
+                raise self.DelayLineError(f"Delay line {dl.name} is not in OPERATIONAL state.")
             if not dl.is_standing:
-                raise self.DelayLineError(
-                    f"Delay line {dl.name} is not in STANDING status."
-                )
+                raise self.DelayLineError(f"Delay line {dl.name} is not in STANDING status.")
             positions[i] = dl.position_microns
 
         return positions
 
-    def dl_set_abs(self, target_pos, cp_backlash=True, verbose=False):
+    def dl_set_abs(self, target_pos, timeout_min=10.0, verbose=False):
         """
-        Move delay lines to absolute target positions (um).
-
-        Delegates to the DelayLine ActuatorCluster (self.dl), which
-        dispatches simultaneous threads and handles backlash correction
-        and arrival polling internally via Actuator.move_sequence.
-
-        Parameters
-        ----------
-        target_pos : array of float (um)
-            Target positions. Pass np.nan to skip a DL.
-        cp_backlash : bool
-            Whether to apply backlash correction. Default True.
-        verbose : bool
-            Print per-DL achieved position after motion. Default False.
+            Move delay lines to the target positions target_pos (um).
+        Params
+        ------
+        target_pos : array of floats (um)
+            - Pass np.nan to ignore a DL
+        timeout_min : minimum timeout for the move, in seconds. Default 10s.
+        verbose : whether to print position and status, boolean
 
         Raises
         ------
-        DelayLineError
-            If any DL is not operational before the move, or if target
-            is outside the travel range.
+        DelayLineError: if a DL is not operational | standing before the move
+                        or fails to return to an operational | standing state after certain timeout
+        ValueError: if the target position is outside the travel range
+
         """
         target_pos = np.asarray(target_pos, dtype=float)
-        if len(target_pos) != len(self.dl):
-            raise self.DelayLineError(
-                f"target_pos length ({len(target_pos)}) must match "
-                f"number of delay lines ({len(self.dl)})."
-            )
+        if not len(target_pos) == len(self.delay_lines):
+            raise self.DelayLineError(f"Target positions (length {len(target_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
+        move_mask = np.logical_not(np.isnan(target_pos))
 
-        # Pre-move operational check
-        for i, dl in enumerate(self.dl.motors):
-            if np.isnan(target_pos[i]):
+        # Pre-move checks and timeout calculation
+        timeouts = np.zeros(len(self.delay_lines))
+        for i, dl in enumerate(self.delay_lines):
+            # Checks
+            if not move_mask[i]:
                 continue
             if not dl.is_operational:
-                raise self.DelayLineError(f"pre-move: {dl.name} is not OPERATIONAL.")
+                raise self.DelayLineError(f"pre-move: {dl.name} is not in OPERATIONAL state.")
+            if not dl.is_standing:
+                raise self.DelayLineError(f"pre-move: {dl.name} is not in STANDING status.")
+            # Delay line specific timeout
+            distance = abs(target_pos[i] - dl.position_microns)
+            speed = dl._speed # um/s
+            dt_expected = np.abs(distance / speed)
+            # Taking floor timeout of 10s for small motions
+            timeouts[i] = max(5.0*dt_expected, timeout_min)
 
-        # Dispatch + await via cluster
-        self.dl.move_abs_all(target_pos, cp_backlash=cp_backlash, verbose=verbose)
-        self.dl.await_all()
+        # Motion calls
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
+            dl.move_abs(target_pos[i])
+            if verbose:
+                print(f"Moving delay line {dl.name}...")
 
-        if verbose:
-            for i, dl in enumerate(self.dl.motors):
-                if np.isnan(target_pos[i]):
+        # Poll until either in valid state (post-move) or timeout
+        t_start = time()
+        pending = {i for i in range(len(self.delay_lines)) if move_mask[i]}
+        errors = []
+
+        # Keep polling as long as there are still delay lines pending (i.e. pending dictionary is not empty)
+        while pending:
+            dt = time()-t_start
+            # DLs end up in finished if motion complete or if errored.
+            finished = set()
+
+            for i in list(pending):
+                dl = self.delay_lines[i]
+                if not dl.is_operational:
+                    errors.append(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
+                    finished.add(i)
                     continue
-                curr = dl.position_microns
-                print(
-                    f"\n {dl.name}: {curr:.2f} µm  "
-                    f"(target {target_pos[i]:.2f} µm, "
-                    f"error {curr - target_pos[i]:.2f} µm)"
-                )
+
+                if dl.is_standing and dt > 0.1*timeouts[i]:
+                    finished.add(i)
+                    continue
+                
+                if dt > timeouts[i]:
+                    errors.append(f"Timeout: {dl.name} did not reach STANDING status within {timeouts[i]} s.")
+                    finished.add(i)
+                    continue
+
+            pending -= finished
+            if pending:
+                sleep(0.05)
+
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
+
+        # Post-move checks & reporting
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
+            if not dl.is_operational:
+                errors.append(f"post-move: {dl.name} is not OPERATIONAL after move.")
+            elif verbose:
+                sleep(2) # to ensure correct position readout
+                curr_pos = dl.position_microns
+                print(f"Delay line {dl.name} settled at position {curr_pos} um,"
+                      f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+                
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
 
     def dl_set_rel(self, delta_pos, verbose=False):
         """
@@ -821,14 +615,12 @@ class HumInt(object):
         Params
         ------
         delta_pos : array of floats (um)
-            - Pass 0.0 or np.nan to skip a DL
+            - Pass 0.0 or np.nan to skip a DL 
         """
         delta_pos = np.asarray(delta_pos, dtype=float)
-
-        if not len(delta_pos) == len(self.dl):
-            raise self.DelayLineError(
-                f"Input position offsets (length {len(delta_pos)}) must match the amount of available delay lines {len(self.delay_lines)}."
-            )
+           
+        if not len(delta_pos) == len(self.delay_lines):
+            raise self.DelayLineError(f"Input position offsets (length {len(delta_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
 
         target_pos = np.nan * np.zeros(len(self.delay_lines))
         for i, dl in enumerate(self.delay_lines):
@@ -841,7 +633,7 @@ class HumInt(object):
         """
            Wrapper to only move a single delay line {index}.
         If relative True: treat pos as a delta_pos (rel)
-        If relative False: treat pos as a target_pos (abs)
+        If relative False: treat pos as a target_pos (abs) 
         """
         target_pos = np.nan * np.zeros(len(self.delay_lines))
         if relative:
@@ -849,226 +641,99 @@ class HumInt(object):
         else:
             target_pos[index] = pos
         self.dl_set_abs(target_pos, verbose=verbose)
-
-    # -------------------------#
+            
+    #-------------------------#
     # Piezo control functions |
-    # -------------------------#
+    #-------------------------#
 
     def get_position(self):
         pos = self.interf.values.copy()
         pos -= self.offset
         return pos
 
-    def move(self, position):
+    def move(self, position ):
         # print(f"moving to {position:.3e}")
         values = self.four2three(position) + self.offset
         self.interf.send(any_values=values)
 
     def relative_move(self, motion):
         thepos = self.get_position()
-        thepos[self.act_index] += motion
+        thepos[self.act_index] += motion 
         self.interf.send(any_values=thepos)
 
-    # ----------------------------#
+    #----------------------------#
     # Tip-tilt control functions |
     # ---------------------------#
+    
+    # WIP 
 
-    # WIP
-
-    # --------------------------------------#
+    #--------------------------------------#
     # Visible camera interfacing functions |
     # -------------------------------------#
-
+    
     # WIP
 
-    def poweron_VIS_cam(self):
-        """
-        Power on both visible cameras via the PoE switch.
-        """
-        self._ng.toggle_power(self._ng_im_port, True)
-        self._ng.toggle_power(self._ng_pup_port, True)
-        print("Visible cameras powered on via PoE. Waiting for cameras to boot...")
-        sleep(20.0)
-        print("Visible cameras available on network.")
+    def get_image_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_im = ut.snap("im_cam")
+        else:
+            frame_im = ut.snap("im_cam")
 
-    def shutdown_VIS_cam(self):
-        """
-        Stop any active stream, disconnect the corresponding camera and power off both visible cameras via the PoE switch.
-        """
-        # Stop stream and disconnect
-        for name, process in self._stream_process.items():
-            if process is not None:
-                self.stop_stream_VIS_cam(name)
-        # Power off both cameras
-        self._ng.toggle_power(self._ng_im_port, False)
-        self._ng.toggle_power(self._ng_pup_port, False)
-        print("Streams closed, visible cameras powered off via PoE.")
+        if refresh:
+            self.frame_VIS_im = frame_im
+        return frame_im
 
-    def configure_VIS_cam_readout(self, name, **params):
-        """
-        Configure the readout parameters for camera {name}.
-        Upon changing the PixelFormat parameter of the camera, re-initialize the associated shm buffer with the corresponding, new datatype.
-        """
+    def get_pupil_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_pup = ut.snap("pup_cam")
+        else:
+            frame_pup = ut.snap("pup_cam")
+            
+        if refresh:
+            self.frame_VIS_pup = frame_pup
+        return frame_pup
 
-        with LucidUtils() as myut:
-            myut.configure_camera_readout(name, **params)
-            if not myut.readout_configured[name]:
-                raise RuntimeError(
-                    f"Configuration of camera {name} failed. Datatype of the shm buffer could not be refreshed."
-                )
-            # If PixelFormat changed, refresh shm buffer datatype.
-            if "PixelFormat" in params:
-                frame = myut.snap(name)
-                self._init_shm_VIS_cam(name, frame)
+    def configure_vis_cam_readout(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_readout(name, params)
+            if name == "im_cam":
+                _ = self.get_image_view(ut, True)
+            elif name == "pup_cam":
+                _ = self.get_pupil_view(ut, True)
 
-    def configure_VIS_cam_stream(self, name, **params):
-        with LucidUtils() as myut:
-            myut.configure_camera_stream(name, **params)
+        # WIP: Upon change of camera pixelformat/datatype, refresh VIS_cam buffer dtypes
+        #      and find a way to propagate the new dtype to the shm level (see shmlib methods)
+
+    def configure_vis_cam_stream(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_stream(name, params)
 
     def push_to_shm(self, name, frame):
-        """
-        Function that pushes a frame from camera {name} to its associated shm buffer.
-        The datatypes of frame and buffer objects are forced to match at the level of buffer initialization / camera configuration.
-        """
-        if name == "im_cam":
-            if not hasattr(self, "buffer_im_VIS_im"):
-                raise RuntimeError(
-                    f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
-                )
-            self.buffer_im_VIS_im.push(frame)
-        elif name == "pup_cam":
-            if not hasattr(self, "buffer_im_VIS_pup"):
-                raise RuntimeError(
-                    f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
-                )
-            self.buffer_im_VIS_pup.push(frame)
-        else:
-            raise ValueError(
-                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
-            )
+        # Callback function passed to lucid_utils.start_thread() for visible camera streaming
 
-    def snap_VIS_cam(self, name):
-        """
-        Function that snaps a single frame from camera {name} and pushes it to the associated shm buffer.
-        Cannot be called if a streaming process is active on the camera.
-        This to avoid writing data to the buffer through two channels (snap_VIS_cam and the streaming process) and data corrupting as a result.
-        """
-        if self._stream_process.get(name) is not None:
-            raise RuntimeError(
-                f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot."
-            )
+        # WIP
 
-        with LucidUtils() as myut:
-            frame = myut.snap(name)
-        self.push_to_shm(name, frame)
-        return frame
+        # Based on camera name {name}, push the frame data {frame} to the right buffer.
+        # return nothing
+        return
+        
 
-    def _save_ref(self, name, beam_nr, x, y, r):
-        """
-        Function that stores a given beam centroid position and dimension in the reference state of lucid_utils and writes it to the config file.
-        """
-        beam_name = "beam" + str(beam_nr)
-        section = "ref_im" if name == "im_cam" else "ref_pup"
-        value = str((round(x, 4), round(y, 4), round(r, 4)))
-        ref_state[name][beam_name] = (x, y, r)
-        config.config_parser.set(section, beam_name, value)
-        config.write()
-        print(
-            f"Reference beam state saved for {beam_name} on camera {name}: x={x:.4f}, y={y:.4f}, r={r:.4f}."
-        )
+    def start_stream_vis_cam(self, name, ut):
+        # Visible camera streaming, on camera {name}
 
-    def fit_VIS_cam(self, name, beam_nr, visual_feedback=False, save_ref=False):
-        """
-        Function that fits a beam centroid to a frame acquired by camera {name}. Returns position (x,y) and radius r of beam number {beam_nr}.
-        Cannot be called if a streaming process is active on the camera.
-        If save_ref is True, saves the acquired beam centroid and dimension to the config file.
-        """
-        if self._stream_process.get(name) is not None:
-            raise RuntimeError(
-                f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot."
-            )
+        # WIP
 
-        with LucidUtils() as myut:
-            x, y, r = myut.fit(name, beam_nr, visual_feedback)
-        if save_ref:
-            self._save_ref(name, beam_nr, x, y, r)
-        return x, y, r
+        # Pass ut as parameter so you can call stop_streaming_callback on it from outside!!
+        # 1) Create a thread, passing the camera name and above callback function
+        # 2) Deprecate w,h in start_thread
+        # 3) Complete documentation: "call stop_streaming_callback" to stop the stream. Or wrap it in a method, your call.
+        # 4) ! Note: the callback function, passed to start_thread and thus called "inside lucid_utils", remembers where it comes from - where it is defined (here).
+        # hence you can call functions/fields/whatever defined in this script on it.
+        return
 
-    @staticmethod
-    def _VIS_cam_process(name, shm_fname, stop_event):
-        """
-        Function that opens a connection to camera {name} (via LucidUtils) and streams acquired frames to shm object {shm_fname} until {stop_event} is set.
-        Target function for the visible camera streaming process, see below.
-        """
-        with LucidUtils() as myut:
-            myut.start_streaming(name)
-            shm_obj = shm(shm_fname)
-            try:
-                while not stop_event.is_set():
-                    frame = myut._get_frame(
-                        myut.devices[name], myut.devices[name].nodemap
-                    )
-                    shm_obj.set_data(frame)
-            finally:
-                myut.stop_streaming(name)
-
-    def start_stream_VIS_cam(self, name):
-        """
-        Function that starts a process dedicated to streaming frames from camera {name} to its associated shm buffer.
-        Returns (process, stop_event).
-        Call stop_stream_VIS_cam() to stop the process.
-        """
-        if name == "im_cam":
-            shm_fname = "/dev/shm/rtdisp/vis_cam_image.im.shm"
-        elif name == "pup_cam":
-            shm_fname = "/dev/shm/rtdisp/vis_cam_pupil.im.shm"
-        else:
-            raise ValueError(
-                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
-            )
-
-        if not hasattr(self, "buffer_im_VIS_im") and name == "im_cam":
-            raise RuntimeError(
-                f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
-            )
-        if not hasattr(self, "buffer_im_VIS_pup") and name == "pup_cam":
-            raise RuntimeError(
-                f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
-            )
-
-        if self._stream_process.get(name) is not None:
-            raise RuntimeError(f"Camera {name} is already streaming to buffer.")
-
-        stop_event = mp.Event()
-        process = mp.Process(
-            target=HumInt._VIS_cam_process,
-            args=(name, shm_fname, stop_event),
-            daemon=True,
-        )
-        process.start()
-
-        self._stream_process[name] = process
-        self._stream_stop_event[name] = stop_event
-        return process, stop_event
-
-    def stop_stream_VIS_cam(self, name):
-        """
-        Stop the visible camera streaming process for camera {name}.
-        """
-        process = self._stream_process.get(name)
-        stop_event = self._stream_stop_event.get(name)
-
-        if process is None:
-            print(f"Camera {name} is not streaming.")
-            return
-
-        stop_event.set()
-        process.join()
-        self._stream_process[name] = None
-        self._stream_stop_event[name] = None
-        print(f"Stream stopped for visible camera {name}.")
-
-    # ------------------#
+    #------------------#
     # Sample functions |
     # -----------------#
 
@@ -1109,38 +774,38 @@ class HumInt(object):
             sleep(self.pad)
         return res, std
 
-    # -----------------------------#
+    #-----------------------------#
     # Image calibration functions |
-    # -----------------------------#
+    #-----------------------------#
 
     def get_dark(self, dt):
         print("Taking darks")
         measurement = self.sample_long(dt=dt)
         self.dark = measurement.mean(axis=0)
-        self.bg_noise = measurement.std(axis=0) / np.sqrt(measurement.shape[0])
+        self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
         print("You can remove the shutters")
 
-    def get_frames(self, dt):
+    def get_frames(self,dt):
         # Timespan dt in seconds
-
+        
         # db_time returns stamps in unix_time_ms since 01/01/1970 00:00:00, as registered in redis
         start = self.db_time()
         sleep(dt)
         end = self.db_time()
         # Fetching (timestamp,integration time) pairs, for each camera frame captured in this timeframe dt, from redis.
         pairs = get_field("cam_integtime", start, end, False)
-        # Fetching InfraTec timestamps registered in this timeframe
-        unix_stamps = pairs[:, 0]
+        # Fetching InfraTec timestamps registered in this timeframe        
+        unix_stamps = pairs[:,0]
         ids = []
         for unix_stamp in unix_stamps:
             utc_stamp = unix_to_datetime(unix_stamp)
             frame_id = datetime_to_id(utc_stamp)
             ids.append(frame_id)
         # Fetching integration time, as registered in redis for each frame
-        integtimes = pairs[:, 1]  # microseconds
+        integtimes = pairs[:,1] # microseconds
         # Creating a Frame object by given ids
         frames = Frame(ids, integtimes)
-
+        
         return frames
 
     def frame_sequence(self, dt, shutter_state=None, verbose=False):
@@ -1161,10 +826,8 @@ class HumInt(object):
             # Bring shutters back
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
-
-    def get_frames_cal(
-        self, dt=10.0, dark=None, frames=None, sequence=False, crop_sci_mask=True
-    ):
+    
+    def get_frames_cal(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
         Calibrates frames (dark- and background-subtraction) and collapses pixel columns to return dispersed readouts and associated errors in each ROI.
 
@@ -1180,7 +843,7 @@ class HumInt(object):
             If True: gets a sequence of calibrated frames (dark- and background-subtracted) and calculates broadband and dispersed data for each
         crop_sci_mask : whether to crop wavelength dimension to the science mask (boolean)
             ! Buffer always gets updated with the cropped data
-
+            
         Returns:
         --------
         cal_disp, cal_disp_std; If not sequence (nwls, nROIs) each; value and error of/on the dispersed readout (axis 1) in all ROIs (axis 2)
@@ -1194,22 +857,16 @@ class HumInt(object):
         if not sequence:
             # Get calibrated master science frame
             cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
-            if crop_sci_mask:
-                cal_disp, cal_disp_std = (
-                    cal_disp[self.sc_mask, :],
-                    cal_disp_std[self.sc_mask, :],
-                )
-
+            if crop_sci_mask:            
+                cal_disp, cal_disp_std = cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:]
+                
             def push_disp(cal_disp, cal_disp_std, crop_sci_mask):
                 # Stack values and errors
-                cal_disp_stack = np.stack((cal_disp, cal_disp_std), axis=0)
+                cal_disp_stack = np.stack((cal_disp, cal_disp_std),axis=0)
                 # Dispersed data in waterfall format
                 if not crop_sci_mask:
-                    cal_disp_stack = cal_disp_stack[:, self.sc_mask, :]
-                cal_disp_stack_waterfall = cal_disp_stack.transpose((0, 2, 1)).reshape(
-                    cal_disp_stack.shape[0],
-                    cal_disp_stack.shape[1] * cal_disp_stack.shape[2],
-                )
+                    cal_disp_stack = cal_disp_stack[:,self.sc_mask,:]
+                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall[0])
                 self.buffer_disp_last.push(cal_disp_stack_waterfall)
 
@@ -1217,23 +874,19 @@ class HumInt(object):
             if self.auto_display:
                 self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
                 push_disp(cal_disp, cal_disp_std, crop_sci_mask)
-
+        
         else:
             cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
             if crop_sci_mask:
-                cal_disp, cal_disp_std = (
-                    cal_disp[:, self.sc_mask, :],
-                    cal_disp_std[:, self.sc_mask, :],
-                )
+                cal_disp, cal_disp_std = cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:]
 
         return cal_disp, cal_disp_std
 
-    def get_frames_cal_broad(
-        self, dt=10.0, dark=None, frames=None, sequence=False, crop_sci_mask=True
-    ):
+
+    def get_frames_cal_broad(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
         Calibrates frames (dark- and background-subtraction) and also collapses all pixels to return broadband readouts in each ROI.
-
+        
         Parameters:
         -----------
         see get_frames_cal
@@ -1245,7 +898,7 @@ class HumInt(object):
                                   If sequence (nframes, nROIs) each
         """
 
-        def calc_broad(cal_disp, cal_disp_std):
+        def calc_broad(cal_disp, cal_disp_std):        
             # Calculate broadband readouts and errors
             cal_broad = cal_disp.sum(axis=-2)
             cal_broad_std = np.linalg.norm(cal_disp_std, axis=-2)
@@ -1258,9 +911,7 @@ class HumInt(object):
             self.buffer_broad.push(cal_broad_stack)
 
         # Get dispersed readout
-        cal_disp, cal_disp_std = self.get_frames_cal(
-            dt, dark, frames, sequence, crop_sci_mask
-        )
+        cal_disp, cal_disp_std = self.get_frames_cal(dt, dark, frames, sequence, crop_sci_mask)
         # Collapse to broadband
         cal_broad, cal_broad_std = calc_broad(cal_disp, cal_disp_std)
         # Push to buffers
@@ -1268,32 +919,24 @@ class HumInt(object):
             if not crop_sci_mask:
                 # Crop
                 if sequence:
-                    cal_broad_crop, cal_broad_std_crop = calc_broad(
-                        cal_disp[:, self.sc_mask, :], cal_disp_std[:, self.sc_mask, :]
-                    )
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:])    
                 else:
-                    cal_broad_crop, cal_broad_std_crop = calc_broad(
-                        cal_disp[self.sc_mask, :], cal_disp_std[self.sc_mask, :]
-                    )
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
                     push_broad(cal_broad_crop, cal_broad_std_crop)
             else:
                 if not sequence:
                     push_broad(cal_broad, cal_broad_std)
 
         return cal_disp, cal_disp_std, cal_broad, cal_broad_std
-
+            
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
-        cal_disp, cal_disp_std = self.get_frames_cal(
-            dt=dt, dark=dark, sequence=sequence
-        )
+        cal_disp, cal_disp_std = self.get_frames_cal(dt=dt, dark=dark, sequence=sequence)
         np.save("cal_disp", cal_disp)
         np.save("cal_disp_std", cal_disp_std)
         return
 
     def get_frames_cal_broad_to_np(self, dt, dark=None, sequence=False):
-        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.get_frames_cal_broad(
-            dt=dt, dark=dark, sequence=sequence
-        )
+        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.get_frames_cal_broad(dt=dt, dark=dark, sequence=sequence)
         np.save("cal_disp", cal_disp)
         np.save("cal_disp_std", cal_disp_std)
         np.save("cal_broad", cal_broad)
@@ -1301,18 +944,18 @@ class HumInt(object):
         return
 
     def science_frame_sequence(self, dt, verbose=False):
-        return self.frame_sequence(dt, shutter_state=[1, 1, 1, 1], verbose=verbose)
-
+        return self.frame_sequence(dt, shutter_state=[1,1,1,1], verbose=verbose)
+    
     def dark_frame_sequence(self, dt, verbose=False):
-        return self.frame_sequence(dt, shutter_state=[0, 0, 0, 0], verbose=verbose)
+        return self.frame_sequence(dt, shutter_state=[0,0,0,0], verbose=verbose)
 
     def dark_sequence(self, dt=0.5, verbose=False):
-        self.shutter_set(np.array([0, 0, 0, 0]), wait=True, verbose=verbose)
+        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
         mydark = self.get_dark(dt=dt)
-        self.shutter_set(np.array([1, 1, 1, 1]), wait=True, verbose=verbose)
+        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         return mydark
 
-    def identify_outputs(self, data, rois_crop, rois_data, use_geom=True, snr_thresh=5):
+    def identify_outputs(self,data,rois_crop,rois_data,use_geom=True,snr_thresh=5):
         # 'data' : numpy array containing the calibrated image data of the full master frame
         # 'rois_crop' : list of Roi objects, as defined in the windowed master frame
         # 'rois_data': numpy array containing the calibrated image data of each ROI in the full master frame
@@ -1320,33 +963,31 @@ class HumInt(object):
         # 'snr_thresh' : SNR threshold for identification of outputs.
         # ! Limiting calculations to data within the ROIs for efficiency
         # Returns a numpy array of booleans, indicating True for output pixels.
-
+        
         if use_geom:
-            outputs_pos = np.ones_like(rois_data, dtype=bool)
+            outputs_pos = np.ones_like(rois_data,dtype=bool)
         else:
-            outputs_pos = rois_data >= snr_thresh
-
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
+            outputs_pos = (rois_data >= snr_thresh)
+            
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(8,8))
         fig.suptitle("Please verify correct matching of ROIs to chip outputs.")
-
+        
         ax.imshow(data)
-
+        
         for roi_crop in rois_crop:
-            x, y, w, h = roi_crop.x, roi_crop.y, roi_crop.w, roi_crop.h
-            rect = patches.Rectangle(
-                (x, y), w, h, linewidth=1, edgecolor="r", facecolor="none"
-            )
+            x,y,w,h = roi_crop.x,roi_crop.y,roi_crop.w,roi_crop.h
+            rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor='r', facecolor='none')
             # Add the patch to the axis
             ax.add_patch(rect)
-
+        
         plt.tight_layout()
         plt.show()
-
+            
         return outputs_pos
 
-    # -------------------------#
+    #-------------------------#
     # Surface level functions |
-    # -------------------------#
+    #-------------------------#
 
     def characterize_null(self, dt, dark=None, frames=None, sequence=False):
         """
@@ -1357,21 +998,19 @@ class HumInt(object):
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
         # Fetch data products of a master science frame
-        disp, disp_err, broad, broad_err = self.get_frames_cal_broad(
-            dt, dark, frames, sequence
-        )
+        disp, disp_err, broad, broad_err = self.get_frames_cal_broad(dt, dark, frames, sequence)
         # Fetching ROI indices of interferometric outputs
         roi_idx = np.zeros(4, dtype=np.int32)
-        for i in range(0, 4):
-            roi_idx[i] = self.channel_roi_link["I" + str(i + 1)]
+        for i in range(0,4):
+            roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
         idx_I1, idx_I2, idx_I3, idx_I4 = roi_idx[0], roi_idx[1], roi_idx[2], roi_idx[3]
 
         # Calculating null depths and propagating errors
         # 1) Summing the bright outputs (I1, I4):
         brightsum_broad = broad[idx_I1] + broad[idx_I4]
         brightsum_broad_err = np.hypot(broad_err[idx_I1], broad_err[idx_I4])
-        brightsum_disp = disp[:, idx_I1] + disp[:, idx_I4]
-        brightsum_disp_err = np.hypot(disp_err[:, idx_I1], disp_err[:, idx_I4])
+        brightsum_disp = disp[:,idx_I1] + disp[:,idx_I4]
+        brightsum_disp_err = np.hypot(disp_err[:,idx_I1], disp_err[:,idx_I4])
         # 2) Calculating relative errors
         # a) Relative error sum of brights
         brightsum_broad_rel_err = np.divide(brightsum_broad_err, brightsum_broad)
@@ -1380,47 +1019,15 @@ class HumInt(object):
         broad_rel_err = np.divide(broad_err, broad)
         disp_rel_err = np.divide(disp_err, disp)
         # 3) Calculating null depths, propagating errors
-        N2_broad, N2_disp = (
-            np.divide(broad[idx_I2], brightsum_broad),
-            np.divide(disp[:, idx_I2], brightsum_disp),
-        )
-        N2_broad_err, N2_disp_err = (
-            np.multiply(
-                N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)
-            ),
-            np.multiply(
-                N2_disp, np.hypot(disp_rel_err[:, idx_I2], brightsum_disp_rel_err)
-            ),
-        )
-        N3_broad, N3_disp = (
-            np.divide(broad[idx_I3], brightsum_broad),
-            np.divide(disp[:, idx_I3], brightsum_disp),
-        )
-        N3_broad_err, N3_disp_err = (
-            np.multiply(
-                N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)
-            ),
-            np.multiply(
-                N3_disp, np.hypot(disp_rel_err[:, idx_I3], brightsum_disp_rel_err)
-            ),
-        )
-        Ndiff_broad, Ndiff_broad_err = (
-            N3_broad - N2_broad,
-            np.hypot(N2_broad_err, N3_broad_err),
-        )
-        Ndiff_disp, Ndiff_disp_err = (
-            N3_disp - N2_disp,
-            np.hypot(N2_disp_err, N3_disp_err),
-        )
+        N2_broad, N2_disp = np.divide(broad[idx_I2], brightsum_broad), np.divide(disp[:,idx_I2], brightsum_disp)
+        N2_broad_err, N2_disp_err = np.multiply(N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)), np.multiply(N2_disp, np.hypot(disp_rel_err[:,idx_I2], brightsum_disp_rel_err))
+        N3_broad, N3_disp = np.divide(broad[idx_I3], brightsum_broad), np.divide(disp[:,idx_I3], brightsum_disp)
+        N3_broad_err, N3_disp_err = np.multiply(N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)), np.multiply(N3_disp, np.hypot(disp_rel_err[:,idx_I3], brightsum_disp_rel_err))
+        Ndiff_broad, Ndiff_broad_err = N3_broad - N2_broad, np.hypot(N2_broad_err, N3_broad_err)
+        Ndiff_disp, Ndiff_disp_err = N3_disp - N2_disp, np.hypot(N2_disp_err, N3_disp_err)
 
         # Bundling data
-        broad_null_stack = np.stack(
-            [
-                [N2_broad, N3_broad, Ndiff_broad],
-                [N2_broad_err, N3_broad_err, Ndiff_broad_err],
-            ],
-            axis=0,
-        )
+        broad_null_stack = np.stack([[N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err]], axis=0)
         disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=0)
         disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=0)
         disp_null_stack = np.stack([disp_null, disp_null_err], axis=0)
@@ -1428,26 +1035,19 @@ class HumInt(object):
         # Pushing data to corresponding buffers
         self.buffer_broad_null.push(broad_null_stack)
         # Dispersed data in waterfall format
-        disp_null_stack_waterfall = disp_null_stack.reshape(
-            disp_null_stack.shape[0],
-            disp_null_stack.shape[1] * disp_null_stack.shape[2],
-        )
+        disp_null_stack_waterfall = disp_null_stack.reshape(disp_null_stack.shape[0], disp_null_stack.shape[1]*disp_null_stack.shape[2])
         self.buffer_disp_null.push(disp_null_stack_waterfall[0])
         self.buffer_disp_null_last.push(disp_null_stack_waterfall)
 
         return disp_null_stack, broad_null_stack
 
-    def characterize_null_nifits_format(
-        self, dt, dark=None, sequence=False, frames=None
-    ):
-        disp_null_stack, broad_null_stack = self.characterize_null(
-            dt, dark, sequence, frames
-        )
+    def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
+        disp_null_stack, broad_null_stack = self.characterize_null(dt, dark, sequence, frames)
 
         # WIP
 
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
-        default_params = np.array([100, 50, 1900, 2000])
+        default_params = np.array([100,50,1900,2000])
         if isinstance(parameters, str):
             if parameters == "?":
                 print(f"Parameters for a triangle wave (all integers):")
@@ -1462,32 +1062,40 @@ class HumInt(object):
             pass
         else:
             raise KeyError("Make a valide parameter array")
-        beam_index2letter = {1: "t", 2: "y", 3: "u"}
-        beam2letter = {2: "t", 3: "y", 4: "u"}
+        beam_index2letter = {
+            1:"t",
+            2:"y",
+            3:"u"
+        }
+        beam2letter = {
+            2:"t",
+            3:"y",
+            4:"u"
+            
+        }
         if beam_index is not None:
-            self.interf.ser.write(
-                self.interf.vals2bytes(beam_index2letter[beam_index], parameters)
-            )
+            self.interf.ser.write(self.interf.vals2bytes(beam_index2letter[beam_index], parameters))
 
-    def find_dark(
-        self, frac=0.25, dt=0.5, gain=0.1, roi_index=3, verbose=True, amp=800.0
-    ):
+
+    def find_dark(self, frac=0.25, dt=0.5, gain=0.1,
+                 roi_index=3, verbose=True,
+                 amp=800.0):
         current_pos = self.get_position()
-        pos_a = current_pos[self.act_index] + 1e6 * frac * self.lam_mean
-        pos_b = current_pos[self.act_index] - 1e6 * frac * self.lam_mean
+        pos_a = current_pos[self.act_index] + 1e6 * frac*self.lam_mean
+        pos_b = current_pos[self.act_index] - 1e6 * frac*self.lam_mean
         if verbose:
             print(f"Trying {pos_a:.3f} and {pos_b:.3f}")
         a = self.move_and_sample(pos_a, dt=dt, move_back=False)
         b = self.move_and_sample(pos_b, dt=dt, move_back=False)
         # self.move(current_pos[self.act_index])
-        a_val = a[:, roi_index].mean(axis=0)
-        a_std = a[:, roi_index].std(axis=0)
-        b_val = b[:, roi_index].mean(axis=0)
-        b_std = b[:, roi_index].std(axis=0)
+        a_val = a[:,roi_index].mean(axis=0)
+        a_std = a[:,roi_index].std(axis=0)
+        b_val = b[:,roi_index].mean(axis=0)
+        b_std = b[:,roi_index].std(axis=0)
         raw_offset = a_val - b_val
         p = self.deltaval2p(raw_offset, frac, amp=amp)
         # offset = (raw_offset) * gain
-        offset = (p) * gain
+        offset = (p ) * gain
         newpos = current_pos[self.act_index] + offset
         if verbose:
             print(f"a = {a_val:.1f} pm{a_std:.1f},   b = {b_val:.1f} pm{b_std:.1f}")
@@ -1504,11 +1112,11 @@ class HumInt(object):
     def do_scan(self, beam_index, start=-3.0, end=3.0, nsteps=1000, dt=0.1):
         step_vals = np.linspace(start, end, nsteps)
         starting_pos = self.get_position()
-        steps = starting_pos[None, :] * np.ones_like(step_vals)[:, None]
-        steps[:, beam_index] = step_vals
+        steps = starting_pos[None,:] * np.ones_like(step_vals)[:,None]
+        steps[:,beam_index] = step_vals
         mask = np.zeros(self.nb_beams)
         mask[beam_index] = 1
-        step_full = steps[:, None] * mask[None, :]
+        step_full = steps[:,None] * mask[None,:]
         if dt is None:
             test_sample = self.sample_long_cal(1.0)
             rms = np.std(test_sample, axis=0)
@@ -1528,11 +1136,9 @@ class HumInt(object):
         print("Scan ended")
         return steps, results, stds
 
-    def evaluate_lag(
-        self, act_index, n=10, lag_min=0.05, lag_max=0.15, amplitude=0.5, roi_index=3
-    ):
+    def evaluate_lag(self, act_index, n=10, lag_min=0.05, lag_max=0.15, amplitude=0.5, roi_index=3):
         start_pos = self.get_position()
-        lags = np.linspace(lag_min, lag_max, n)
+        lags = np.linspace(lag_min,lag_max, n)
         signal_amplitudes = []
         signal_stds = []
         for i, alag in enumerate(lags):
@@ -1559,51 +1165,38 @@ class HumInt(object):
         plt.ylabel("Amplitude of light variation")
         plt.show()
 
-    def chip_calib_direct(
-        self,
-        mode_series,
-        dt=0.5,
-        kappa=None,
-        kappa_std=None,
-        mode_shutter_probe=None,
-        offset_scan=0.0,
-        saveto="/dev/shm/cal_dir.fits",
-        overwrite=True,
-        dn_object=None,
-        bidir=True,
-        verbose=False,
-        kappa_threshold=1e-2,
-    ):
+    def chip_calib_direct(self, mode_series, dt=0.5,
+                    kappa=None, kappa_std=None,
+                    mode_shutter_probe=None,
+                    offset_scan=0.,
+                    saveto="/dev/shm/cal_dir.fits",
+                    overwrite=True,
+                    dn_object=None, bidir=True, verbose=False,
+                    kappa_threshold = 1e-2):
         from astropy.time import Time
-
         if saveto is not None:
             prefix = "HIERARCH NOTT "
             import astropy.io.fits as fits
-
             hdulist = fits.HDUList()
-            myheader = fits.Header(
-                [
-                    (prefix + "co2_ppm", 1e6),
-                    (prefix + "temp", 25.0),
-                    (prefix + "rhum", 0.3),
-                    (prefix + "pres", 1e3),
-                    (prefix + "co2", 450),
-                    (prefix + "co2", 450),
-                    (prefix + "exptime", dt),
-                    ("DATE-OBS", Time.now().isot),
-                ]
-            )
+            myheader = fits.Header([(prefix+"co2_ppm", 1e6),
+                                 (prefix+"temp", 25.0),
+                                 (prefix+"rhum", 0.3),
+                                 (prefix+"pres", 1e3),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"exptime", dt),
+                                 ("DATE-OBS", Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
             "temp": 25.0,
             "rhum": 0.3,
             "pres": 1e3,
-            "co2": 450,
+            "co2" : 450,
         }
         ntel = 4
         print("Kappa matrix")
-        # m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
+        #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
             test_sample, rms = self.get_frames_cal(1.0)
@@ -1628,40 +1221,37 @@ class HumInt(object):
                     std_kappa.append(rms)
             kappa = np.array(kappa)
             std_kappa = np.array(std_kappa)
-
+    
             sleep(2.0)
-
-            # Compute the element of the kappa matrix
+    
+            #Compute the element of the kappa matrix
             print(f"Shape: ", kappa.shape)
             # (5, 106, 10)
             # (frame, wl, output)
             n_wl = kappa.shape[1]
             kappa_new = []
             for kappa_line in kappa[1:]:
-                kappa_new.append(kappa_line - kappa[0])  # Background correction
+                kappa_new.append(kappa_line-kappa[0])  #Background correction
             kappa_new = np.array(kappa_new)
-            kappa_new = kappa_new[:, :, :-2]  # Removes the background ROI values
+            kappa_new = kappa_new[:,:,:-2]   #Removes the background ROI values
             for i, akrow in enumerate(kappa_new):
-                kappa_new[i, :, :] = akrow / (np.sum(akrow) / n_wl)
+                kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
             for k, acell in np.ndenumerate(kappa_new):
                 if kappa_new[k] <= kappa_threshold:
-                    kappa_new[k] = 0.0
+                    kappa_new[k] = 0.
             kappa_old = np.copy(kappa)
             kappa_reduced = np.copy(kappa_new)
-        else:  # kappa is provided
+        else: # kappa is provided
             inherit_kappa = True
-            if verbose:
-                print("Reusing kappa")
+            if verbose: print("Reusing kappa")
             pass
-        print("Transfer matrix")
+        print("Transfer matrix")   
         if mode_shutter_probe is None:
             self.shutter_set(np.ones(4).astype(bool))
         else:
-            raise NotImplementedError(
-                "Not implemented direct calib with shutters: Do your kappa matrix separately"
-            )
+            raise NotImplementedError("Not implemented direct calib with shutters: Do your kappa matrix separately")
         mode_set = offset_scan + mode_series
-        f0 = 0.5 / self.lam_mean * 1e-6
+        f0 = 0.5/self.lam_mean * 1e-6
         test_conditions["stepseries"] = mode_set
         all_pistons = []
         all_fringes = []
@@ -1672,8 +1262,7 @@ class HumInt(object):
             # mysequence = amode[None,:] * stepseries[:,None]
             fringes, fringes_std = [], []
             pistons = []
-            if verbose:
-                print("Scan of mode: ", amodesteps)
+            if verbose : print("Scan of mode: ", amodesteps)
             for apos in amodesteps:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
@@ -1692,123 +1281,64 @@ class HumInt(object):
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
         all_pistons = np.array(all_pistons)
-        self.move(np.array([0.0, 0.0, 0.0, 0.0]))
+        self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
-        phases = (
-            2
-            * np.pi
-            / (self.sc_lambs[None, None, :, None] * 1.0e6)
-            * all_pistons[:, :, None, :]
-        )
+        phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
 
         if saveto is not None:
             if inherit_kappa:
                 hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
-                hdulist.append(
-                    fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None)
-                )
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
-                hdulist.append(
-                    fits.hdu.ImageHDU(data=kappa_reduced.T, name="KAPPA", header=None)
-                )
-                hdulist.append(
-                    fits.hdu.ImageHDU(
-                        data=std_kappa.T[1:, :, :-2], name="KAPPAE", header=None
-                    )
-                )
-                hdulist.append(
-                    fits.hdu.ImageHDU(data=kappa[:, :, :, :-2], name="RAW_KAP"),
-                    header=None,
-                )
-                hdulist.append(
-                    fits.hdu.ImageHDU(data=kappa_std[:, :, :, :-2], name="RAW_KAPE"),
-                    header=None,
-                )
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_reduced.T, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[1:,:,:-2], name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa[:,:,:,:-2], name="RAW_KAP"), header=None)
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std[:,:,:,:-2], name="RAW_KAPE"), header=None)
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=mode_series,
-                    name="MODE-SER",
-                    header=None,
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes[:, :, :, :-2], name="FRINGES", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes_std[:, :, :, :-2], name="FRINGESE", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes[:, :, :, -2:], name="BG", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes_std[:, :, :, -2:], name="BGE", header=None
-                )
-            )
+            hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
-            hdulist.append(
-                fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None)
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None)
-            )
+            hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
         return fringes
 
-    def chip_calib_pairwise(
-        self,
-        amp,
-        steps=10,
-        dt=0.5,
-        offset_scan=0.0,
-        saveto="/dev/shm/cal_raw.fits",
-        overwrite=True,
-        dn_object=None,
-        bidir=True,
-        verbose=False,
-        kappa_threshold=1e-2,
-    ):
+    def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
+                    offset_scan=0., saveto="/dev/shm/cal_raw.fits",
+                    overwrite=True,
+                    dn_object=None, bidir=True, verbose=False,
+                    kappa_threshold = 1e-2):
         from astropy.time import Time
-
         if saveto is not None:
             prefix = "HIERARCH NOTT "
             import astropy.io.fits as fits
-
             hdulist = fits.HDUList()
-            myheader = fits.Header(
-                [
-                    (prefix + "co2_ppm", 1e6),
-                    (prefix + "temp", 25.0),
-                    (prefix + "rhum", 0.3),
-                    (prefix + "pres", 1e3),
-                    (prefix + "co2", 450),
-                    (prefix + "co2", 450),
-                    (prefix + "exptime", dt),
-                    ("DATE-OBS", Time.now().isot),
-                ]
-            )
+            myheader = fits.Header([(prefix+"co2_ppm", 1e6),
+                                 (prefix+"temp", 25.0),
+                                 (prefix+"rhum", 0.3),
+                                 (prefix+"pres", 1e3),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"exptime", dt),
+                                 ("DATE-OBS", Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
             "temp": 25.0,
             "rhum": 0.3,
             "pres": 1e3,
-            "co2": 450,
+            "co2" : 450,
         }
         ntel = 4
         print("Kappa matrix")
         myprobe = shutter_probe(ntel)
         shutter_state = np.abs(myprobe[0]).astype(bool)
         self.shutter_set(shutter_state)
-        # m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
+        #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
             test_sample, rms = self.get_frames_cal(dt=1.0)
@@ -1826,53 +1356,49 @@ class HumInt(object):
                 std_kappa.append(rms)
         kappa = np.array(kappa)
         std_kappa = np.array(std_kappa)
-
+    
         sleep(2.0)
-
-        # Compute the element of the kappa matrix
+    
+        #Compute the element of the kappa matrix
         print(f"Shape: ", kappa.shape)
         # (5, 106, 10)
         # (frame, wl, output)
         n_wl = kappa.shape[1]
         kappa_new = []
         for kappa_line in kappa[1:]:
-            kappa_new.append(kappa_line - kappa[0])  # Background correction
+            kappa_new.append(kappa_line-kappa[0])  #Background correction
         kappa_new = np.array(kappa_new)
-        kappa_new = kappa_new[:, :, :-2]  # Removes the background ROI values
+        kappa_new = kappa_new[:,:,:-2]   #Removes the background ROI values
         for i, akrow in enumerate(kappa_new):
-            kappa_new[i, :, :] = akrow / (np.sum(akrow) / n_wl)
+            kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
         for k, acell in np.ndenumerate(kappa_new):
             if kappa_new[k] <= kappa_threshold:
-                kappa_new[k] = 0.0
+                kappa_new[k] = 0.
         kappa_old = np.copy(kappa)
         kappa = np.copy(kappa_new)
-        print("Transfer matrix")
-
-        A = np.array(
-            [
-                [1, -1, 0, 0],
-                [1, 0, -1, 0],
-                [1, 0, 0, -1],
-                [0, 1, -1, 0],
-                [0, 1, 0, -1],
-                [0, 0, 1, -1],
-            ]
-        )
+        print("Transfer matrix")   
+    
+        A = np.array([[1,-1,0,0],
+                      [1,0,-1,0],
+                      [1,0,0,-1],
+                      [0,1,-1,0],
+                      [0,1,0,-1],
+                      [0,0,1,-1]])
         stepseries = offset_scan + np.linspace(-amp, amp, steps)
-        f0 = 0.5 / self.lam_mean * 1e-6
+        f0 = 0.5/self.lam_mean * 1e-6
         test_conditions["A"] = A
         test_conditions["stepseries"] = stepseries
         all_pistons = []
         all_fringes = []
         all_fringes_std = []
         for amode in A:
-            shutter_state = np.abs(amode).astype(bool)
+            shutter_state= np.abs(amode).astype(bool)
             self.shutter_set(shutter_state)
             sleep(10 * self.pad)
-            mysequence = amode[None, :] * stepseries[:, None]
+            mysequence = amode[None,:] * stepseries[:,None]
             fringes, fringes_std = [], []
             pistons = []
-            print("Scan of baseline: ", amode)
+            print("Scan of baseline: ",amode)
             for apos in mysequence:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
@@ -1886,66 +1412,35 @@ class HumInt(object):
             all_fringes.append(fringes)
             all_fringes_std.append(fringes_std)
             all_pistons.append(pistons)
-            relsteps = 2 * stepseries
+            relsteps = 2*stepseries
             # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
         all_pistons = np.array(all_pistons)
-        self.move(np.array([0.0, 0.0, 0.0, 0.0]))
+        self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
-        phases = (
-            2
-            * np.pi
-            / (self.sc_lambs[None, None, :, None] * 1.0e6)
-            * all_pistons[:, :, None, :]
-        )
+        phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
 
         if saveto is not None:
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
-            hdulist.append(
-                fits.hdu.ImageHDU(data=std_kappa.T, name="KAPPAE", header=None)
-            )
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T, name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes[:, :, :, :-2], name="FRINGES", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes_std[:, :, :, :-2], name="FRINGESE", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes[:, :, :, -2:], name="BG", header=None
-                )
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(
-                    data=all_fringes_std[:, :, :, -2:], name="BGE", header=None
-                )
-            )
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
-            hdulist.append(
-                fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None)
-            )
-            hdulist.append(
-                fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None)
-            )
+            hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
         return kappa, A, test_conditions
 
-    def process_calib_pairwise(
-        self,
-        datafile="/dev/shm/cal_raw_d.fits",
-        saveto="/dev/shm/constructed_catm.nifits",
-        overwrite=True,
-        verbose=False,
-    ):
+    def process_calib_pairwise(self, datafile="/dev/shm/cal_raw_d.fits",
+                               saveto="/dev/shm/constructed_catm.nifits",
+                               overwrite=True,
+                              verbose=False, ):
         import astropy.io.fits as fits
-
         prefix = "HIERARCH NOTT "
         hdul = fits.open(datafile)
         phases = hdul["PHASES"].data
@@ -1955,32 +1450,20 @@ class HumInt(object):
         PHI = []
         for i, amode in enumerate(A):
             sleep(10 * self.pad)
-            print("Scan of baseline: ", amode)
+            print("Scan of baseline: ",amode)
             dft_phasor = np.exp(1j * phases)
             dft = dft_phasor.dot(fringes[i] - fringes[i].mean(axis=0))
             if verbose:
                 plt.figure()
-                plt.plot(phases, fringes[i, :, 3], color="C0")
-                plt.plot(phases, fringes[i, :, 4], color="C1")
+                plt.plot(phases, fringes[i,:,3], color="C0")
+                plt.plot(phases, fringes[i,:,4], color="C1")
                 ax2 = plt.gca().twinx()
-                ax2.plot(
-                    phases, np.abs(dft[3]) * dft_phasor.real, color="k", linestyle=":"
-                )
-                ax2.plot(
-                    phases,
-                    np.real(dft[3] * np.conj(dft_phasor)),
-                    color="C0",
-                    linestyle="--",
-                )
+                ax2.plot(phases, np.abs(dft[3])*dft_phasor.real, color="k", linestyle=":")
+                ax2.plot(phases, np.real(dft[3] * np.conj(dft_phasor)), color="C0", linestyle="--")
                 ax2.axvline(np.angle(dft[3]), color="C0")
-                ax2.plot(
-                    phases,
-                    np.real(dft[4] * np.conj(dft_phasor)),
-                    color="C1",
-                    linestyle="--",
-                )
+                ax2.plot(phases, np.real(dft[4] * np.conj(dft_phasor)), color="C1", linestyle="--")
                 ax2.axvline(np.angle(dft[4]), color="C1")
-                for ks in np.arange(-1, 2):
+                for ks in np.arange(-1,2):
                     plt.axvline(np.pi * ks, color="k", linewidth=0.5)
                 plt.title(f"""amp = {np.abs(dft[3]):.2f}, phase = {np.angle(dft[3]):.2f}
                             amp = {np.abs(dft[4]):.2f}, phase = {np.angle(dft[4]):.2f}""")
@@ -1988,61 +1471,50 @@ class HumInt(object):
             PHI.append(np.angle(dft))
         PHI = np.array(PHI)
         print("PHI ", PHI.shape)
-        A2 = A[:3, :]
+        A2 = A[:3,:]
         Ap = np.linalg.pinv(A2)
-        phi = (Ap.dot(-PHI[:3, :])).T
+        phi = (Ap.dot(-PHI[:3,:])).T
         print("phi ", phi.shape)
-        phi = phi - phi[:, 0][:, None]
+        phi = phi - phi[:,0][:,None]
         print("phi ", phi.shape)
         phi_all = np.zeros_like(kappa)
-
+    
         print("phi_all ", phi_all.shape)
-        phi_all[3:5, :] = phi[3:5, :]
-        phi_all[2, 1] = PHI[0, 2]
-        phi_all[5, 2] = 0  # This is debatable
-        phi_all[5, 3] = PHI[-1, 5] - phi_all[5, 2]
+        phi_all[3:5,:] = phi[3:5,:]
+        phi_all[2,1] = PHI[0,2]
+        phi_all[5,2] = 0 # This is debatable
+        phi_all[5,3] = PHI[-1,5] - phi_all[5,2]
 
-        M = np.sqrt(kappa) * np.exp(1j * phi_all)
+        M = np.sqrt(kappa)*np.exp(1j*phi_all)
         if verbose:
             from kernuller.diagrams import plot_outputs_smart as kplot
-
             kplot(M)
         if saveto is not None:
             from nifits.io import oifits as io
-
             ni_catm = io.NI_CATM(data_array=M)
-            mynifit = io.nifits(header=hdul[0].header, ni_catm=ni_catm)
+            mynifit = io.nifits(header=hdul[0].header,
+                                ni_catm=ni_catm)
         return M
 
-    def chip_calib(self, amp, steps=10, dt=0.5, dn_object=None, bidir=True):
+    def chip_calib(self, amp, steps=10, dt=0.5,
+                    dn_object=None, bidir=True):
         test_conditions = {
             "co2_ppm": 1e6,
             "temp": 25.0,
             "rhum": 0.3,
             "pres": 1e3,
-            "co2": 450,
+            "co2" : 450,
         }
         ntel = 4
         myprobe, piston_probe = full_hadamard_probe(ntel, amp, steps=steps, bidir=True)
         # myprobe = shutter_probe(ntel)
-        shutter_phasor = (
-            np.ones_like(self.sc_lambs)[None, :, None] * myprobe[:, None, :]
-        )
-        hadamard_phasor = np.exp(
-            1j
-            * 2
-            * np.pi
-            / self.sc_lambs[None, :, None]
-            * 1e-6
-            * piston_probe[:, None, :]
-        )
+        shutter_phasor = np.ones_like(self.sc_lambs)[None,:,None] * myprobe[:,None,:]
+        hadamard_phasor = np.exp(1j*2*np.pi/self.sc_lambs[None,:,None] * 1e-6*piston_probe[:,None,:])
         probe_series = np.concatenate((shutter_phasor, hadamard_phasor), axis=0)
-        amplitude_full = np.ones(
-            (myprobe.shape[0] + piston_probe.shape[0], myprobe.shape[1])
-        )
-        amplitude_full[: myprobe.shape[0], :] *= myprobe
+        amplitude_full = np.ones((myprobe.shape[0] + piston_probe.shape[0], myprobe.shape[1]))
+        amplitude_full[:myprobe.shape[0], :] *= myprobe
         piston_full = np.ones_like(amplitude_full)
-        piston_full[-piston_probe.shape[0] :, :] = piston_probe
+        piston_full[-piston_probe.shape[0]:, :] = piston_probe
         test_conditions["amplitude_full"] = amplitude_full
         test_conditions["piston_full"] = piston_full
         test_conditions["probe_series"] = probe_series
@@ -2076,7 +1548,7 @@ class HumInt(object):
             a = self.sample_long_cal(dt=dt)
             measurements.append(a.mean(axis=0))
             if dt is not None:
-                stds.append(a.std(axis=0) / np.sqrt(a.shape[0]))
+                stds.append(a.std(axis=0)/np.sqrt(a.shape[0]))
             else:
                 stds.append(rms)
         for ashutter in self.shutters:
@@ -2091,7 +1563,7 @@ class HumInt(object):
             # append
             measurements.append(a.mean(axis=0))
             if dt is not None:
-                stds.append(a.std(axis=0) / np.sqrt(a.shape[0]))
+                stds.append(a.std(axis=0)/np.sqrt(a.shape[0]))
             else:
                 stds.append(rms)
         self.move(initial_position)
@@ -2101,3 +1573,4 @@ class HumInt(object):
 
 
 # TODO: adjust the calibration strategy and long integration strategy for when we miss frames
+
