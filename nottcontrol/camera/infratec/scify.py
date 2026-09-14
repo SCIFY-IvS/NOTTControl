@@ -1437,7 +1437,8 @@ class MainWindow(QMainWindow):
         for roi_widget in self.roi_widgets:
             try:
                 roi_config = self.load_roi_from_config(config, roi_widget.name)
-            except:
+            except Exception as e:
+                print(e)
                 _camera_log(f'Failed to load roi configuration for {roi_widget.name}, using default')
                 roi_config = Roi(i*100, 600, 50,50)
             roi_widget.setConfig(roi_config)
@@ -1449,8 +1450,8 @@ class MainWindow(QMainWindow):
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
         return Roi(
-            int(roi_dimensions[0]) - config.getint(INFRATEC_SECTION, "window_x", fallback=0),
-            int(roi_dimensions[1]) - config.getint(INFRATEC_SECTION, "window_y", fallback=0),
+            int(float(roi_dimensions[0])) - config.getint(INFRATEC_SECTION, "window_x", fallback=0),
+            int(float(roi_dimensions[1])) - config.getint(INFRATEC_SECTION, "window_y", fallback=0),
             roi_dimensions[2],
             roi_dimensions[3],
         )
