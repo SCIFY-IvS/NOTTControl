@@ -6,12 +6,13 @@ logit = logging.getLogger(__name__)
 import numpy as np
 from platform import system
 
+
 def getarray(self, section, key, dtype=np.float64):
     """
-    An extra get method to parse arrays 
-    
+    An extra get method to parse arrays
+
     **Parameters:**
-    
+
     * section   : (str) The section to get the data from
     * key       : (str) The key of the data
     * dtype     : A data type for the array conversion
@@ -19,34 +20,49 @@ def getarray(self, section, key, dtype=np.float64):
     logit.info("Pulling an array from config file")
     thestring = self[section][key]
     thelist = thestring.split(sep=",")
-    thearray = np.array( thelist, dtype=dtype)
+    thearray = np.array(thelist, dtype=dtype)
     return thearray
 
+
 ConfigParser.getarray = getarray
+
 
 def getdate(self, section, key, mode=None):
     """
     An extra get method to parse dates in the GENIE .prm format
-    
+
     **Parameters:**
-    
+
     * section   : (str) The section to get the data from
     * key       : (str) The key of the data
     * mode      : In case we need other formats
     """
     from astropy.time import Time
+
     if mode is not None:
         raise NotImplementedError("No modes implemented yet")
     else:
         logit.info("Pulling an array from config file")
         rawstring = self[section][key]
         listargs = rawstring.replace(" ", "").split(",")
-        formated = listargs[0]+"-"+listargs[1]+"-"+listargs[2]+"T"\
-                +listargs[3]+":"+listargs[4]+":"+listargs[5]
+        formated = (
+            listargs[0]
+            + "-"
+            + listargs[1]
+            + "-"
+            + listargs[2]
+            + "T"
+            + listargs[3]
+            + ":"
+            + listargs[4]
+            + ":"
+            + listargs[5]
+        )
         logit.debug(rawstring)
         logit.debug(formated)
         thetime = Time(formated)
     return thetime
+
 
 ConfigParser.getdate = getdate
 

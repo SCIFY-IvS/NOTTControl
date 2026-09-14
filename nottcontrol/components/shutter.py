@@ -43,6 +43,25 @@ class Shutter(Motor):
         self._open_pos = open_pos
         self._close_pos = close_pos
         self.rtol = rtol # relative tolerance for is_open / is_closed
+
+    @property
+    def position_microns(self):
+        # Current position in um.
+        return self.getPositionAndSpeed()[0] * 1000.0
+
+    @property
+    def target_microns(self):
+        return self.getTargetPosition() * 1000.0
+
+    @property
+    def is_standing(self):
+        status = self.getStatusInformation()[0]
+        return status == "STANDING" or status == "Motor stopped - STANDING"
+
+    @property
+    def is_operational(self):
+        # Motor sState == 'OPERATIONAL'?
+        return self.getStatusInformation()[1] == "OPERATIONAL"
     
     def open(self):
         self.command_move_absolute(self._open_pos).execute()
