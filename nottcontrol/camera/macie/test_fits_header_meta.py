@@ -184,6 +184,41 @@ class FitsHeaderTempTests(unittest.TestCase):
         self.assertEqual(by_key["NREADS"], 1)
         self.assertEqual(by_key["NDROPS"], 3)
 
+    def test_utc_fits_timestamp_is_precise_utc(self) -> None:
+        from datetime import datetime, timezone
+
+        from nottcontrol.camera.macie.fits_header_meta import utc_fits_timestamp
+
+        stamp = datetime(2026, 8, 14, 12, 53, 1, 123456, tzinfo=timezone.utc)
+        self.assertEqual(utc_fits_timestamp(stamp), "2026-08-14T12:53:01.123456Z")
+        naive = datetime(2026, 8, 14, 12, 53, 1, 123456)
+        self.assertTrue(utc_fits_timestamp(naive).endswith("Z"))
+        self.assertIn("T", utc_fits_timestamp())
+
+    def test_file_identity_fits_cards(self) -> None:
+        from datetime import datetime, timezone
+
+        from nottcontrol.camera.macie.fits_header_meta import (
+            file_identity_fits_cards,
+            fits_file_id,
+        )
+
+        self.assertEqual(fits_file_id("nott_20260814_000018.fits"), "000018")
+        self.assertEqual(
+            fits_file_id("nott_20260814_000018_science.fits"), "000018"
+        )
+        when = datetime(2026, 8, 14, 12, 53, 1, 123456, tzinfo=timezone.utc)
+        cards = {
+            key: (value, comment)
+            for key, value, comment in file_identity_fits_cards(
+                "nott_20260814_000018.fits", when=when
+            )
+        }
+        self.assertEqual(cards["FILENAME"][0], "nott_20260814_000018.fits")
+        self.assertEqual(cards["FILEID"][0], "000018")
+        self.assertEqual(cards["DATE-OBS"][0], "2026-08-14T12:53:01.123456Z")
+        self.assertIn("UTC", cards["DATE-OBS"][1])
+
     def test_update_fits_file_header_cards(self) -> None:
         image = numpy.ones((4, 4), dtype=numpy.float32)
         with tempfile.TemporaryDirectory() as tmp:

@@ -84,6 +84,74 @@ sudo apt-get install -y libgl1-mesa-dri mesa-utils
 
 Run the application from an environment where the package is installed. The entry script changes the working directory to the `nottcontrol` package folder so that **`config.ini`** and **`.ui`** files are found next to [`nottcontrol/main.py`](nottcontrol/main.py).
 
+### H2RG / MACIE GigE on nott-server
+
+Science data must use a **direct Ethernet cable** from the MACIE GigE port to **`enp2s0f1`**. The lab wall/switch is too slow for H2RG downloads. Campus, VNC, and SSH stay on **`enp2s0f0`** — do not change that NIC.
+
+| Role | Interface | Address |
+|------|-----------|---------|
+| Campus / VNC / SSH | `enp2s0f0` | `10.33.179.136/24` — **do not change** |
+| MACIE GigE (card) | cable → `enp2s0f1` | `10.33.179.135` |
+| Direct-link host (server only) | `enp2s0f1` | `10.33.179.137/32` |
+
+`10.33.179.137` is not the card. It is only the server’s address on the camera cable. The card stays `10.33.179.135`.
+
+**Do not**
+
+- Put `10.33.179.0/24` on `enp2s0f1` (for example `10.33.179.137/24`). That steals the lab subnet and **drops VNC/SSH**.
+- Change or add addresses on `enp2s0f0` / `10.33.179.136`.
+- Change the MACIE card IP for this layout.
+- Plug MACIE Ethernet into the wall when you need science-rate GigE.
+
+**Bring up the direct link** (until the systemd unit below is installed, or to recover by hand):
+
+```bash
+sudo ip addr flush dev enp2s0f1
+sudo ip link set enp2s0f1 up
+sudo ip addr add 10.33.179.137/32 dev enp2s0f1
+sudo ip route replace 10.33.179.135/32 dev enp2s0f1
+ping -c 3 10.33.179.135
+ip route get 10.33.179.135    # must be enp2s0f1
+ip route get 10.33.179.1      # must stay enp2s0f0 (VNC)
+```
+
+**Make it survive reboot** (install once on nott-server; files in [`nottcontrol/camera/macie/network/`](nottcontrol/camera/macie/network/)):
+
+```bash
+cd /path/to/NOTTControl/nottcontrol/camera/macie/network
+sudo install -m 755 macie-gige-up.sh /usr/local/sbin/macie-gige-up.sh
+sudo install -m 644 macie-gige.service /etc/systemd/system/macie-gige.service
+sudo install -m 644 99-unmanaged-macie.conf /etc/NetworkManager/conf.d/99-unmanaged-macie.conf
+sudo nmcli device set enp2s0f1 managed no
+sudo nmcli general reload
+sudo systemctl daemon-reload
+sudo systemctl enable --now macie-gige.service
+```
+
+If VNC drops, on the local console: `sudo systemctl stop macie-gige.service` then `sudo ip addr flush dev enp2s0f1`.
+
+**Socket receive buffer** (required for Init / MSAC). Without this you get `Unable to set socket receive buffer size at the OS level to 134217 KB`. The `sysctl -w` lines are what actually work; do **not** run `sysctl --system` (it reloads `/etc/sysctl.conf` and restores Lucid’s `33554432`):
+
+```bash
+sudo sysctl -w net.core.rmem_max=268435456
+sudo sysctl -w net.core.rmem_default=134217728
+sudo sysctl -w net.core.wmem_max=268435456
+sudo rm -f /etc/sysctl.d/99-macie-gige.conf
+sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-zz-macie-gige.conf
+sudo sysctl -p /etc/sysctl.d/99-zz-macie-gige.conf
+sysctl net.core.rmem_max   # must be 268435456, not 33554432
+```
+
+Then start `zmq_server` from `nottcontrol/camera/macie/` (close MSAC first — only one client on the card):
+
+```bash
+cd /path/to/NOTTControl/nottcontrol/camera/macie
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/macie_lib
+./macie_exe/zmq_server
+```
+
+Full notes: [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Readme.MD).
+
 ## Configuration
 
 Edit [`nottcontrol/config.ini`](nottcontrol/config.ini) for your site:
@@ -158,6 +226,7 @@ If Arena is not installed, avoid importing or running modules that require `aren
 | `nottcontrol/scifygui.py` | Main window and subsystem dialogs |
 | `nottcontrol/components/` | Motors, shutters, piezo, OPC UA helpers |
 | `nottcontrol/camera/` | Camera UI and drivers |
+| `nottcontrol/camera/macie/network/` | MACIE GigE `/32` bring-up script and systemd unit (nott-server) |
 | `nottcontrol/commands/` | Motor / camera command abstractions |
 | `nottcontrol/script/` | Acquisition, calibration, cophasing scripts and libraries |
 

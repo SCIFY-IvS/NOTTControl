@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -45,6 +46,49 @@ def exposure_fits_cards(
     if ndrops is not None:
         cards.append(("NDROPS", int(ndrops), "Drop frames between groups"))
     return cards
+
+
+def utc_fits_timestamp(when: datetime | None = None) -> str:
+    """UTC timestamp for FITS DATE-OBS: ``YYYY-MM-DDThh:mm:ss.ffffffZ``."""
+    stamp = datetime.now(timezone.utc) if when is None else when
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    else:
+        stamp = stamp.astimezone(timezone.utc)
+    return stamp.strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
+
+
+def fits_file_id(name: str) -> str:
+    """Ramp index from a FITS basename (e.g. ``000018``), else the stem."""
+    stem = Path(name).stem
+    if stem.lower().endswith("_science"):
+        stem = stem[: -len("_science")]
+    if stem.lower() == "preview":
+        return stem
+    parts = stem.rsplit("_", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        return parts[1]
+    return stem
+
+
+def file_identity_fits_cards(
+    path: Path | str,
+    *,
+    when: datetime | None = None,
+) -> list[HeaderCard]:
+    """FILENAME, FILEID, and precise UTC DATE-OBS for a ramp or science FITS."""
+    path = Path(path)
+    name = path.name
+    if when is None:
+        try:
+            when = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        except OSError:
+            when = datetime.now(timezone.utc)
+    return [
+        ("FILENAME", name, "Original FITS file name"),
+        ("FILEID", fits_file_id(name), "Ramp file identifier"),
+        ("DATE-OBS", utc_fits_timestamp(when), "UTC observation time"),
+    ]
 
 # FITS keyword, Redis temperature tag, header comment (unit in brackets).
 H2RG_FITS_TEMP_FIELDS: tuple[tuple[str, str, str], ...] = (

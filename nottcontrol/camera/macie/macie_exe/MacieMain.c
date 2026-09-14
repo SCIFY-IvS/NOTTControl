@@ -210,26 +210,8 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
     bool bOutput = true;
     bool ret = true;
 
-    // Soft SC middle-stripe is unstable across multiple ramps in one ASIC
-    // trigger (Skips1 intermittently ignored → bottom of array). Keep the true
-    // subframe burst counters latched and fire N× single-ramp triggers instead,
-    // with GigE kept open (no re-init / no ReconfigureASIC between ramps).
-    const unsigned int nramps_req = ASIC_NRamps(ptUserData, false, 0);
-    const bool soft_serial =
-        ptUserData->bSoftStripeActive && (nramps_req > 1);
-    const bool prev_keep = ptUserData->bKeepScienceInterface;
-
-    if (soft_serial)
-    {
-        verbose_printf(LOG_INFO, ptUserData,
-                       "Soft SC: serializing %u single-ramp triggers "
-                       "(multi-ramp middle-stripe is unstable).\n",
-                       nramps_req);
-        ptUserData->bSoftSerialRamps = true;
-        ptUserData->uiSoftSerialNRamps = nramps_req;
-        ptUserData->bKeepScienceInterface = true;
-        ASIC_NRamps(ptUserData, true, 1);
-    }
+    // Full frame and SC both use one ASIC trigger with NRamps = ncoadds×nseq
+    // (Jarron multi-ramp). Soft-SC serial re-triggers are disabled.
 
     if (!no_recon)
     {
@@ -257,19 +239,6 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
         timestamp_t t1 = get_timestamp();
         double time_taken = (t1 - t0) / 1000000.0L;
         printf("\nDownloadAndSaveAllUSB() took %f seconds to execute.\n", time_taken);
-    }
-
-    if (soft_serial)
-    {
-        ptUserData->bSoftSerialRamps = false;
-        ptUserData->uiSoftSerialNRamps = 0;
-        ASIC_NRamps(ptUserData, true, nramps_req);
-        ptUserData->bKeepScienceInterface = prev_keep;
-        if (!prev_keep)
-        {
-            // Download kept GigE open for the serial loop; close now.
-            CloseScienceInterface(ptUserData);
-        }
     }
 
     // Check for errors

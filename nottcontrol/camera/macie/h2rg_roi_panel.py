@@ -52,15 +52,27 @@ def redis_key_for_roi(index: int) -> str:
     return f"{REDIS_KEY_PREFIX}{index}"
 
 
-def roi_profile_1d(region: numpy.ndarray) -> numpy.ndarray:
-    """Collapse a 2D ROI to a 1D profile (mean across the narrow axis)."""
+ROI_PLOT_STATISTICS: tuple[tuple[str, str], ...] = (
+    ("Average", "avg"),
+    ("Min", "min"),
+    ("Max", "max"),
+)
+
+
+def roi_profile_1d(
+    region: numpy.ndarray, *, statistic: str = "avg"
+) -> numpy.ndarray:
+    """Collapse a 2D ROI to a 1D profile across the narrow axis."""
     data = numpy.asarray(region, dtype=numpy.float64)
     if data.ndim != 2 or data.size == 0:
         return numpy.asarray([], dtype=numpy.float64)
     height, width = data.shape
-    if width <= height:
-        return numpy.mean(data, axis=1)
-    return numpy.mean(data, axis=0)
+    axis = 1 if width <= height else 0
+    if statistic == "min":
+        return numpy.min(data, axis=axis)
+    if statistic == "max":
+        return numpy.max(data, axis=axis)
+    return numpy.mean(data, axis=axis)
 
 
 def extract_roi_region(
@@ -182,7 +194,7 @@ def compute_roi_brightness(
     """Return per-ROI brightness and cropped regions for configured ROIs.
 
     *rois* are full-frame detector coordinates. When the frame is a subframe,
-    pass the window *origin_* and optional soft-SC *pad_top* so the correct
+    pass the window *origin_* and optional *pad_top* so the correct
     detector pixels are sampled. ROIs outside the science window are omitted.
     """
     height, width = frame.shape[:2]
@@ -278,7 +290,9 @@ class H2rgRoiRow:
         self.name = f"ROI {index}"
         self.db_key = redis_key_for_roi(index)
         self.color = color
+        self.min_values: deque[float] = deque(maxlen=deque_length)
         self.max_values: deque[float] = deque(maxlen=deque_length)
+        self.avg_values: deque[float] = deque(maxlen=deque_length)
         self._row_bg = "background: rgb(248, 250, 251);" if index % 2 == 0 else ""
         row_height = scaled(16)
 
@@ -339,14 +353,31 @@ class H2rgRoiRow:
         self.max_label.setText(self._format_int(result.max))
         self.avg_label.setText(self._format_int(result.avg))
 
+    def add_sample(self, result: BrightnessResults) -> None:
+        self.min_values.append(float(result.min))
+        self.max_values.append(float(result.max))
+        self.avg_values.append(float(result.avg))
+
     def add_max_value(self, value: float) -> None:
         self.max_values.append(float(value))
 
+    def series_for(self, statistic: str) -> deque[float]:
+        if statistic == "min":
+            return self.min_values
+        if statistic == "max":
+            return self.max_values
+        return self.avg_values
+
     def set_history_maxlen(self, maxlen: int) -> None:
-        self.max_values = deque(self.max_values, maxlen=max(1, int(maxlen)))
+        limit = max(1, int(maxlen))
+        self.min_values = deque(self.min_values, maxlen=limit)
+        self.max_values = deque(self.max_values, maxlen=limit)
+        self.avg_values = deque(self.avg_values, maxlen=limit)
 
     def clear_history(self) -> None:
+        self.min_values.clear()
         self.max_values.clear()
+        self.avg_values.clear()
 
 
 def _build_roi_column(
@@ -414,6 +445,7 @@ class H2rgRoiPlots(QWidget):
     """Side-by-side ROI brightness-vs-time and 1D profile plots."""
 
     window_seconds_changed = pyqtSignal(float)
+    statistic_changed = pyqtSignal(str)
 
     def __init__(
         self,
@@ -448,6 +480,21 @@ class H2rgRoiPlots(QWidget):
             self.combo_time_span.addItem(label, float(minutes * 60.0))
         self.combo_time_span.currentIndexChanged.connect(self._on_time_span_changed)
         toolbar.addWidget(self.combo_time_span)
+        stat_label = QLabel("Plot:", self)
+        stat_label.setStyleSheet(_title_style())
+        toolbar.addWidget(stat_label)
+        self.combo_statistic = QComboBox(self)
+        self.combo_statistic.setToolTip(
+            "Min / max / average for the time and 1D plots"
+        )
+        self.combo_statistic.setStyleSheet(PANEL_FIELD_STYLE)
+        self.combo_statistic.setMinimumHeight(scaled(28))
+        self.combo_statistic.setFixedWidth(scaled(96))
+        for label, key in ROI_PLOT_STATISTICS:
+            self.combo_statistic.addItem(label, key)
+        self.combo_statistic.setCurrentIndex(0)
+        self.combo_statistic.currentIndexChanged.connect(self._on_statistic_changed)
+        toolbar.addWidget(self.combo_statistic)
         toolbar.addStretch()
         self.btn_rescale = QPushButton("Rescale Y", self)
         self.btn_rescale.setToolTip("Auto-scale Y on both ROI plots")
@@ -465,15 +512,15 @@ class H2rgRoiPlots(QWidget):
         time_layout = QVBoxLayout(time_host)
         time_layout.setContentsMargins(0, 0, 0, 0)
         time_layout.setSpacing(2)
-        time_title = QLabel("ROI brightness vs time", time_host)
-        time_title.setStyleSheet(_title_style())
-        time_layout.addWidget(time_title)
+        self.time_title = QLabel("ROI average vs time", time_host)
+        self.time_title.setStyleSheet(_title_style())
+        time_layout.addWidget(self.time_title)
         axis = pg.DateAxisItem(orientation="bottom")
         self.pw_time = pg.PlotWidget(axisItems={"bottom": axis})
         _style_light_plot(self.pw_time)
         time_item = self.pw_time.getPlotItem()
         time_item.addLegend(offset=(8, 8))
-        time_item.setLabel("left", "ROI Brightness [ADU]")
+        time_item.setLabel("left", "ROI average [ADU]")
         time_item.setLabel("bottom", "Time [UTC]")
         time_item.enableAutoRange(axis="y", enable=True)
         time_item.enableAutoRange(axis="x", enable=False)
@@ -492,7 +539,7 @@ class H2rgRoiPlots(QWidget):
         _style_light_plot(self.pw_profile)
         profile_item = self.pw_profile.getPlotItem()
         profile_item.addLegend(offset=(8, 8))
-        profile_item.setLabel("left", "ROI Brightness [ADU]")
+        profile_item.setLabel("left", "ROI average [ADU]")
         profile_item.setLabel("bottom", "Pixel index")
         profile_item.enableAutoRange(axis="y", enable=True)
         self._profile_curves: dict[int, object] = {}
@@ -503,6 +550,7 @@ class H2rgRoiPlots(QWidget):
         self._timestamps: deque[float] = deque(maxlen=3600)
         self._window_seconds = float(window_seconds)
         self._select_time_span(self._window_seconds)
+        self._apply_statistic_labels()
 
     def _select_time_span(self, window_seconds: float) -> None:
         """Select the closest span option without emitting a change."""
@@ -532,6 +580,25 @@ class H2rgRoiPlots(QWidget):
         self._window_seconds = seconds
         self.window_seconds_changed.emit(seconds)
 
+    def selected_statistic(self) -> str:
+        data = self.combo_statistic.currentData()
+        return str(data) if data else "avg"
+
+    def statistic_label(self) -> str:
+        text = self.combo_statistic.currentText().strip()
+        return text.lower() if text else "average"
+
+    def _on_statistic_changed(self, _index: int = 0) -> None:
+        self._apply_statistic_labels()
+        self.statistic_changed.emit(self.selected_statistic())
+
+    def _apply_statistic_labels(self) -> None:
+        name = self.statistic_label()
+        self.time_title.setText(f"ROI {name} vs time")
+        axis = f"ROI {name} [ADU]"
+        self.pw_time.getPlotItem().setLabel("left", axis)
+        self.pw_profile.getPlotItem().setLabel("left", axis)
+
     def set_history_limits(self, *, maxlen: int, window_seconds: float) -> None:
         self._timestamps = deque(self._timestamps, maxlen=maxlen)
         self._window_seconds = float(window_seconds)
@@ -546,6 +613,7 @@ class H2rgRoiPlots(QWidget):
         self._clear_plot(self.pw_profile)
         self._time_curves.clear()
         self._profile_curves.clear()
+        self._apply_statistic_labels()
 
     def append_timestamp(self, when: datetime | None = None) -> None:
         stamp = when or datetime.now(timezone.utc).replace(tzinfo=None)
@@ -556,19 +624,21 @@ class H2rgRoiPlots(QWidget):
         if not times:
             self._clear_plot(self.pw_time)
             self._time_curves.clear()
+            self._apply_statistic_labels()
             return
         t0 = times[-1] - self._window_seconds
         plot_item = self.pw_time.getPlotItem()
+        statistic = self.selected_statistic()
         active = {
             index: row
             for index, row in rows.items()
-            if row.time_plot_checkbox.isChecked() and row.max_values
+            if row.time_plot_checkbox.isChecked() and row.series_for(statistic)
         }
         for index in list(self._time_curves):
             if index not in active:
                 plot_item.removeItem(self._time_curves.pop(index))
         for index, row in active.items():
-            ys = list(row.max_values)
+            ys = list(row.series_for(statistic))
             n = min(len(times), len(ys))
             xs = times[-n:]
             ys = ys[-n:]
@@ -597,6 +667,7 @@ class H2rgRoiPlots(QWidget):
             self._clear_plot(self.pw_profile)
             self._profile_curves.clear()
             self.profile_title.setText("ROI profile — check 1D")
+            self._apply_statistic_labels()
             return
         active = {
             index: rows[index]
