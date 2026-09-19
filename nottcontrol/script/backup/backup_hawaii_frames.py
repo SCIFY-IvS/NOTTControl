@@ -9,7 +9,8 @@ Live trees (copied, then pruned):
 ``/archive/*`` is permanent: this script never deletes under archive.
 After a successful rsync, live data older than ``--retention-days`` (default 7)
 is removed from ``/data/nott`` and ``/data/bench_data`` only when the same
-paths already exist in the matching archive tree.
+paths already exist in the matching archive tree with the same file size
+(an empty or truncated archive copy is not enough).
 """
 
 from __future__ import annotations
