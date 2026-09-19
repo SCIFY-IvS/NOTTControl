@@ -4,11 +4,13 @@
 By default this mirrors two trees via rsync over SSH:
 
 1. H2RG GUI / Hawaii archive:  ``/archive/nott`` → local ``.../Data/nott``
-2. MSAC / bench data:          ``/data/bench_data`` → local ``.../Data/bench_data``
+2. MSAC / bench archive:       ``/archive/bench_data`` → local ``.../Data/bench_data``
 
-(The server-side ``backup_hawaii_frames`` job only archives ``/data/nott``;
-MSAC writes under ``/data/bench_data/H2RG_ASIC``, so the local pull must
-copy that tree separately.)
+(The server-side ``backup_hawaii_frames`` job archives ``/data/nott`` and
+``/data/bench_data`` into ``/archive/*``, then applies 1-week retention on
+the live ``/data`` trees. Prefer pulling from ``/archive/bench_data`` so
+local copies stay complete after live data is pruned. Override with
+``--bench-remote /data/bench_data`` if you need the live tree.)
 
 Default local destinations:
 
@@ -44,7 +46,7 @@ from pathlib import Path
 DEFAULT_REMOTE_USER = "labo"
 DEFAULT_REMOTE_HOST = "nott-server"
 DEFAULT_REMOTE_PATH = "/archive/nott"
-DEFAULT_REMOTE_BENCH_PATH = "/data/bench_data"
+DEFAULT_REMOTE_BENCH_PATH = "/archive/bench_data"
 DEFAULT_LOCAL_DEST = Path("/Volumes/T7 Data/Data/nott")
 DEFAULT_LOCAL_BENCH_DEST = Path("/Volumes/T7 Data/Data/bench_data")
 DEFAULT_EXCLUDES = ("old/",)
@@ -202,7 +204,7 @@ def rsync_pull(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Backup nott-server /archive/nott and /data/bench_data to local "
+            "Backup nott-server /archive/nott and /archive/bench_data to local "
             "folders (default: /Volumes/T7 Data/Data/nott and .../bench_data)."
         ),
     )
@@ -220,7 +222,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            f"Local destination for /data/bench_data (default: "
+            f"Local destination for bench archive (default: "
             f"NOTT_BACKUP_BENCH_DEST or {DEFAULT_LOCAL_BENCH_DEST})"
         ),
     )
@@ -259,12 +261,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--skip-bench",
         action="store_true",
-        help="Do not sync /data/bench_data (archive/nott only)",
+        help="Do not sync bench archive (archive/nott only)",
     )
     parser.add_argument(
         "--bench-only",
         action="store_true",
-        help="Sync only /data/bench_data (skip /archive/nott)",
+        help="Sync only bench archive (skip /archive/nott)",
     )
     parser.add_argument(
         "--mode",
@@ -449,7 +451,7 @@ def sync_bench_data(
     excludes: tuple[str, ...],
 ) -> int:
     """Always incremental: MSAC trees are not organized as UTC day folders."""
-    logging.info("=== Sync /data/bench_data (MSAC) ===")
+    logging.info("=== Sync bench archive (MSAC) ===")
     logging.info("Remote: %s@%s:%s", user, host, remote_path)
     logging.info("Local dest: %s", dest_root)
 

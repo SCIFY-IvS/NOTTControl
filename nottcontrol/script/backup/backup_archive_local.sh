@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Pull nott-server archives onto a local computer.
 #
-# By default syncs two trees:
-#   /archive/nott      → /Volumes/T7 Data/Data/nott
-#   /data/bench_data   → /Volumes/T7 Data/Data/bench_data   (MSAC / H2RG_ASIC)
+# By default syncs two trees (permanent archives on nott-server):
+#   /archive/nott        → /Volumes/T7 Data/Data/nott
+#   /archive/bench_data  → /Volumes/T7 Data/Data/bench_data   (MSAC / H2RG_ASIC)
 #
 # Override destinations with --dest / --bench-dest or env vars below.
 #
@@ -25,7 +25,7 @@
 #   NOTT_BACKUP_HOST          remote host (default: nott-server)
 #   NOTT_BACKUP_USER          SSH user (default: labo)
 #   NOTT_BACKUP_REMOTE        remote /archive/nott (default: /archive/nott)
-#   NOTT_BACKUP_BENCH_REMOTE  remote bench path (default: /data/bench_data)
+#   NOTT_BACKUP_BENCH_REMOTE  remote bench archive (default: /archive/bench_data)
 #   NOTT_BACKUP_RSYNC         path to GNU rsync binary
 
 # Re-exec under bash when invoked as `sh script.sh` (dash has no pipefail).

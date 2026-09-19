@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Daily backup of H2RG / Hawaii camera FITS frames to archive storage.
+"""Daily backup of H2RG live data to archive, then 1-week retention on /data.
 
-Frames are stored as FITS files under UTC day folders:
+Live trees (copied, then pruned):
 
-    /data/nott/YYYYMMDD/nott_YYYYMMDD_NNNNNN.fits
-    /data/nott/YYYYMMDD/nott_YYYYMMDD_NNNNNN_science.fits
+    /data/nott          → /archive/nott          (H2RG GUI / zmq FITS)
+    /data/bench_data    → /archive/bench_data    (MSAC / H2RG_ASIC, …)
 
-This script uses rsync for incremental copies into archive/nott/.
+``/archive/*`` is permanent: this script never deletes under archive.
+After a successful rsync, live data older than ``--retention-days`` (default 7)
+is removed from ``/data/nott`` and ``/data/bench_data`` only when the same
+paths already exist in the matching archive tree.
 """
 
 from __future__ import annotations
@@ -20,11 +23,18 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from nottcontrol import config
+from nottcontrol.script.backup.retention import (
+    DEFAULT_RETENTION_DAYS,
+    purge_stale_files,
+    purge_utc_day_folders,
+)
 
 H2RG_SECTION = "H2RG DETECTOR"
 
 DEFAULT_SOURCE = Path("/data/nott")
 DEFAULT_DEST = Path("/archive/nott")
+DEFAULT_BENCH_SOURCE = Path("/data/bench_data")
+DEFAULT_BENCH_DEST = Path("/archive/bench_data")
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 
@@ -80,27 +90,43 @@ def rsync_copy(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Backup Hawaii/H2RG /data/nott FITS data to archive/nott.",
+        description=(
+            "Backup /data/nott and /data/bench_data to /archive/*, then apply "
+            "1-week retention on the live /data trees only."
+        ),
     )
     parser.add_argument(
         "--source",
         type=Path,
         default=None,
-        help=f"FITS root directory (default: {DEFAULT_SOURCE} or linux_fits_directory)",
+        help=f"GUI FITS root (default: {DEFAULT_SOURCE} or linux_fits_directory)",
     )
     parser.add_argument(
         "--dest",
         type=Path,
         default=DEFAULT_DEST,
-        help=f"Archive root directory (default: {DEFAULT_DEST})",
+        help=f"GUI FITS archive root (default: {DEFAULT_DEST})",
+    )
+    parser.add_argument(
+        "--bench-source",
+        type=Path,
+        default=DEFAULT_BENCH_SOURCE,
+        help=f"Bench / MSAC data root (default: {DEFAULT_BENCH_SOURCE})",
+    )
+    parser.add_argument(
+        "--bench-dest",
+        type=Path,
+        default=DEFAULT_BENCH_DEST,
+        help=f"Bench archive root (default: {DEFAULT_BENCH_DEST})",
     )
     parser.add_argument(
         "--mode",
         choices=("incremental", "day"),
         default="incremental",
         help=(
-            "incremental: rsync entire FITS tree (default); "
-            "day: copy one UTC day folder only"
+            "incremental: rsync entire trees (default); "
+            "day: copy one UTC day folder under /data/nott only "
+            "(bench still full incremental unless --skip-bench)"
         ),
     )
     parser.add_argument(
@@ -112,12 +138,45 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--delete",
         action="store_true",
-        help="Remove files in dest that no longer exist in source (incremental mode only)",
+        help=(
+            "rsync --delete on archive trees only: remove files in dest that "
+            "no longer exist in source (never deletes under /data)"
+        ),
+    )
+    parser.add_argument(
+        "--skip-bench",
+        action="store_true",
+        help="Do not backup or purge /data/bench_data",
+    )
+    parser.add_argument(
+        "--skip-nott",
+        action="store_true",
+        help="Do not backup or purge /data/nott",
+    )
+    parser.add_argument(
+        "--retention-days",
+        type=int,
+        default=DEFAULT_RETENTION_DAYS,
+        help=(
+            f"Remove live /data entries older than this many days after a "
+            f"successful archive copy (default: {DEFAULT_RETENTION_DAYS}). "
+            f"Use 0 to disable purge."
+        ),
+    )
+    parser.add_argument(
+        "--no-purge",
+        action="store_true",
+        help="Backup only; do not apply retention on /data",
+    )
+    parser.add_argument(
+        "--purge-only",
+        action="store_true",
+        help="Skip rsync; only run retention on /data (still requires archive)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be copied without writing",
+        help="Show what would be copied/removed without writing",
     )
     parser.add_argument(
         "--log-file",
@@ -147,44 +206,143 @@ def configure_logging(log_file: Path | None) -> None:
     )
 
 
+def apply_retention(
+    *,
+    nott_source: Path,
+    nott_dest: Path,
+    bench_source: Path,
+    bench_dest: Path,
+    retention_days: int,
+    skip_nott: bool,
+    skip_bench: bool,
+    dry_run: bool,
+) -> None:
+    if retention_days <= 0:
+        logging.info("Retention disabled (retention_days=%s)", retention_days)
+        return
+
+    logging.info(
+        "Applying %s-day retention on live /data (archive is never purged)",
+        retention_days,
+    )
+    if not skip_nott:
+        purge_utc_day_folders(
+            nott_source,
+            retention_days=retention_days,
+            archive_root=nott_dest,
+            require_archived=True,
+            dry_run=dry_run,
+        )
+    if not skip_bench:
+        purge_stale_files(
+            bench_source,
+            retention_days=retention_days,
+            archive_root=bench_dest,
+            require_archived=True,
+            dry_run=dry_run,
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     if shutil.which("rsync") is None:
         print("error: rsync not found in PATH", file=sys.stderr)
         return 1
 
     args = parse_args(argv)
+    if args.skip_nott and args.skip_bench:
+        print("error: nothing to do (--skip-nott and --skip-bench)", file=sys.stderr)
+        return 1
+
     source_root = resolve_source(args.source)
     dest_root = args.dest
+    bench_source = args.bench_source
+    bench_dest = args.bench_dest
     log_file = args.log_file or (dest_root / "backup.log")
     configure_logging(log_file)
 
-    logging.info("Hawaii FITS backup start (mode=%s)", args.mode)
-    logging.info("Source root: %s", source_root)
-    logging.info("Dest root: %s", dest_root)
+    logging.info("H2RG / bench backup start (mode=%s)", args.mode)
+    logging.info("Nott source: %s → %s", source_root, dest_root)
+    logging.info("Bench source: %s → %s", bench_source, bench_dest)
 
+    if args.purge_only:
+        apply_retention(
+            nott_source=source_root,
+            nott_dest=dest_root,
+            bench_source=bench_source,
+            bench_dest=bench_dest,
+            retention_days=0 if args.no_purge else args.retention_days,
+            skip_nott=args.skip_nott,
+            skip_bench=args.skip_bench,
+            dry_run=args.dry_run,
+        )
+        logging.info("Purge-only completed")
+        return 0
+
+    rc = 0
     try:
-        if args.mode == "day":
-            day = utc_day_string(args.day)
-            source = source_root / day
-            dest = dest_root / day
-            logging.info("Backing up UTC day %s", day)
-            rc = rsync_copy(source, dest, dry_run=args.dry_run, delete=False)
-        else:
-            rc = rsync_copy(
-                source_root,
-                dest_root,
-                dry_run=args.dry_run,
-                delete=args.delete,
-            )
+        if not args.skip_nott:
+            if args.mode == "day":
+                day = utc_day_string(args.day)
+                source = source_root / day
+                dest = dest_root / day
+                logging.info("Backing up UTC day %s from %s", day, source_root)
+                rc = rsync_copy(source, dest, dry_run=args.dry_run, delete=False)
+            else:
+                rc = rsync_copy(
+                    source_root,
+                    dest_root,
+                    dry_run=args.dry_run,
+                    delete=args.delete,
+                )
+            if rc != 0:
+                logging.error("Nott backup failed with exit code %s", rc)
+                return rc
+
+        if not args.skip_bench:
+            if not bench_source.exists():
+                logging.warning(
+                    "Bench source missing (%s); skipping bench backup/purge",
+                    bench_source,
+                )
+            else:
+                bench_rc = rsync_copy(
+                    bench_source,
+                    bench_dest,
+                    dry_run=args.dry_run,
+                    delete=args.delete if args.mode == "incremental" else False,
+                )
+                if bench_rc != 0:
+                    logging.error("Bench backup failed with exit code %s", bench_rc)
+                    return bench_rc
     except FileNotFoundError as exc:
         logging.error("%s", exc)
         return 1
 
-    if rc == 0:
-        logging.info("Hawaii FITS backup completed successfully")
-    else:
-        logging.error("Hawaii FITS backup failed with exit code %s", rc)
-    return rc
+    if not args.no_purge and not args.dry_run:
+        apply_retention(
+            nott_source=source_root,
+            nott_dest=dest_root,
+            bench_source=bench_source,
+            bench_dest=bench_dest,
+            retention_days=args.retention_days,
+            skip_nott=args.skip_nott,
+            skip_bench=args.skip_bench or not bench_source.exists(),
+            dry_run=False,
+        )
+    elif args.dry_run and not args.no_purge:
+        apply_retention(
+            nott_source=source_root,
+            nott_dest=dest_root,
+            bench_source=bench_source,
+            bench_dest=bench_dest,
+            retention_days=args.retention_days,
+            skip_nott=args.skip_nott,
+            skip_bench=args.skip_bench or not bench_source.exists(),
+            dry_run=True,
+        )
+
+    logging.info("Backup completed successfully")
+    return 0
 
 
 if __name__ == "__main__":
