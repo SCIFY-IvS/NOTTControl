@@ -45,7 +45,21 @@ class RetentionTests(unittest.TestCase):
             self.assertEqual(removed, 0)
             self.assertTrue((data / "20260901").is_dir())
 
+            # Empty archive day dir (mkdir after a failed rsync) must not
+            # count as archived — that would delete the only complete FITS.
             (archive / "20260901").mkdir()
+            removed = purge_utc_day_folders(
+                data,
+                retention_days=7,
+                archive_root=archive,
+                require_archived=True,
+                dry_run=False,
+                now=now,
+            )
+            self.assertEqual(removed, 0)
+            self.assertTrue((data / "20260901").is_dir())
+
+            (archive / "20260901" / "a.fits").write_text("x", encoding="utf-8")
             removed = purge_utc_day_folders(
                 data,
                 retention_days=7,
@@ -92,6 +106,62 @@ class RetentionTests(unittest.TestCase):
             self.assertFalse((data / old_rel).exists())
             self.assertTrue((data / new_rel).exists())
             self.assertTrue((archive / old_rel).exists())
+
+    def test_purge_utc_day_folders_keeps_partial_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "data"
+            archive = root / "archive"
+            live = data / "20260901"
+            archived = archive / "20260901"
+            live.mkdir(parents=True)
+            archived.mkdir(parents=True)
+            (live / "complete.fits").write_text("full", encoding="utf-8")
+            (live / "missing.fits").write_text("only-on-live", encoding="utf-8")
+            (archived / "complete.fits").write_text("full", encoding="utf-8")
+
+            now = datetime(2026, 9, 19, tzinfo=timezone.utc)
+            removed = purge_utc_day_folders(
+                data,
+                retention_days=7,
+                archive_root=archive,
+                require_archived=True,
+                dry_run=False,
+                now=now,
+            )
+            self.assertEqual(removed, 0)
+            self.assertTrue(live.is_dir())
+            self.assertTrue((live / "missing.fits").is_file())
+
+    def test_purge_stale_files_keeps_truncated_archive_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "bench"
+            archive = root / "archive_bench"
+            rel = Path("H2RG_ASIC") / "ramp.fits"
+            (data / "H2RG_ASIC").mkdir(parents=True)
+            (archive / "H2RG_ASIC").mkdir(parents=True)
+            (data / rel).write_text("complete-fits-bytes", encoding="utf-8")
+            (archive / rel).write_text("partial", encoding="utf-8")
+
+            import os
+
+            old_ts = datetime(2026, 8, 1, tzinfo=timezone.utc).timestamp()
+            os.utime(data / rel, (old_ts, old_ts))
+            os.utime(archive / rel, (old_ts, old_ts))
+
+            now = datetime(2026, 9, 19, tzinfo=timezone.utc)
+            removed = purge_stale_files(
+                data,
+                retention_days=7,
+                archive_root=archive,
+                require_archived=True,
+                dry_run=False,
+                now=now,
+            )
+            self.assertEqual(removed, 0)
+            self.assertTrue((data / rel).is_file())
+            self.assertTrue((archive / rel).is_file())
 
 
 if __name__ == "__main__":

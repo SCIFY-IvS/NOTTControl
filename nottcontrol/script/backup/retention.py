@@ -44,6 +44,46 @@ def path_mtime_utc(path: Path) -> datetime:
     return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
 
 
+def _file_size(path: Path) -> int | None:
+    """Return size in bytes if *path* is a readable file, else None."""
+    try:
+        if not path.is_file():
+            return None
+        return path.stat().st_size
+    except OSError:
+        return None
+
+
+def archive_copy_complete(live: Path, archived: Path) -> bool:
+    """True when *archived* is a file with the same size as *live*."""
+    live_size = _file_size(live)
+    archived_size = _file_size(archived)
+    return live_size is not None and live_size == archived_size
+
+
+def utc_day_fully_archived(live_dir: Path, archived_dir: Path) -> bool:
+    """True when every file under *live_dir* has a same-size archive copy.
+
+    An empty live day folder is treated as archived if the archive day
+    directory exists (deleting an empty directory is harmless). A day
+    directory that exists but is empty or truncated — e.g. ``dest.mkdir``
+    plus a failed rsync — is not archived.
+    """
+    if not archived_dir.is_dir():
+        return False
+    try:
+        files = [p for p in live_dir.rglob("*") if p.is_file()]
+    except OSError:
+        return False
+    if not files:
+        return True
+    for path in files:
+        dest = archived_dir / path.relative_to(live_dir)
+        if not archive_copy_complete(path, dest):
+            return False
+    return True
+
+
 def _remove_path(path: Path, *, dry_run: bool) -> None:
     if dry_run:
         logging.info("DRY-RUN would remove %s", path)
@@ -67,7 +107,9 @@ def purge_utc_day_folders(
     """Remove ``YYYYMMDD`` day folders older than the retention window.
 
     If *require_archived* and *archive_root* are set, a day folder is only
-    removed when ``archive_root / YYYYMMDD`` exists.
+    removed when every live file has a same-size copy under
+    ``archive_root / YYYYMMDD``. An empty or partial archive day directory
+    (failed rsync after ``mkdir``) does not count as archived.
     """
     if not data_root.is_dir():
         logging.warning("Retention skip (missing data root): %s", data_root)
@@ -90,9 +132,9 @@ def purge_utc_day_folders(
                 )
                 continue
             archived = archive_root / child.name
-            if not archived.exists():
+            if not utc_day_fully_archived(child, archived):
                 logging.warning(
-                    "Skipping %s: not found in archive (%s)",
+                    "Skipping %s: incomplete or missing archive (%s)",
                     child,
                     archived,
                 )
@@ -124,7 +166,8 @@ def purge_stale_files(
 
     Intended for nested trees without ``YYYYMMDD`` layout (e.g.
     ``/data/bench_data/H2RG_ASIC``). When *require_archived* is true, the same
-    relative path must exist under *archive_root* before a file is deleted.
+    relative path must exist under *archive_root* with the same size before
+    a file is deleted (a truncated ``--partial`` leftover is not enough).
     Empty directories are pruned afterward.
     """
     if not data_root.is_dir():
@@ -156,9 +199,9 @@ def purge_stale_files(
                 )
                 continue
             archived = archive_root / rel
-            if not archived.is_file():
+            if not archive_copy_complete(path, archived):
                 logging.warning(
-                    "Skipping %s: not found in archive (%s)",
+                    "Skipping %s: incomplete or missing archive (%s)",
                     path,
                     archived,
                 )
