@@ -425,6 +425,7 @@ def plot_ramp_qa(
     pixels: np.ndarray | None = None,
     slope_fits: Path | None = None,
     rms_fits: Path | None = None,
+    reset_frame: np.ndarray | None = None,
 ) -> dict[str, float]:
     """Ramp quality: per-pixel slope, residual RMS, and linearity."""
     data = np.asarray(cube, dtype=np.float64)
@@ -436,12 +437,35 @@ def plot_ramp_qa(
     vmin_r, vmax_r = _display_limits(rms)
     vmin_l, vmax_l = _display_limits(last)
 
+    reset_img: np.ndarray | None = None
+    if reset_frame is not None:
+        reset_img = np.asarray(reset_frame, dtype=np.float64)
+        if reset_img.shape != data.shape[1:]:
+            logging.warning(
+                "Reset frame shape %s != ramp plane %s; "
+                "skipping reset reference lines on linearity plot",
+                reset_img.shape,
+                data.shape[1:],
+            )
+            reset_img = None
+
+    # Linearity panel: when a reset frame is available, show absolute ADU
+    # (CDS + reset) so dashed reset levels share the same scale as the curves.
+    if reset_img is not None:
+        lin_data = data + reset_img
+        lin_ylabel = "ADU (absolute)"
+        lin_title = "Linearity (absolute; dashed = reset)"
+    else:
+        lin_data = data
+        lin_ylabel = "ADU"
+        lin_title = "Linearity (median vs sample)"
+
     illum_slope = None
     if illum_box is not None:
         r0, r1, c0, c1 = illum_box
         illum_slope = slope[r0:r1, c0:c1]
         med_illum = np.array(
-            [float(np.nanmedian(plane[r0:r1, c0:c1])) for plane in data],
+            [float(np.nanmedian(plane[r0:r1, c0:c1])) for plane in lin_data],
             dtype=np.float64,
         )
     else:
@@ -450,11 +474,11 @@ def plot_ramp_qa(
     if extra_box is not None:
         er0, er1, ec0, ec1 = extra_box
         med_extra = np.array(
-            [float(np.nanmedian(plane[er0:er1, ec0:ec1])) for plane in data],
+            [float(np.nanmedian(plane[er0:er1, ec0:ec1])) for plane in lin_data],
             dtype=np.float64,
         )
     med_all = np.array(
-        [float(np.nanmedian(plane)) for plane in data],
+        [float(np.nanmedian(plane)) for plane in lin_data],
         dtype=np.float64,
     )
 
@@ -576,15 +600,66 @@ def plot_ramp_qa(
             markersize=5,
             label="median ROI",
         )
+    pix_mean = None
     if pixels is not None and pixels.size:
         pix_mean = np.array(
-            [float(np.mean(data[i, pixels[:, 0], pixels[:, 1]])) for i in range(nplane)],
+            [
+                float(np.mean(lin_data[i, pixels[:, 0], pixels[:, 1]]))
+                for i in range(nplane)
+            ],
             dtype=np.float64,
         )
         ax_lin.plot(t, pix_mean, "^-", color="C3", markersize=5, label="10 brightest")
-    ax_lin.set_title("Linearity (median vs sample)")
+
+    if reset_img is not None:
+        reset_refs: list[tuple[str, float, str]] = [
+            (
+                "reset median full",
+                float(np.nanmedian(reset_img)),
+                "0.45",
+            )
+        ]
+        if illum_box is not None:
+            r0, r1, c0, c1 = illum_box
+            reset_refs.append(
+                (
+                    "reset median box",
+                    float(np.nanmedian(reset_img[r0:r1, c0:c1])),
+                    "C0",
+                )
+            )
+        if extra_box is not None:
+            er0, er1, ec0, ec1 = extra_box
+            reset_refs.append(
+                (
+                    "reset median ROI",
+                    float(np.nanmedian(reset_img[er0:er1, ec0:ec1])),
+                    "#4cc9f0",
+                )
+            )
+        if pixels is not None and pixels.size:
+            reset_refs.append(
+                (
+                    "reset 10 brightest",
+                    float(np.mean(reset_img[pixels[:, 0], pixels[:, 1]])),
+                    "C3",
+                )
+            )
+        for label, value, color in reset_refs:
+            if not np.isfinite(value):
+                continue
+            ax_lin.axhline(
+                value,
+                color=color,
+                linestyle="--",
+                linewidth=1.2,
+                alpha=0.85,
+                label=label,
+            )
+
+    ax_lin.set_title(lin_title)
     ax_lin.set_xlabel("Sample index")
-    ax_lin.set_ylabel("ADU")
+    ax_lin.set_ylabel(lin_ylabel)
     ax_lin.legend(fontsize=8)
     ax_lin.grid(True, alpha=0.3)
 
@@ -720,4 +795,5 @@ def run_detector_qa(
         pixels=pixels,
         slope_fits=out_dir / f"{slug}_msac_qa_slope.fits",
         rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
+        reset_frame=reset_frame,
     )
