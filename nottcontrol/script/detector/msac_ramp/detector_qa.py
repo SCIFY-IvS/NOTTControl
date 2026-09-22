@@ -21,6 +21,7 @@ import numpy as np
 H2RG_N_OUTPUTS = 32
 H2RG_REF_WIDTH = 4
 DEFAULT_FULL_FRAME = 2048
+REF_PIXEL_COLOR = "#e9c46a"
 
 
 def _finite(image: np.ndarray) -> np.ndarray:
@@ -482,6 +483,13 @@ def plot_ramp_qa(
         [float(np.nanmedian(plane)) for plane in lin_data],
         dtype=np.float64,
     )
+    ref_mask = h2rg_ref_mask(data.shape[1:])
+    med_ref: np.ndarray | None = None
+    if ref_mask is not None and bool(ref_mask.any()):
+        med_ref = np.array(
+            [float(np.nanmean(plane[ref_mask])) for plane in lin_data],
+            dtype=np.float64,
+        )
 
     fig = plt.figure(figsize=(14.5, 9.8), layout="constrained")
     try:
@@ -601,6 +609,15 @@ def plot_ramp_qa(
             markersize=5,
             label="median ROI",
         )
+    if med_ref is not None:
+        ax_lin.plot(
+            t,
+            med_ref,
+            "v-",
+            color=REF_PIXEL_COLOR,
+            markersize=5,
+            label="mean ref pixels",
+        )
     pix_mean = None
     if pixels is not None and pixels.size:
         pix_mean = np.array(
@@ -636,6 +653,14 @@ def plot_ramp_qa(
                     "reset median ROI",
                     float(np.nanmedian(reset_img[er0:er1, ec0:ec1])),
                     "#4cc9f0",
+                )
+            )
+        if ref_mask is not None and bool(ref_mask.any()):
+            reset_refs.append(
+                (
+                    "reset mean ref pixels",
+                    float(np.nanmean(reset_img[ref_mask])),
+                    REF_PIXEL_COLOR,
                 )
             )
         if pixels is not None and pixels.size:
