@@ -36,6 +36,7 @@
 #   {session}_msac_qa_reset.png / {session}_msac_qa_ramp.png
 #   {session}_msac_qa_slope.fits / {session}_msac_qa_resid_rms.fits
 # Skip QA with --no-qa.
+# Optional: --show-reset-levels adds dashed reset ADU lines on linearity.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)

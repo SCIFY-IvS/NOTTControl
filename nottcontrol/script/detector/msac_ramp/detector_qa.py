@@ -426,6 +426,7 @@ def plot_ramp_qa(
     slope_fits: Path | None = None,
     rms_fits: Path | None = None,
     reset_frame: np.ndarray | None = None,
+    show_reset_levels: bool = False,
 ) -> dict[str, float]:
     """Ramp quality: per-pixel slope, residual RMS, and linearity."""
     data = np.asarray(cube, dtype=np.float64)
@@ -438,7 +439,7 @@ def plot_ramp_qa(
     vmin_l, vmax_l = _display_limits(last)
 
     reset_img: np.ndarray | None = None
-    if reset_frame is not None:
+    if show_reset_levels and reset_frame is not None:
         reset_img = np.asarray(reset_frame, dtype=np.float64)
         if reset_img.shape != data.shape[1:]:
             logging.warning(
@@ -449,8 +450,8 @@ def plot_ramp_qa(
             )
             reset_img = None
 
-    # Linearity panel: when a reset frame is available, show absolute ADU
-    # (CDS + reset) so dashed reset levels share the same scale as the curves.
+    # Linearity panel: optional absolute ADU (CDS + reset) so dashed reset
+    # levels share the same scale as the curves.
     if reset_img is not None:
         lin_data = data + reset_img
         lin_ylabel = "ADU (absolute)"
@@ -749,6 +750,7 @@ def run_detector_qa(
     extra_box: tuple[int, int, int, int] | None = None,
     session_name: str | None = None,
     session_slug: str | None = None,
+    show_reset_levels: bool = False,
 ) -> None:
     """Write reset and ramp QA products into *out_dir*."""
     out_dir = out_dir.expanduser().resolve()
@@ -796,4 +798,5 @@ def run_detector_qa(
         slope_fits=out_dir / f"{slug}_msac_qa_slope.fits",
         rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
         reset_frame=reset_frame,
+        show_reset_levels=show_reset_levels,
     )

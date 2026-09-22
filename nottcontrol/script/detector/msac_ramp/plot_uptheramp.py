@@ -1411,6 +1411,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip detector-quality PNG/FITS maps of the reset and ramp",
     )
     parser.add_argument(
+        "--show-reset-levels",
+        action="store_true",
+        help=(
+            "On the ramp QA linearity panel, plot absolute ADU and dashed "
+            "horizontal lines for reset-frame levels (off by default)"
+        ),
+    )
+    parser.add_argument(
         "--show",
         action="store_true",
         help="Accepted for compatibility; plot is always written to PNG (Agg backend)",
@@ -2063,6 +2071,7 @@ def main(argv: list[str] | None = None) -> int:
             cds_short=cds_short,
             session_name=session_name,
             session_slug=session_slug,
+            show_reset_levels=args.show_reset_levels,
         )
     return 0
 
