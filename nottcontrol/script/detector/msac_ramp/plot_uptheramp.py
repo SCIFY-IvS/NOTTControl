@@ -28,14 +28,17 @@ chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
 sample. On **full-frame** (2048×2048) data the flux plot also includes
 the mean over HxRG **reference pixels** (4-pixel border on all sides).
-Detector pixel **X=1076, Y=936** is always tracked as a separate
-curve (override with ``--track-pixel``).
+Detector pixel **X=1076, Y=936** is tracked on full-frame / photonic
+windows when in bounds (override with ``--track-pixel``; skipped on
+other windowed readouts).
 
 A second config.ini ROI (default **ROI 8**) is plotted as its own crop and
 mean-ADU curve — it is **not** subtracted from the cube. Omit it with
 ``--no-bg-roi``, or pick another with ``--bg-roi N``. If that ROI is
 missing or outside the image (typical for a photonic-chip window), it is
-skipped with a warning.
+skipped with a warning. Other windowed ramps where the photonic box does
+not fit fall back to the **full delivered window**: window mean + the
+10 brightest pixels (no hard fail).
 
 Override the photonic box with ``--illum-roi``, ``--illum-center``, or
 ``--illum-size``.
@@ -600,6 +603,19 @@ def is_full_frame(
     return height >= full_frame and width >= full_frame
 
 
+def full_window_illum(
+    shape: tuple[int, int],
+) -> tuple[tuple[int, int, int, int], int, int, int, int, str, str]:
+    """Use the entire delivered frame as the analysis window.
+
+    Returns ``(box, height, width, center_x, center_y, source, label)``.
+    """
+    height, width = int(shape[0]), int(shape[1])
+    box = (0, height, 0, width)
+    label = f"Full window ({width}×{height})"
+    return box, height, width, width // 2, height // 2, label, label
+
+
 def reference_pixel_boxes(
     shape: tuple[int, int], *, width: int = H2RG_REF_WIDTH
 ) -> list[tuple[int, int, int, int]]:
@@ -811,8 +827,11 @@ def resolve_track_pixels(
     height: int,
     width: int,
 ) -> list[tuple[int, int]]:
-    """Return in-bounds detector ``(X, Y)`` pixels to track on the flux plot."""
-    specs = list(requested) if requested else list(DEFAULT_TRACK_PIXELS)
+    """Return in-bounds detector ``(X, Y)`` pixels to track on the flux plot.
+
+    ``None`` uses the photonic-chip defaults; an empty list tracks nothing.
+    """
+    specs = list(DEFAULT_TRACK_PIXELS) if requested is None else list(requested)
     seen: set[tuple[int, int]] = set()
     kept: list[tuple[int, int]] = []
     for x, y in specs:
@@ -1620,10 +1639,12 @@ def main(argv: list[str] | None = None) -> int:
     names = [row[2] for row in records]
     index_tag = records[0][1]
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    windowed = not is_full_frame((ny, nx))
 
     illum_source = "manual"
     region_label: str | None = None
     detector_box: tuple[int, int, int, int] | None = None
+    windowed_fallback = False
     if use_manual_illum:
         if illum_h is None:
             illum_h = illum_w = DEFAULT_ILLUM_SIZE
@@ -1644,44 +1665,117 @@ def main(argv: list[str] | None = None) -> int:
             (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
                 (ny, nx)
             )
+            illum_h, illum_w = row1 - row0, col1 - col0
+            drow0, drow1, dcol0, dcol1 = detector_box
+            center_x = (dcol0 + dcol1) // 2
+            center_y = (drow0 + drow1) // 2
+            illum_source = photonic_chip_label()
+            region_label = photonic_chip_label()
         except ValueError as exc:
-            raise RuntimeError(
-                f"{photonic_chip_label()} does not fit image {ny}×{nx}: {exc}"
-            ) from exc
-        illum_h, illum_w = row1 - row0, col1 - col0
-        drow0, drow1, dcol0, dcol1 = detector_box
-        center_x = (dcol0 + dcol1) // 2
-        center_y = (drow0 + drow1) // 2
-        illum_source = photonic_chip_label()
-        region_label = photonic_chip_label()
+            if not windowed:
+                raise RuntimeError(
+                    f"{photonic_chip_label()} does not fit image {ny}×{nx}: {exc}"
+                ) from exc
+            logging.info(
+                "Windowed %d×%d: photonic chip ROI does not fit (%s); "
+                "plotting full-window mean + brightest pixels",
+                nx,
+                ny,
+                exc,
+            )
+            (
+                (row0, row1, col0, col1),
+                illum_h,
+                illum_w,
+                center_x,
+                center_y,
+                illum_source,
+                region_label,
+            ) = full_window_illum((ny, nx))
+            detector_box = None
+            windowed_fallback = True
     else:
         roi = load_h2rg_roi_xywh(int(illum_roi_index))
         if roi is None:
-            raise RuntimeError(
-                f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
-                "(or config.local.ini); set ROI or pass --illum-center / "
-                "--illum-size"
-            )
-        x, y, w, h = roi
-        try:
-            row0, row1, col0, col1 = illuminated_box_from_xywh(
-                (ny, nx), x, y, w, h
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                f"H2RG ROI {illum_roi_index}={x},{y},{w},{h} does not fit "
-                f"image {ny}×{nx}: {exc}"
-            ) from exc
-        illum_h, illum_w = h, w
-        center_x = x + w // 2
-        center_y = y + h // 2
-        illum_source = f"ROI {illum_roi_index}"
+            if windowed:
+                logging.info(
+                    "Windowed %d×%d: no H2RG ROI %s in config; "
+                    "plotting full-window mean + brightest pixels",
+                    nx,
+                    ny,
+                    illum_roi_index,
+                )
+                (
+                    (row0, row1, col0, col1),
+                    illum_h,
+                    illum_w,
+                    center_x,
+                    center_y,
+                    illum_source,
+                    region_label,
+                ) = full_window_illum((ny, nx))
+                windowed_fallback = True
+            else:
+                raise RuntimeError(
+                    f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
+                    "(or config.local.ini); set ROI or pass --illum-center / "
+                    "--illum-size"
+                )
+        else:
+            x, y, w, h = roi
+            try:
+                row0, row1, col0, col1 = illuminated_box_from_xywh(
+                    (ny, nx), x, y, w, h
+                )
+                illum_h, illum_w = h, w
+                center_x = x + w // 2
+                center_y = y + h // 2
+                illum_source = f"ROI {illum_roi_index}"
+            except ValueError as exc:
+                if not windowed:
+                    raise RuntimeError(
+                        f"H2RG ROI {illum_roi_index}={x},{y},{w},{h} does not "
+                        f"fit image {ny}×{nx}: {exc}"
+                    ) from exc
+                logging.info(
+                    "Windowed %d×%d: ROI %s does not fit (%s); "
+                    "plotting full-window mean + brightest pixels",
+                    nx,
+                    ny,
+                    illum_roi_index,
+                    exc,
+                )
+                (
+                    (row0, row1, col0, col1),
+                    illum_h,
+                    illum_w,
+                    center_x,
+                    center_y,
+                    illum_source,
+                    region_label,
+                ) = full_window_illum((ny, nx))
+                windowed_fallback = True
 
     bg_row0 = bg_row1 = bg_col0 = bg_col1 = 0
     region2_box: tuple[int, int, int, int] | None = None
     region2_means: np.ndarray | None = None
     region2_label: str | None = None
-    if use_region2:
+    if windowed_fallback:
+        region2_means = np.array(
+            [
+                float(np.nanmean(plane[row0:row1, col0:col1]))
+                for plane in cds_cube
+            ],
+            dtype=np.float64,
+        )
+        region2_label = "window mean"
+        logging.info(
+            "Window mean over %d×%d: ramp mean=%.4g ADU",
+            illum_w,
+            illum_h,
+            float(np.nanmean(region2_means)),
+        )
+    elif use_region2:
         resolved = resolve_second_roi_box((ny, nx), bg_roi_index)
         if resolved is not None:
             region2_box, (bx, by, bw, bh) = resolved
@@ -1755,6 +1849,9 @@ def main(argv: list[str] | None = None) -> int:
     requested_track = None
     if args.track_pixels:
         requested_track = [(int(x), int(y)) for x, y in args.track_pixels]
+    elif windowed_fallback:
+        # Photonic-chip defaults are outside typical windowed readouts.
+        requested_track = []
     track_xy = resolve_track_pixels(requested_track, height=ny, width=nx)
     track_matrix: np.ndarray | None = None
     if track_xy:
