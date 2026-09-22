@@ -15,6 +15,9 @@ planes of a single multi-sample cube). If a **reset frame** is present
 ``frame - reset``. Otherwise each plane is ``frame[k] - frame[0]``.
 Sessions that contain **only** reset frames (typical for window-mode
 reset checkouts) are plotted as an absolute-ADU series vs ``_R`` index.
+When a science session also has **two or more** reset FITS, an extra
+plot ``{session}_msac_reset_illum_vs_R.png`` shows the same illuminated
+regions as absolute ADU vs ``_R``.
 
 Two reduced cubes are written next to the plot:
 
@@ -296,6 +299,220 @@ def load_reset_reference(
         reference.shape,
     )
     return reference, chosen
+
+
+def load_reset_adu_series(
+    reset_paths: list[Path],
+) -> tuple[np.ndarray, np.ndarray, list[str]] | None:
+    """Stack reset frames as absolute ADU ordered by ``_R`` index.
+
+    Returns ``(stack, r_indices, names)`` with ``stack.shape == (n, y, x)``,
+    or ``None`` if fewer than two usable reset files.
+    """
+    records: list[tuple[int, str, np.ndarray]] = []
+    for path in reset_paths:
+        parsed = file_index_from_name(path.name, preferred_tag=RESET_TAG)
+        if parsed is None or parsed[0] != RESET_TAG:
+            logging.warning("Skipping reset series member without _R index: %s", path.name)
+            continue
+        _tag, index = parsed
+        cube, _header = load_ramp_cube(path)
+        records.append(
+            (
+                index,
+                path.name,
+                np.asarray(last_plane(cube), dtype=np.float64),
+            )
+        )
+    if len(records) < 2:
+        return None
+    records.sort(key=lambda row: (row[0], row[1].lower()))
+    stack = np.stack([row[2] for row in records], axis=0)
+    indices = np.array([row[0] for row in records], dtype=np.int64)
+    names = [row[1] for row in records]
+    return stack, indices, names
+
+
+def write_reset_illum_vs_r_plot(
+    *,
+    reset_paths: list[Path],
+    output: Path,
+    illum_box: tuple[int, int, int, int],
+    pixels: np.ndarray,
+    track_xy: list[tuple[int, int]],
+    region2_box: tuple[int, int, int, int] | None,
+    region2_label: str | None,
+    region_label: str | None,
+    detector_box: tuple[int, int, int, int] | None,
+    illum_source: str,
+    illum_h: int,
+    illum_w: int,
+    center_x: int,
+    center_y: int,
+    n_sigma: float,
+    show_pixels: bool,
+    show: bool,
+    session_name: str,
+    expected_shape: tuple[int, int] | None = None,
+) -> bool:
+    """Plot absolute-ADU flux vs ``_R`` for the same regions as the UTR plot.
+
+    Returns True if a plot was written.
+    """
+    loaded = load_reset_adu_series(reset_paths)
+    if loaded is None:
+        return False
+    stack, r_indices, names = loaded
+    ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    if expected_shape is not None and (ny, nx) != expected_shape:
+        logging.warning(
+            "Skipping reset-vs-R plot: reset shape %dx%d != science %dx%d",
+            nx,
+            ny,
+            expected_shape[1],
+            expected_shape[0],
+        )
+        return False
+
+    row0, row1, col0, col1 = illum_box
+    if not (0 <= row0 < row1 <= ny and 0 <= col0 < col1 <= nx):
+        logging.warning(
+            "Skipping reset-vs-R plot: illum box rows[%d:%d) cols[%d:%d) "
+            "does not fit reset %d×%d",
+            row0,
+            row1,
+            col0,
+            col1,
+            ny,
+            nx,
+        )
+        return False
+
+    use_pixels = pixels
+    if use_pixels.size:
+        if (
+            int(use_pixels[:, 0].max()) >= ny
+            or int(use_pixels[:, 1].max()) >= nx
+            or int(use_pixels[:, 0].min()) < 0
+            or int(use_pixels[:, 1].min()) < 0
+        ):
+            logging.info(
+                "Reset-vs-R: science bright pixels out of reset bounds; "
+                "reselecting on last reset plane"
+            )
+            use_pixels, _n_rej = select_brightest_after_outliers(
+                stack[-1],
+                row0,
+                row1,
+                col0,
+                col1,
+                n_brightest=max(1, int(use_pixels.shape[0])),
+                n_sigma=n_sigma,
+            )
+
+    n_used = int(use_pixels.shape[0])
+    if n_used == 0:
+        means = np.full(stack.shape[0], np.nan, dtype=np.float64)
+    else:
+        means = np.array(
+            [float(np.mean(pixel_values(plane, use_pixels))) for plane in stack],
+            dtype=np.float64,
+        )
+
+    r2_means: np.ndarray | None = None
+    r2_frame = None
+    r2_box = region2_box
+    if r2_box is not None:
+        rr0, rr1, rc0, rc1 = r2_box
+        if 0 <= rr0 < rr1 <= ny and 0 <= rc0 < rc1 <= nx:
+            r2_means = np.array(
+                [
+                    region_mean(plane, rr0, rr1, rc0, rc1, n_sigma=n_sigma)
+                    for plane in stack
+                ],
+                dtype=np.float64,
+            )
+            r2_frame = stack[-1, rr0:rr1, rc0:rc1]
+        else:
+            r2_box = None
+            logging.info(
+                "Reset-vs-R: second ROI does not fit reset frame; omitting"
+            )
+    elif region2_label == "window mean":
+        r2_means = np.array(
+            [
+                float(np.nanmean(plane[row0:row1, col0:col1]))
+                for plane in stack
+            ],
+            dtype=np.float64,
+        )
+        r2_frame = stack[-1, row0:row1, col0:col1]
+
+    track_ok = [
+        (x, y) for x, y in track_xy if 0 <= x < nx and 0 <= y < ny
+    ]
+    track_matrix: np.ndarray | None = None
+    if track_ok:
+        track_matrix = np.column_stack(
+            [track_pixel_series(stack, xy) for xy in track_ok]
+        )
+
+    ref_means: np.ndarray | None = None
+    ref_boxes: list[tuple[int, int, int, int]] | None = None
+    if is_full_frame((ny, nx)):
+        ref_means = reference_pixel_means(stack)
+        if ref_means is not None:
+            ref_boxes = reference_pixel_boxes((ny, nx))
+
+    pixel_matrix: np.ndarray | None = None
+    if show_pixels and use_pixels.size:
+        pixel_matrix = np.stack(
+            [pixel_values(plane, use_pixels) for plane in stack],
+            axis=0,
+        )
+
+    flux_label = f"{n_used} brightest"
+    title_regions = illum_source
+    if region2_label and r2_means is not None:
+        title_regions = f"{illum_source} vs {region2_label}"
+    title = (
+        f"{session_name} — {title_regions} (reset) vs R "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
+    )
+    last = np.asarray(stack[-1], dtype=np.float64)
+    plot_file_series(
+        indices=r_indices,
+        means=means,
+        names=names,
+        index_tag=RESET_TAG,
+        pixel_matrix=pixel_matrix,
+        output=output,
+        title=title,
+        show=show,
+        full_frame=last,
+        illum_frame=last[row0:row1, col0:col1],
+        illum_box=illum_box,
+        bg_box=r2_box,
+        region_label=region_label,
+        detector_box=detector_box,
+        cds_label="reset",
+        cds_short="reset",
+        flux_label=flux_label,
+        track_xy=track_ok or None,
+        track_matrix=track_matrix,
+        region2_means=r2_means,
+        region2_label=region2_label if r2_means is not None else None,
+        region2_frame=r2_frame,
+        ref_means=ref_means,
+        ref_boxes=ref_boxes,
+        session_name=session_name,
+    )
+    logging.info(
+        "Reset-vs-R: plotted %d reset frame(s) → %s",
+        len(names),
+        output,
+    )
+    return True
 
 
 def illuminated_box(
@@ -1501,17 +1718,6 @@ def main(argv: list[str] | None = None) -> int:
             seen[path.resolve()] = path.resolve()
         reset_paths = list(seen.values())
 
-    reset_loaded = None if args.no_reset else load_reset_reference(reset_paths)
-    if reset_loaded is not None:
-        reset_frame, reset_fits_path = reset_loaded
-        logging.info(
-            "Subtracting reset frame %s from each science sample",
-            reset_fits_path.name,
-        )
-    else:
-        reset_frame = None
-        reset_fits_path = None
-
     reset_only = False
     paths = science_paths
     if not paths:
@@ -1543,16 +1749,27 @@ def main(argv: list[str] | None = None) -> int:
             raise RuntimeError(
                 "No science or reset FITS files to plot in the session folder"
             )
-    elif reset_frame is None:
-        if args.no_reset:
+    else:
+        reset_loaded = None if args.no_reset else load_reset_reference(reset_paths)
+        if reset_loaded is not None:
+            reset_frame, reset_fits_path = reset_loaded
             logging.info(
-                "Ignoring reset frames (--no-reset); subtracting first science sample"
+                "Subtracting reset frame %s from each science sample",
+                reset_fits_path.name,
             )
         else:
-            logging.info(
-                "No reset frame (_R######) in the session folder; "
-                "subtracting the first science sample"
-            )
+            reset_frame = None
+            reset_fits_path = None
+            if args.no_reset:
+                logging.info(
+                    "Ignoring reset frames (--no-reset); "
+                    "subtracting first science sample"
+                )
+            else:
+                logging.info(
+                    "No reset frame (_R######) in the session folder; "
+                    "subtracting the first science sample"
+                )
 
     if reset_only:
         preferred_tag = "R"
@@ -1951,6 +2168,8 @@ def main(argv: list[str] | None = None) -> int:
             output = (ramp_dir / output).resolve()
         else:
             output = output.resolve()
+    elif reset_only:
+        output = ramp_dir / f"{session_slug}_msac_reset_illum_vs_R.png"
     else:
         output = (
             ramp_dir / f"{session_slug}_msac_uptheramp_illum_vs_file.png"
@@ -2072,8 +2291,9 @@ def main(argv: list[str] | None = None) -> int:
     title_regions = illum_source
     if region2_label:
         title_regions = f"{illum_source} vs {region2_label}"
+    x_axis = "R" if reset_only or index_tag == RESET_TAG else "index"
     title = (
-        f"{session_name} — {title_regions} ({cds_short}) vs index "
+        f"{session_name} — {title_regions} ({cds_short}) vs {x_axis} "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
@@ -2111,6 +2331,45 @@ def main(argv: list[str] | None = None) -> int:
         ref_boxes=ref_boxes,
         session_name=session_name,
     )
+
+    # Science sessions with ≥2 reset FITS: same regions, absolute ADU vs R.
+    if not reset_only:
+        multi_resets: list[Path] = []
+        seen_r: dict[Path, Path] = {}
+        for path in reset_from_folder + reset_from_args:
+            key = path.resolve()
+            if key not in seen_r:
+                seen_r[key] = path.resolve()
+        multi_resets = list(seen_r.values())
+        if len(multi_resets) >= 2:
+            reset_out = (
+                ramp_dir / f"{session_slug}_msac_reset_illum_vs_R.png"
+            )
+            try:
+                write_reset_illum_vs_r_plot(
+                    reset_paths=multi_resets,
+                    output=reset_out,
+                    illum_box=(row0, row1, col0, col1),
+                    pixels=pixels,
+                    track_xy=track_xy or [],
+                    region2_box=region2_box,
+                    region2_label=region2_label,
+                    region_label=region_label,
+                    detector_box=detector_box,
+                    illum_source=illum_source,
+                    illum_h=int(illum_h),
+                    illum_w=int(illum_w),
+                    center_x=int(center_x),
+                    center_y=int(center_y),
+                    n_sigma=float(args.n_sigma),
+                    show_pixels=bool(args.show_pixels),
+                    show=bool(args.show),
+                    session_name=session_name,
+                    expected_shape=(ny, nx),
+                )
+            except Exception as exc:  # noqa: BLE001 — keep main UTR plot
+                logging.warning("Skipping reset-vs-R plot: %s", exc)
+
     qa_pixels = pixels if pixels.size else None
     if track_xy:
         extra = np.array([[y, x] for x, y in track_xy], dtype=int)

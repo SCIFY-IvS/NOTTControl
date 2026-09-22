@@ -27,6 +27,9 @@
 # (reset frames _R###### are used as the subtraction reference, not as
 # ramp points). Folders that contain only reset frames are plotted as an
 # absolute-ADU series vs _R index (useful for window-mode reset checks).
+# Science sessions with ≥2 reset FITS also write
+#   {session}_msac_reset_illum_vs_R.png
+# using the same illuminated regions.
 # X = file index from the name (_M######, _N######, or _R######);
 # Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
 #     (outliers rejected), then tracked on every sample.
