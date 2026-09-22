@@ -143,14 +143,23 @@ def build_flux_series(
     reset_loaded = None if no_reset else ramp.load_reset_reference(reset_paths)
     reset_frame = reset_loaded[0] if reset_loaded is not None else None
 
-    preferred_tag = ramp.choose_index_tag(science_paths)
+    reset_only = False
+    paths = science_paths
+    if not paths and reset_from_folder:
+        reset_only = True
+        paths = list({p.resolve(): p.resolve() for p in reset_from_folder}.values())
+        reset_frame = None
+        preferred_tag = "R"
+    else:
+        preferred_tag = ramp.choose_index_tag(paths)
+
     records: list[tuple[int, str, str, np.ndarray]] = []
 
-    if len(science_paths) == 1:
-        only_cube, _header = ramp.load_ramp_cube(science_paths[0])
+    if len(paths) == 1:
+        only_cube, _header = ramp.load_ramp_cube(paths[0])
         if only_cube.shape[0] > 1:
             parsed = ramp.file_index_from_name(
-                science_paths[0].name, preferred_tag=preferred_tag
+                paths[0].name, preferred_tag=preferred_tag
             )
             base_tag = parsed[0] if parsed else "P"
             for iplane, plane in enumerate(only_cube):
@@ -158,13 +167,13 @@ def build_flux_series(
                     (
                         iplane + 1,
                         base_tag,
-                        f"{science_paths[0].name}[plane{iplane}]",
+                        f"{paths[0].name}[plane{iplane}]",
                         np.asarray(plane, dtype=np.float64),
                     )
                 )
 
     if not records:
-        for path in science_paths:
+        for path in paths:
             parsed = ramp.file_index_from_name(
                 path.name, preferred_tag=preferred_tag
             )
@@ -182,11 +191,13 @@ def build_flux_series(
             )
 
     if not records:
-        raise RuntimeError("no science FITS with M/N file index")
+        raise RuntimeError("no science or reset FITS with M/N/R file index")
 
     records.sort(key=lambda row: (row[0], row[2].lower()))
     stack = np.stack([row[3] for row in records], axis=0)
-    if reset_frame is not None:
+    if reset_only:
+        cds_cube = np.asarray(stack, dtype=np.float64)
+    elif reset_frame is not None:
         if reset_frame.shape != stack.shape[1:]:
             raise RuntimeError("reset frame shape mismatch")
         cds_cube = ramp.relative_to_reference(stack, reset_frame)
@@ -194,7 +205,10 @@ def build_flux_series(
         cds_cube = ramp.relative_to_first(stack)
 
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
-    (row0, row1, col0, col1), _det_box = ramp.photonic_chip_illum_box((ny, nx))
+    try:
+        (row0, row1, col0, col1), _det_box = ramp.photonic_chip_illum_box((ny, nx))
+    except ValueError:
+        (row0, row1, col0, col1), _, _, _, _, _, _ = ramp.full_window_illum((ny, nx))
     pixels, _n_rej = ramp.select_brightest_after_outliers(
         cds_cube[-1],
         row0,
@@ -216,7 +230,7 @@ def build_flux_series(
     )
     indices = np.array([row[0] for row in records], dtype=np.int64)
     index_tag = records[0][1]
-    return indices, means, index_tag, len(science_paths)
+    return indices, means, index_tag, len(paths)
 
 
 def score_session(

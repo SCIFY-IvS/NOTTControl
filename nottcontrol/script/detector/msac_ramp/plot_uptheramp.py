@@ -13,6 +13,8 @@ Frames are stacked in file-index order (last plane of each FITS, or all
 planes of a single multi-sample cube). If a **reset frame** is present
 (``_R0001`` / ``_R######`` in the filename), each science sample is
 ``frame - reset``. Otherwise each plane is ``frame[k] - frame[0]``.
+Sessions that contain **only** reset frames (typical for window-mode
+reset checkouts) are plotted as an absolute-ADU series vs ``_R`` index.
 
 Two reduced cubes are written next to the plot:
 
@@ -206,16 +208,19 @@ def file_index_from_name(
 ) -> tuple[str, int] | None:
     """Return ``(tag, index)`` for plotting.
 
-    If *preferred_tag* is set (``M``/``N``), use that counter. Otherwise use
-    the last ``_M``/``_N`` field in the name, then trailing ``_######``.
-    Reset ``_R`` counters are ignored here; see ``is_reset_fits``.
+    If *preferred_tag* is set (``M``/``N``/``R``), use that counter.
+    Otherwise use the last ``_M``/``_N`` field in the name, then ``_R``,
+    then trailing ``_######``. Prefer science tags over reset unless the
+    caller asks for ``R`` (reset-only sessions).
     """
     found = file_indices_from_name(name)
     science = {tag: index for tag, index in found.items() if tag in SCIENCE_TAGS}
     if preferred_tag:
         tag = preferred_tag.upper()
-        if tag in science:
+        if tag in SCIENCE_TAGS and tag in science:
             return tag, science[tag]
+        if tag == RESET_TAG and RESET_TAG in found:
+            return RESET_TAG, found[RESET_TAG]
     if science:
         stem = Path(name).stem
         matches = [
@@ -226,6 +231,9 @@ def file_index_from_name(
         if matches:
             match = matches[-1]
             return match.group("tag").upper(), int(match.group("index"))
+
+    if RESET_TAG in found:
+        return RESET_TAG, found[RESET_TAG]
 
     trailing = TRAILING_DIGITS_RE.search(Path(name).stem)
     if trailing:
@@ -1237,7 +1245,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         metavar="N",
-        help="Use only the N newest science FITS (default: all files in the session)",
+        help=(
+            "Use only the N newest science FITS (or reset FITS in a "
+            "reset-only session; default: all files in the session)"
+        ),
     )
     parser.add_argument(
         "--reset-file",
@@ -1261,11 +1272,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--index-tag",
-        choices=("M", "N", "auto"),
+        choices=("M", "N", "R", "auto"),
         default="auto",
         help=(
-            "Which filename counter to use on the x-axis: M, N, or auto "
-            "(pick the tag that varies most across files; default: auto)"
+            "Which filename counter to use on the x-axis: M, N, R, or auto "
+            "(pick the tag that varies most across files; default: auto; "
+            "reset-only sessions use R)"
         ),
     )
     parser.add_argument(
@@ -1499,6 +1511,39 @@ def main(argv: list[str] | None = None) -> int:
     else:
         reset_frame = None
         reset_fits_path = None
+
+    reset_only = False
+    paths = science_paths
+    if not paths:
+        # Prefer folder+CLI resets even when --no-reset cleared the CDS ref.
+        seen_plot: dict[Path, Path] = {}
+        for path in reset_from_folder + reset_from_args:
+            key = path.resolve()
+            if key not in seen_plot:
+                seen_plot[key] = path.resolve()
+        plot_resets = list(seen_plot.values())
+        # Preserve mtime order from list_ramp_fits when possible.
+        order = {p.resolve(): i for i, p in enumerate(folder_fits)}
+        plot_resets.sort(
+            key=lambda p: (order.get(p.resolve(), 10**9), p.name.lower())
+        )
+        if args.latest is not None and not args.all and not args.file:
+            n = max(1, int(args.latest))
+            plot_resets = plot_resets[-n:]
+        if plot_resets:
+            reset_only = True
+            paths = plot_resets
+            reset_frame = None
+            reset_fits_path = None
+            logging.info(
+                "Reset-only session: plotting %d reset frame(s) as absolute ADU",
+                len(paths),
+            )
+        else:
+            raise RuntimeError(
+                "No science or reset FITS files to plot in the session folder"
+            )
+    elif reset_frame is None:
         if args.no_reset:
             logging.info(
                 "Ignoring reset frames (--no-reset); subtracting first science sample"
@@ -1509,13 +1554,14 @@ def main(argv: list[str] | None = None) -> int:
                 "subtracting the first science sample"
             )
 
-    paths = science_paths
-    if not paths:
-        raise RuntimeError(
-            "No science FITS files (reset frames _R###### are not plotted)"
-        )
-
-    if args.index_tag == "auto":
+    if reset_only:
+        preferred_tag = "R"
+        if args.index_tag not in ("auto", "R"):
+            logging.info(
+                "Reset-only session: ignoring --index-tag %s (using R)",
+                args.index_tag,
+            )
+    elif args.index_tag == "auto":
         preferred_tag = choose_index_tag(paths)
     else:
         preferred_tag = args.index_tag
@@ -1579,8 +1625,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             if parsed is None:
                 logging.warning(
-                    "Skipping %s: no _M###### / _N###### (or trailing _######) "
-                    "index",
+                    "Skipping %s: no _M###### / _N###### / _R###### "
+                    "(or trailing _######) index",
                     path.name,
                 )
                 continue
@@ -1610,12 +1656,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if not records:
         raise RuntimeError(
-            "No usable FITS with an _M / _N file index in the name"
+            "No usable FITS with an _M / _N / _R file index in the name"
         )
 
     records.sort(key=lambda row: (row[0], row[2].lower()))
     stack = np.stack([row[3] for row in records], axis=0)
-    if reset_frame is not None:
+    if reset_only:
+        cds_cube = np.asarray(stack, dtype=np.float64)
+        cds_short = "reset"
+        cds_label = "reset"
+        reduct_card = ("RESET-ABS", "Each plane = reset frame (absolute ADU)")
+        skip_ref = False
+        reduct_history = (
+            "MSAC UpTheRamp reset-only cube: each plane is a reset frame "
+            "(absolute ADU; no CDS subtraction)"
+        )
+    elif reset_frame is not None:
         if reset_fits_path is None:
             raise RuntimeError("Reset frame loaded without a FITS path")
         if reset_frame.shape != stack.shape[1:]:
@@ -1929,7 +1985,11 @@ def main(argv: list[str] | None = None) -> int:
                     (
                         "Omitted plane 0 (frame0-frame0 == 0)"
                         if skip_ref
-                        else "Kept all science planes (reset subtraction)"
+                        else (
+                            "Kept all reset planes (absolute ADU)"
+                            if reset_only
+                            else "Kept all science planes (reset subtraction)"
+                        )
                     ),
                 ),
             }
@@ -1951,13 +2011,17 @@ def main(argv: list[str] | None = None) -> int:
             if write_illum:
                 illum_crop = cds_for_disk[:, row0:row1, col0:col1]
                 illum_history = (
-                    "MSAC UpTheRamp CDS-relative illuminated crop: "
+                    "MSAC UpTheRamp illuminated crop: "
                     + (
-                        f"each plane = sample - reset ({reset_fits_path.name})"
-                        if reset_fits_path is not None
+                        "each plane = reset frame (absolute ADU)"
+                        if reset_only
                         else (
-                            "each plane = sample - first sample; "
-                            "zero reference plane omitted"
+                            f"each plane = sample - reset ({reset_fits_path.name})"
+                            if reset_fits_path is not None
+                            else (
+                                "each plane = sample - first sample; "
+                                "zero reference plane omitted"
+                            )
                         )
                     )
                     + "; spatial crop is the illuminated analysis box"

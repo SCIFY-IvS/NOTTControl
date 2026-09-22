@@ -25,8 +25,9 @@
 #
 # Default: all science FITS in the latest UpTheRamp session folder
 # (reset frames _R###### are used as the subtraction reference, not as
-# ramp points).
-# X = file index from the name (_M###### or _N######);
+# ramp points). Folders that contain only reset frames are plotted as an
+# absolute-ADU series vs _R index (useful for window-mode reset checks).
+# X = file index from the name (_M######, _N######, or _R######);
 # Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
 #     (outliers rejected), then tracked on every sample.
 #
