@@ -11,11 +11,11 @@
 # Omit with --no-bg-roi; pick another with --bg-roi N.
 # Override the photonic box with --illum-roi / --illum-center / --illum-size.
 #
-# Builds reduced cubes next to the PNG plot:
+# Builds reduced cubes next to the PNG plot (session = folder name):
 #   frame − reset  when a _R0001 (or _R######) FITS is in the session folder
 #   frame − first  otherwise (zero self-subtraction plane omitted)
-#   msac_uptheramp_frame_minus_first.fits       — full frame
-#   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
+#   {session}_msac_uptheramp_frame_minus_first.fits       — full frame
+#   {session}_msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
 # Usage (on the acquisition machine):
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
@@ -32,8 +32,9 @@
 #
 # PNG (flux plot + detector QA of reset and ramp) and FITS cubes
 # are written into the session data folder:
-#   msac_qa_reset.png / msac_qa_ramp.png
-#   msac_qa_slope.fits / msac_qa_resid_rms.fits
+#   {session}_msac_uptheramp_illum_vs_file.png
+#   {session}_msac_qa_reset.png / {session}_msac_qa_ramp.png
+#   {session}_msac_qa_slope.fits / {session}_msac_qa_resid_rms.fits
 # Skip QA with --no-qa.
 #
 # Environment:

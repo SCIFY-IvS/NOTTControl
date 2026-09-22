@@ -2,9 +2,9 @@
 
 Writes extra PNGs (and slope/noise FITS) next to the flux plot:
 
-* ``msac_qa_reset.png`` — spatial quality of the reset (or first) frame
-* ``msac_qa_ramp.png`` — slope, residual RMS, linearity of the CDS cube
-* ``msac_qa_slope.fits`` / ``msac_qa_resid_rms.fits`` — per-pixel maps
+* ``{session}_msac_qa_reset.png`` — spatial quality of the reset (or first) frame
+* ``{session}_msac_qa_ramp.png`` — slope, residual RMS, linearity of the CDS cube
+* ``{session}_msac_qa_slope.fits`` / ``{session}_msac_qa_resid_rms.fits`` — maps
 """
 
 from __future__ import annotations
@@ -274,9 +274,15 @@ def plot_reset_qa(
     row_mean = np.nanmean(img, axis=1)
     vmin, vmax = _display_limits(img)
 
-    fig = plt.figure(figsize=(12.5, 8.2), layout="constrained")
-    gs = fig.add_gridspec(2, 3, hspace=0.28, wspace=0.22)
-    fig.suptitle(title, fontsize=12)
+    fig = plt.figure(figsize=(14.5, 9.6), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.05, hspace=0.08
+        )
+    except Exception:
+        pass
+    gs = fig.add_gridspec(2, 3)
+    fig.suptitle(title, fontsize=12, fontweight="bold")
 
     ax_im = fig.add_subplot(gs[0, 0])
     im = ax_im.imshow(
@@ -293,7 +299,7 @@ def plot_reset_qa(
     ax_im.set_title("Reset / reference frame")
     ax_im.set_xlabel("X [pix]")
     ax_im.set_ylabel("Y [pix]")
-    fig.colorbar(im, ax=ax_im, fraction=0.046, pad=0.04, label="ADU")
+    fig.colorbar(im, ax=ax_im, fraction=0.035, pad=0.02, label="ADU")
 
     ax_hist = fig.add_subplot(gs[0, 1])
     finite = _finite(img)
@@ -452,9 +458,15 @@ def plot_ramp_qa(
         dtype=np.float64,
     )
 
-    fig = plt.figure(figsize=(12.5, 8.4), layout="constrained")
-    gs = fig.add_gridspec(2, 3, hspace=0.28, wspace=0.22)
-    fig.suptitle(title, fontsize=12)
+    fig = plt.figure(figsize=(14.5, 9.8), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.05, hspace=0.08
+        )
+    except Exception:
+        pass
+    gs = fig.add_gridspec(2, 3)
+    fig.suptitle(title, fontsize=12, fontweight="bold")
 
     ax_s = fig.add_subplot(gs[0, 0])
     im_s = ax_s.imshow(
@@ -472,7 +484,7 @@ def plot_ramp_qa(
     ax_s.set_title("Slope [ADU / sample]")
     ax_s.set_xlabel("X [pix]")
     ax_s.set_ylabel("Y [pix]")
-    fig.colorbar(im_s, ax=ax_s, fraction=0.046, pad=0.04)
+    fig.colorbar(im_s, ax=ax_s, fraction=0.035, pad=0.02)
 
     ax_rms = fig.add_subplot(gs[0, 1])
     im_rms = ax_rms.imshow(
@@ -489,7 +501,7 @@ def plot_ramp_qa(
     ax_rms.set_title("Residual RMS [ADU]")
     ax_rms.set_xlabel("X [pix]")
     ax_rms.set_ylabel("Y [pix]")
-    fig.colorbar(im_rms, ax=ax_rms, fraction=0.046, pad=0.04)
+    fig.colorbar(im_rms, ax=ax_rms, fraction=0.035, pad=0.02)
 
     ax_last = fig.add_subplot(gs[0, 2])
     im_l = ax_last.imshow(
@@ -507,7 +519,7 @@ def plot_ramp_qa(
     ax_last.set_title("Last CDS sample")
     ax_last.set_xlabel("X [pix]")
     ax_last.set_ylabel("Y [pix]")
-    fig.colorbar(im_l, ax=ax_last, fraction=0.046, pad=0.04, label="ADU")
+    fig.colorbar(im_l, ax=ax_last, fraction=0.035, pad=0.02, label="ADU")
 
     ax_h = fig.add_subplot(gs[1, 0])
     s_all = _finite(slope)
@@ -660,16 +672,23 @@ def run_detector_qa(
     n_sigma: float,
     cds_short: str,
     extra_box: tuple[int, int, int, int] | None = None,
+    session_name: str | None = None,
+    session_slug: str | None = None,
 ) -> None:
     """Write reset and ramp QA products into *out_dir*."""
     out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    slug = (session_slug or session_name or out_dir.name or "session").strip()
+    slug = slug or "session"
+    folder = session_name or out_dir.name or slug
 
     if reset_frame is not None:
-        reset_title = f"H2RG reset QA — {reset_name or 'reset frame'}"
+        reset_title = f"{folder} — H2RG reset QA ({reset_name or 'reset frame'})"
         reset_image = reset_frame
     elif first_science is not None:
-        reset_title = "H2RG reference QA — first science sample (no reset file)"
+        reset_title = (
+            f"{folder} — H2RG reference QA (first science sample, no reset file)"
+        )
         reset_image = first_science
     else:
         reset_image = None
@@ -678,7 +697,7 @@ def run_detector_qa(
     if reset_image is not None:
         plot_reset_qa(
             reset_image,
-            output=out_dir / "msac_qa_reset.png",
+            output=out_dir / f"{slug}_msac_qa_reset.png",
             title=reset_title,
             n_sigma=n_sigma,
             illum_box=illum_box,
@@ -694,11 +713,11 @@ def run_detector_qa(
     plot_ramp_qa(
         cds_cube,
         sample_index,
-        output=out_dir / "msac_qa_ramp.png",
-        title=f"H2RG ramp QA — {cds_short}",
+        output=out_dir / f"{slug}_msac_qa_ramp.png",
+        title=f"{folder} — H2RG ramp QA ({cds_short})",
         illum_box=illum_box,
         extra_box=extra_box,
         pixels=pixels,
-        slope_fits=out_dir / "msac_qa_slope.fits",
-        rms_fits=out_dir / "msac_qa_resid_rms.fits",
+        slope_fits=out_dir / f"{slug}_msac_qa_slope.fits",
+        rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
     )

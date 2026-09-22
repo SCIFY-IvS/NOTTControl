@@ -16,8 +16,8 @@ planes of a single multi-sample cube). If a **reset frame** is present
 
 Two reduced cubes are written next to the plot:
 
-* full-frame ``msac_uptheramp_frame_minus_first.fits``
-* illuminated-box crop ``msac_uptheramp_frame_minus_first_illum.fits``
+* full-frame ``{session}_msac_uptheramp_frame_minus_first.fits``
+* illuminated-box crop ``{session}_msac_uptheramp_frame_minus_first_illum.fits``
 
 With first-sample subtraction the zero self-subtraction plane is
 **omitted** from both cubes. Reset subtraction keeps every science plane.
@@ -41,8 +41,10 @@ Override the photonic box with ``--illum-roi``, ``--illum-center``, or
 ``--illum-size``.
 
 Detector-quality products (reset spatial QA, per-pixel ramp slope and
-residual RMS) are written beside the flux plot as ``msac_qa_*.png`` /
-``msac_qa_*.fits``. Disable with ``--no-qa``.
+residual RMS) are written beside the flux plot as
+``{session}_msac_qa_*.png`` / ``{session}_msac_qa_*.fits``.
+Disable with ``--no-qa``. The session folder name is also shown in plot
+titles.
 """
 
 from __future__ import annotations
@@ -135,6 +137,19 @@ def resolve_ramp_dir(path: Path) -> Path:
     raise FileNotFoundError(
         f"No FITS files found in {root} or its subdirectories"
     )
+
+
+def session_folder_name(ramp_dir: Path) -> str:
+    """Human-readable session folder name for plot titles."""
+    name = ramp_dir.expanduser().resolve().name.strip()
+    return name or "session"
+
+
+def session_filename_slug(ramp_dir: Path) -> str:
+    """Filesystem-safe slug of the session folder for output filenames."""
+    slug = re.sub(r"[^\w.\-]+", "_", session_folder_name(ramp_dir))
+    slug = re.sub(r"_+", "_", slug).strip("._")
+    return slug or "session"
 
 
 def file_indices_from_name(name: str) -> dict[str, int]:
@@ -906,29 +921,35 @@ def plot_file_series(
     region2_frame: np.ndarray | None = None,
     ref_means: np.ndarray | None = None,
     ref_boxes: list[tuple[int, int, int, int]] | None = None,
+    session_name: str | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
     show_region2 = region2_frame is not None
     height_ratios: list[float] = []
     if show_images:
-        height_ratios.append(1.4)
-    height_ratios.append(1.0)
+        height_ratios.append(1.55)
+    height_ratios.append(1.15)
     if show_pixels:
         height_ratios.append(1.0)
     n_plot_rows = len(height_ratios)
     n_image_cols = 3 if show_images and show_region2 else 2
-    fig_w = 15.2 if n_image_cols == 3 else 10.5
-    fig = plt.figure(
-        figsize=(fig_w, 3.6 * n_plot_rows + 0.8), layout="constrained"
-    )
+    fig_w = 16.5 if n_image_cols == 3 else 12.0
+    fig_h = 4.8 * n_plot_rows + (1.1 if session_name else 0.4)
+    fig = plt.figure(figsize=(fig_w, fig_h), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.04, hspace=0.06
+        )
+    except Exception:
+        pass
     gs = fig.add_gridspec(
         n_plot_rows,
         n_image_cols,
         height_ratios=height_ratios,
-        hspace=0.28,
-        wspace=0.16,
     )
+    if session_name:
+        fig.suptitle(session_name, fontsize=13, fontweight="bold")
 
     row = 0
     if show_images:
@@ -992,7 +1013,7 @@ def plot_file_series(
                 zorder=6,
                 label="Track pixel",
             )
-        fig.colorbar(im_full, ax=ax_full, fraction=0.046, pad=0.04, label="ADU")
+        fig.colorbar(im_full, ax=ax_full, fraction=0.035, pad=0.02, label="ADU")
 
         vmin_i, vmax_i = _display_limits(illum_frame)
         axis_box = detector_box if detector_box is not None else illum_box
@@ -1039,7 +1060,7 @@ def plot_file_series(
                 marker="o",
                 zorder=6,
             )
-        fig.colorbar(im_illum, ax=ax_illum, fraction=0.046, pad=0.04, label="ADU")
+        fig.colorbar(im_illum, ax=ax_illum, fraction=0.035, pad=0.02, label="ADU")
 
         if show_region2:
             ax_r2 = fig.add_subplot(gs[row, 2])
@@ -1068,7 +1089,7 @@ def plot_file_series(
             ax_r2.set_title(r2_title)
             ax_r2.set_xlabel("X [pix]")
             ax_r2.set_ylabel("Y [pix]")
-            fig.colorbar(im_r2, ax=ax_r2, fraction=0.046, pad=0.04, label="ADU")
+            fig.colorbar(im_r2, ax=ax_r2, fraction=0.035, pad=0.02, label="ADU")
         row += 1
 
     ax_mean = fig.add_subplot(gs[row, :])
@@ -1332,8 +1353,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Output PNG path (default: inside the session data directory, "
-            "next to the ramp FITS)"
+            "Output PNG path (default: inside the session data directory as "
+            "{session}_msac_uptheramp_illum_vs_file.png)"
         ),
     )
     parser.add_argument(
@@ -1392,6 +1413,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     ramp_dir = resolve_ramp_dir(args.ramp_dir)
+    session_name = session_folder_name(ramp_dir)
+    session_slug = session_filename_slug(ramp_dir)
+    logging.info("Session folder: %s", session_name)
     try:
         folder_fits = list_ramp_fits(ramp_dir)
     except FileNotFoundError:
@@ -1767,7 +1791,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             output = output.resolve()
     else:
-        output = ramp_dir / "msac_uptheramp_illum_vs_file.png"
+        output = (
+            ramp_dir / f"{session_slug}_msac_uptheramp_illum_vs_file.png"
+        )
 
     def _resolve_out(path: Path | None, default_name: str) -> Path:
         if path is not None:
@@ -1775,7 +1801,7 @@ def main(argv: list[str] | None = None) -> int:
             if not out.is_absolute():
                 return (ramp_dir / out).resolve()
             return out.resolve()
-        return (ramp_dir / default_name).resolve()
+        return (ramp_dir / f"{session_slug}_{default_name}").resolve()
 
     write_full = not args.no_cds_cube
     write_illum = not args.no_illum_cube
@@ -1878,7 +1904,7 @@ def main(argv: list[str] | None = None) -> int:
     if region2_label:
         title_regions = f"{illum_source} vs {region2_label}"
     title = (
-        f"MSAC UpTheRamp — {title_regions} ({cds_short}) vs index "
+        f"{session_name} — {title_regions} ({cds_short}) vs index "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
@@ -1914,6 +1940,7 @@ def main(argv: list[str] | None = None) -> int:
         ),
         ref_means=ref_means,
         ref_boxes=ref_boxes,
+        session_name=session_name,
     )
     qa_pixels = pixels if pixels.size else None
     if track_xy:
@@ -1937,6 +1964,8 @@ def main(argv: list[str] | None = None) -> int:
             pixels=qa_pixels,
             n_sigma=args.n_sigma,
             cds_short=cds_short,
+            session_name=session_name,
+            session_slug=session_slug,
         )
     return 0
 
