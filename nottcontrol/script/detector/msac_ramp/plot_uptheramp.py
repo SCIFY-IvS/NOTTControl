@@ -2470,6 +2470,7 @@ def main(argv: list[str] | None = None) -> int:
             session_slug=session_slug,
             show_reset_levels=args.show_reset_levels,
             reset_levels_frame=reset_frame if ref_corrected else None,
+            raw_cube=stack,
         )
     return 0
 

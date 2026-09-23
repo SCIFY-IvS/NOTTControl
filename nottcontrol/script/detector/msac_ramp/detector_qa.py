@@ -513,8 +513,15 @@ def plot_ramp_qa(
     rms_fits: Path | None = None,
     reset_frame: np.ndarray | None = None,
     show_reset_levels: bool = False,
+    raw_cube: np.ndarray | None = None,
 ) -> dict[str, float]:
-    """Ramp quality: per-pixel slope, residual RMS, and linearity."""
+    """Ramp quality: per-pixel slope, residual RMS, and linearity.
+
+    *cube* is the analysis cube (typically CDS and/or channel-ref corrected).
+    *raw_cube*, when provided, is plotted in the lower-right panel as absolute
+    ADU vs sample with no reset or reference-pixel subtraction (ref-pixel
+    mean included when a border exists).
+    """
     data = np.asarray(cube, dtype=np.float64)
     t = np.asarray(sample_index, dtype=np.float64)
     nplane = int(data.shape[0])
@@ -541,11 +548,11 @@ def plot_ramp_qa(
     if reset_img is not None:
         lin_data = data + reset_img
         lin_ylabel = "ADU (absolute)"
-        lin_title = "Linearity (absolute; dashed = reset)"
+        lin_title = "Linearity (corrected; dashed = reset)"
     else:
         lin_data = data
         lin_ylabel = "ADU"
-        lin_title = "Linearity (median vs sample)"
+        lin_title = "Linearity (corrected)"
 
     illum_slope = None
     if illum_box is not None:
@@ -568,13 +575,6 @@ def plot_ramp_qa(
         [float(np.nanmedian(plane)) for plane in lin_data],
         dtype=np.float64,
     )
-    ref_mask = h2rg_ref_mask(data.shape[1:])
-    med_ref: np.ndarray | None = None
-    if ref_mask is not None and bool(ref_mask.any()):
-        med_ref = np.array(
-            [float(np.nanmean(plane[ref_mask])) for plane in lin_data],
-            dtype=np.float64,
-        )
 
     fig = plt.figure(figsize=(14.5, 9.8), layout="constrained")
     try:
@@ -694,15 +694,6 @@ def plot_ramp_qa(
             markersize=5,
             label="median ROI",
         )
-    if med_ref is not None:
-        ax_lin.plot(
-            t,
-            med_ref,
-            "v-",
-            color=REF_PIXEL_COLOR,
-            markersize=5,
-            label="mean ref pixels",
-        )
     pix_mean = None
     if pixels is not None and pixels.size:
         pix_mean = np.array(
@@ -740,14 +731,6 @@ def plot_ramp_qa(
                     "#4cc9f0",
                 )
             )
-        if ref_mask is not None and bool(ref_mask.any()):
-            reset_refs.append(
-                (
-                    "reset mean ref pixels",
-                    float(np.nanmean(reset_img[ref_mask])),
-                    REF_PIXEL_COLOR,
-                )
-            )
         if pixels is not None and pixels.size:
             reset_refs.append(
                 (
@@ -774,22 +757,102 @@ def plot_ramp_qa(
     ax_lin.legend(fontsize=8)
     ax_lin.grid(True, alpha=0.3)
 
-    ax_ch = fig.add_subplot(gs[1, 2])
-    n_out = n_outputs_for_shape(slope.shape)
-    chan = channel_profile(slope, n_out) if n_out else None
-    if chan is not None:
-        ax_ch.bar(np.arange(chan.size), chan, color="C4", width=0.85)
-        ax_ch.set_title("Slope per output")
-        ax_ch.set_xlabel("Output")
-        ax_ch.set_ylabel("ADU / sample")
-        ax_ch.grid(True, alpha=0.3, axis="y")
+    ax_raw = fig.add_subplot(gs[1, 2])
+    raw = None if raw_cube is None else np.asarray(raw_cube, dtype=np.float64)
+    if (
+        raw is not None
+        and raw.ndim == 3
+        and raw.shape[0] == nplane
+        and raw.shape[1:] == data.shape[1:]
+    ):
+        raw_med_all = np.array(
+            [float(np.nanmedian(plane)) for plane in raw],
+            dtype=np.float64,
+        )
+        ax_raw.plot(
+            t, raw_med_all, "o-", color="0.45", markersize=4, label="median full"
+        )
+        if illum_box is not None:
+            r0, r1, c0, c1 = illum_box
+            ax_raw.plot(
+                t,
+                np.array(
+                    [
+                        float(np.nanmedian(plane[r0:r1, c0:c1]))
+                        for plane in raw
+                    ],
+                    dtype=np.float64,
+                ),
+                "s-",
+                color="C0",
+                markersize=5,
+                label="median box",
+            )
+        if extra_box is not None:
+            er0, er1, ec0, ec1 = extra_box
+            ax_raw.plot(
+                t,
+                np.array(
+                    [
+                        float(np.nanmedian(plane[er0:er1, ec0:ec1]))
+                        for plane in raw
+                    ],
+                    dtype=np.float64,
+                ),
+                "d--",
+                color="#4cc9f0",
+                markersize=5,
+                label="median ROI",
+            )
+        ref_mask = h2rg_ref_mask(raw.shape[1:])
+        if ref_mask is not None and bool(ref_mask.any()):
+            ax_raw.plot(
+                t,
+                np.array(
+                    [float(np.nanmean(plane[ref_mask])) for plane in raw],
+                    dtype=np.float64,
+                ),
+                "v-",
+                color=REF_PIXEL_COLOR,
+                markersize=5,
+                label="mean ref pixels",
+            )
+        if pixels is not None and pixels.size:
+            ax_raw.plot(
+                t,
+                np.array(
+                    [
+                        float(np.mean(raw[i, pixels[:, 0], pixels[:, 1]]))
+                        for i in range(nplane)
+                    ],
+                    dtype=np.float64,
+                ),
+                "^-",
+                color="C3",
+                markersize=5,
+                label="10 brightest",
+            )
+        ax_raw.set_title("Linearity (raw absolute)")
+        ax_raw.set_xlabel("Sample index")
+        ax_raw.set_ylabel("ADU")
+        ax_raw.legend(fontsize=8)
+        ax_raw.grid(True, alpha=0.3)
     else:
-        col_s = np.nanmean(slope, axis=0)
-        ax_ch.plot(np.arange(col_s.size), col_s, color="C4", linewidth=0.9)
-        ax_ch.set_title("Slope column mean")
-        ax_ch.set_xlabel("X [pix]")
-        ax_ch.set_ylabel("ADU / sample")
-        ax_ch.grid(True, alpha=0.3)
+        n_out = n_outputs_for_shape(slope.shape)
+        chan = channel_profile(slope, n_out) if n_out else None
+        if chan is not None:
+            ax_raw.bar(np.arange(chan.size), chan, color="C4", width=0.85)
+            ax_raw.set_title("Slope per output")
+            ax_raw.set_xlabel("Output")
+            ax_raw.set_ylabel("ADU / sample")
+            ax_raw.grid(True, alpha=0.3, axis="y")
+        else:
+            col_s = np.nanmean(slope, axis=0)
+            ax_raw.plot(np.arange(col_s.size), col_s, color="C4", linewidth=0.9)
+            ax_raw.set_title("Slope column mean")
+            ax_raw.set_xlabel("X [pix]")
+            ax_raw.set_ylabel("ADU / sample")
+            ax_raw.grid(True, alpha=0.3)
 
     _save_png(fig, output)
 
@@ -862,6 +925,7 @@ def run_detector_qa(
     session_slug: str | None = None,
     show_reset_levels: bool = False,
     reset_levels_frame: np.ndarray | None = None,
+    raw_cube: np.ndarray | None = None,
 ) -> None:
     """Write reset and ramp QA products into *out_dir*.
 
@@ -869,6 +933,8 @@ def run_detector_qa(
     *reset_levels_frame* (default: *reset_frame*) is used for absolute
     dashed levels on the linearity panel when *show_reset_levels* is set
     — pass a channel-ref-corrected copy to match the corrected CDS cube.
+    *raw_cube* is absolute ADU (no CDS / ref correction) for the raw
+    linearity panel.
     """
     out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -917,4 +983,5 @@ def run_detector_qa(
         rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
         reset_frame=levels,
         show_reset_levels=show_reset_levels,
+        raw_cube=raw_cube,
     )
