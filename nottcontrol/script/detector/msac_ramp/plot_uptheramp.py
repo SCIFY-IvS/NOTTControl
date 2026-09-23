@@ -1676,8 +1676,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--show-reset-levels",
         action="store_true",
         help=(
-            "On the ramp QA linearity panel, plot absolute ADU and dashed "
-            "horizontal lines for reset-frame levels (off by default)"
+            "On the raw absolute linearity panel, add dashed horizontal "
+            "lines for reset-frame levels (off by default)"
         ),
     )
     parser.add_argument(
