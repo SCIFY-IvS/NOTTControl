@@ -205,6 +205,14 @@ def build_flux_series(
         cds_cube = ramp.relative_to_first(stack)
 
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    if ramp.is_full_frame((ny, nx)):
+        try:
+            from .detector_qa import subtract_channel_reference_pixels
+        except ImportError:
+            from detector_qa import subtract_channel_reference_pixels
+
+        cds_cube, _applied = subtract_channel_reference_pixels(cds_cube)
+
     try:
         (row0, row1, col0, col1), _det_box = ramp.photonic_chip_illum_box((ny, nx))
     except ValueError:

@@ -31,8 +31,11 @@ Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1024–1087``, ``Y=928–959``). The **10 brightest** pixels are
 chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
-sample. On **full-frame** (2048×2048) data the flux plot also includes
-the mean over HxRG **reference pixels** (4-pixel border on all sides).
+sample. On **full-frame** (2048×2048) data each plane is further corrected
+by subtracting the **per-channel HxRG reference-pixel** mean (32 SIDECAR
+outputs; disable with ``--no-ref-correct``). Flux and detector-QA
+linearity use that corrected cube. The flux plot also overlays the
+(residual) mean over the reference-pixel border.
 Detector pixel **X=1076, Y=936** is tracked on full-frame / photonic
 windows when in bounds (override with ``--track-pixel``; skipped on
 other windowed readouts).
@@ -96,9 +99,21 @@ DEFAULT_N_SIGMA = 3.0
 REF_PIXEL_COLOR = "#e9c46a"
 
 try:
-    from .detector_qa import H2RG_REF_WIDTH, h2rg_ref_mask
+    from .detector_qa import (
+        H2RG_N_OUTPUTS,
+        H2RG_REF_WIDTH,
+        h2rg_ref_mask,
+        n_outputs_for_shape,
+        subtract_channel_reference_pixels,
+    )
 except ImportError:
-    from detector_qa import H2RG_REF_WIDTH, h2rg_ref_mask
+    from detector_qa import (
+        H2RG_N_OUTPUTS,
+        H2RG_REF_WIDTH,
+        h2rg_ref_mask,
+        n_outputs_for_shape,
+        subtract_channel_reference_pixels,
+    )
 
 # MSAC names often embed counters, e.g. ``…_N000012_M000001.fits`` or
 # a reset frame ``…_R0001.fits``. Prefer the science tag (M or N) that
@@ -354,6 +369,7 @@ def write_reset_illum_vs_r_plot(
     show: bool,
     session_name: str,
     expected_shape: tuple[int, int] | None = None,
+    ref_correct: bool = True,
 ) -> bool:
     """Plot absolute-ADU flux vs ``_R`` for the same regions as the UTR plot.
 
@@ -373,6 +389,15 @@ def write_reset_illum_vs_r_plot(
             expected_shape[0],
         )
         return False
+
+    cds_short = "reset"
+    if ref_correct and is_full_frame((ny, nx)):
+        stack, applied = subtract_channel_reference_pixels(stack)
+        if applied:
+            cds_short = "reset−chref"
+            logging.info(
+                "Reset-vs-R: subtracted per-channel reference-pixel means"
+            )
 
     row0, row1, col0, col1 = illum_box
     if not (0 <= row0 < row1 <= ny and 0 <= col0 < col1 <= nx):
@@ -476,7 +501,7 @@ def write_reset_illum_vs_r_plot(
     if region2_label and r2_means is not None:
         title_regions = f"{illum_source} vs {region2_label}"
     title = (
-        f"{session_name} — {title_regions} (reset) vs R "
+        f"{session_name} — {title_regions} ({cds_short}) vs R "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last = np.asarray(stack[-1], dtype=np.float64)
@@ -495,8 +520,8 @@ def write_reset_illum_vs_r_plot(
         bg_box=r2_box,
         region_label=region_label,
         detector_box=detector_box,
-        cds_label="reset",
-        cds_short="reset",
+        cds_label=cds_short,
+        cds_short=cds_short,
         flux_label=flux_label,
         track_xy=track_ok or None,
         track_matrix=track_matrix,
@@ -1640,6 +1665,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip detector-quality PNG/FITS maps of the reset and ramp",
     )
     parser.add_argument(
+        "--no-ref-correct",
+        action="store_true",
+        help=(
+            "Skip per-channel HxRG reference-pixel subtraction on full-frame "
+            "data (applied by default before flux and linearity)"
+        ),
+    )
+    parser.add_argument(
         "--show-reset-levels",
         action="store_true",
         help=(
@@ -1921,6 +1954,42 @@ def main(argv: list[str] | None = None) -> int:
     index_tag = records[0][1]
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
     windowed = not is_full_frame((ny, nx))
+
+    ref_corrected = False
+    reset_frame_raw = (
+        np.asarray(reset_frame, dtype=np.float64).copy()
+        if reset_frame is not None
+        else None
+    )
+    if not args.no_ref_correct and not windowed:
+        cds_cube, ref_corrected = subtract_channel_reference_pixels(cds_cube)
+        if ref_corrected:
+            cds_short = f"{cds_short}−chref"
+            cds_label = f"{cds_label}, ch-ref"
+            reduct_history += (
+                "; per-channel HxRG reference-pixel mean subtracted "
+                "from each plane"
+            )
+            logging.info(
+                "Full frame: subtracted per-channel reference-pixel means "
+                "(%d outputs)",
+                n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
+            )
+            if reset_frame is not None:
+                reset_frame, reset_ref_ok = subtract_channel_reference_pixels(
+                    reset_frame
+                )
+                if not reset_ref_ok:
+                    logging.warning(
+                        "Could not apply channel ref correction to reset frame"
+                    )
+        else:
+            logging.info(
+                "Full frame: channel reference-pixel correction not applied "
+                "(no usable ref border / output map)"
+            )
+    elif args.no_ref_correct and not windowed:
+        logging.info("Skipping channel reference-pixel correction (--no-ref-correct)")
 
     illum_source = "manual"
     region_label: str | None = None
@@ -2211,6 +2280,10 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     ),
                 ),
+                "REFCORR": (
+                    ref_corrected,
+                    "Per-channel HxRG ref-pixel mean subtracted",
+                ),
             }
             if reset_fits_path is not None:
                 reset_cards["RESETFIL"] = (
@@ -2366,6 +2439,7 @@ def main(argv: list[str] | None = None) -> int:
                     show=bool(args.show),
                     session_name=session_name,
                     expected_shape=(ny, nx),
+                    ref_correct=not bool(args.no_ref_correct),
                 )
             except Exception as exc:  # noqa: BLE001 — keep main UTR plot
                 logging.warning("Skipping reset-vs-R plot: %s", exc)
@@ -2384,7 +2458,7 @@ def main(argv: list[str] | None = None) -> int:
             out_dir=ramp_dir,
             cds_cube=cds_cube,
             sample_index=indices,
-            reset_frame=reset_frame,
+            reset_frame=reset_frame_raw,
             reset_name=reset_fits_path.name if reset_fits_path is not None else None,
             first_science=np.asarray(stack[0], dtype=np.float64),
             illum_box=(row0, row1, col0, col1),
@@ -2395,6 +2469,7 @@ def main(argv: list[str] | None = None) -> int:
             session_name=session_name,
             session_slug=session_slug,
             show_reset_levels=args.show_reset_levels,
+            reset_levels_frame=reset_frame if ref_corrected else None,
         )
     return 0
 

@@ -33,6 +33,8 @@
 # X = file index from the name (_M######, _N######, or _R######);
 # Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
 #     (outliers rejected), then tracked on every sample.
+# Full-frame: per-channel HxRG reference-pixel mean is subtracted before
+# flux and linearity (disable with --no-ref-correct).
 #
 # PNG (flux plot + detector QA of reset and ramp) and FITS cubes
 # are written into the session data folder:

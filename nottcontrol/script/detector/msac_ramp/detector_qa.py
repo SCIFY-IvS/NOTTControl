@@ -134,6 +134,91 @@ def n_outputs_for_shape(shape: tuple[int, int]) -> int | None:
     return None
 
 
+def channel_ref_masks(
+    shape: tuple[int, int],
+    *,
+    n_out: int | None = None,
+    ref_width: int = H2RG_REF_WIDTH,
+) -> list[np.ndarray] | None:
+    """Per-output boolean masks of HxRG reference pixels (same shape as image).
+
+    Each mask is True on the reference border pixels that fall in that
+    channel's vertical stripe (top/bottom rows, and side columns for the
+    edge channels). Returns ``None`` if the frame has no usable ref border
+    or width is not divisible by the output count.
+    """
+    height, width = int(shape[0]), int(shape[1])
+    ref = h2rg_ref_mask((height, width), width=ref_width)
+    if ref is None:
+        return None
+    if n_out is None:
+        n_out = n_outputs_for_shape((height, width))
+    if n_out is None or n_out <= 0 or width % n_out != 0:
+        return None
+    chan_w = width // n_out
+    masks: list[np.ndarray] = []
+    for ch in range(n_out):
+        m = np.zeros((height, width), dtype=bool)
+        c0 = ch * chan_w
+        c1 = c0 + chan_w
+        m[:, c0:c1] = ref[:, c0:c1]
+        if not bool(m.any()):
+            return None
+        masks.append(m)
+    return masks
+
+
+def subtract_channel_reference_pixels(
+    data: np.ndarray,
+    *,
+    n_out: int | None = None,
+    ref_width: int = H2RG_REF_WIDTH,
+) -> tuple[np.ndarray, bool]:
+    """Subtract per-output reference-pixel mean from each plane / image.
+
+    For every plane and every SIDECAR channel (vertical stripe), estimate
+    the offset as the mean of that channel's HxRG reference pixels and
+    subtract it from the entire channel stripe. No-op (returns a copy and
+    ``False``) when the frame is not full enough for a ref border or the
+    width is not an integer number of outputs.
+
+    Accepts ``(y, x)`` or ``(n, y, x)`` arrays; always returns float64.
+    """
+    arr = np.asarray(data, dtype=np.float64)
+    squeeze = False
+    if arr.ndim == 2:
+        arr = arr[np.newaxis, ...]
+        squeeze = True
+    if arr.ndim != 3:
+        raise ValueError(f"Expected (y, x) or (n, y, x), got shape {arr.shape}")
+
+    masks = channel_ref_masks(arr.shape[1:], n_out=n_out, ref_width=ref_width)
+    if masks is None:
+        out = np.array(arr, copy=True)
+        return (out[0] if squeeze else out), False
+
+    n_out_eff = len(masks)
+    width = int(arr.shape[2])
+    chan_w = width // n_out_eff
+    out = np.array(arr, copy=True)
+    for ch, mask in enumerate(masks):
+        c0 = ch * chan_w
+        c1 = c0 + chan_w
+        # Mean over ref pixels in this channel, per plane.
+        with np.errstate(all="ignore"):
+            # Boolean index flattens; compute per-plane means explicitly.
+            offsets = np.array(
+                [float(np.nanmean(plane[mask])) for plane in out],
+                dtype=np.float64,
+            )
+        bad = ~np.isfinite(offsets)
+        if bool(bad.any()):
+            offsets = np.where(bad, 0.0, offsets)
+        out[:, :, c0:c1] -= offsets[:, np.newaxis, np.newaxis]
+
+    return (out[0] if squeeze else out), True
+
+
 def channel_profile(image: np.ndarray, n_out: int) -> np.ndarray | None:
     """Mean ADU per output channel (vertical stripes)."""
     img = np.asarray(image, dtype=np.float64)
@@ -776,8 +861,15 @@ def run_detector_qa(
     session_name: str | None = None,
     session_slug: str | None = None,
     show_reset_levels: bool = False,
+    reset_levels_frame: np.ndarray | None = None,
 ) -> None:
-    """Write reset and ramp QA products into *out_dir*."""
+    """Write reset and ramp QA products into *out_dir*.
+
+    *reset_frame* is used for the spatial reset QA (prefer raw pedestal).
+    *reset_levels_frame* (default: *reset_frame*) is used for absolute
+    dashed levels on the linearity panel when *show_reset_levels* is set
+    — pass a channel-ref-corrected copy to match the corrected CDS cube.
+    """
     out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     slug = (session_slug or session_name or out_dir.name or "session").strip()
@@ -812,6 +904,7 @@ def run_detector_qa(
         logging.warning("Detector QA: need ≥2 ramp samples for slope maps")
         return
 
+    levels = reset_levels_frame if reset_levels_frame is not None else reset_frame
     plot_ramp_qa(
         cds_cube,
         sample_index,
@@ -822,6 +915,6 @@ def run_detector_qa(
         pixels=pixels,
         slope_fits=out_dir / f"{slug}_msac_qa_slope.fits",
         rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
-        reset_frame=reset_frame,
+        reset_frame=levels,
         show_reset_levels=show_reset_levels,
     )
