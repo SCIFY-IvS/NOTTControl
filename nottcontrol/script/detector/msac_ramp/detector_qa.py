@@ -500,19 +500,34 @@ def plot_reset_qa(
     return stats
 
 
-def _linear_fit_line(t: np.ndarray, y: np.ndarray) -> np.ndarray | None:
-    """Return ``a + b t`` evaluated on *t*, or None if a fit is not possible."""
+def _linear_fit_line(
+    t: np.ndarray,
+    y: np.ndarray,
+    *,
+    lowest_frac: float = 0.5,
+) -> tuple[np.ndarray, float] | None:
+    """Fit ``a + b t`` using the lowest *lowest_frac* of *y* values.
+
+    Returns ``(y_line, slope)`` with *y_line* evaluated on the full *t*
+    array, or ``None`` if a fit is not possible.
+    """
     tt = np.asarray(t, dtype=np.float64).reshape(-1)
     yy = np.asarray(y, dtype=np.float64).reshape(-1)
     ok = np.isfinite(tt) & np.isfinite(yy)
     if int(ok.sum()) < 2:
         return None
-    tt = tt[ok]
-    yy = yy[ok]
-    if float(np.ptp(tt)) <= 0:
+    tt_ok = tt[ok]
+    yy_ok = yy[ok]
+    n_fit = max(2, int(np.ceil(lowest_frac * tt_ok.size)))
+    n_fit = min(n_fit, int(tt_ok.size))
+    order = np.argsort(yy_ok, kind="mergesort")[:n_fit]
+    tt_fit = tt_ok[order]
+    yy_fit = yy_ok[order]
+    if float(np.ptp(tt_fit)) <= 0:
         return None
-    slope, intercept = np.polyfit(tt, yy, 1)
-    return slope * np.asarray(t, dtype=np.float64) + intercept
+    slope, intercept = np.polyfit(tt_fit, yy_fit, 1)
+    y_line = slope * tt + intercept
+    return y_line, float(slope)
 
 
 def _plot_linearity_curves(
@@ -528,7 +543,9 @@ def _plot_linearity_curves(
 ) -> None:
     """Plot region median/mean ADU series on *ax* from *cube* planes.
 
-    Each series gets a thin dashed linear fit (same color, no legend entry).
+    Each series gets a thin dashed linear fit to the lowest 50% of ADU
+    values (line drawn over the full sample range, no legend entry), with
+    the fitted slope annotated on the axes.
     """
     data = np.asarray(cube, dtype=np.float64)
     nplane = int(data.shape[0])
@@ -605,10 +622,12 @@ def _plot_linearity_curves(
             )
         )
 
+    slope_notes: list[tuple[str, float, str]] = []
     for y, style, color, label in series:
         ax.plot(t, y, style, color=color, markersize=5, label=label)
-        y_fit = _linear_fit_line(t, y)
-        if y_fit is not None:
+        fitted = _linear_fit_line(t, y, lowest_frac=0.5)
+        if fitted is not None:
+            y_fit, slope = fitted
             ax.plot(
                 t,
                 y_fit,
@@ -618,6 +637,28 @@ def _plot_linearity_curves(
                 alpha=0.75,
                 label="_nolegend_",
             )
+            slope_notes.append((label, slope, color))
+
+    if slope_notes:
+        lines = [
+            f"{name}: {slope:+.3g} ADU/sample" for name, slope, _color in slope_notes
+        ]
+        ax.text(
+            0.02,
+            0.98,
+            "\n".join(lines),
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=7,
+            family="monospace",
+            bbox={
+                "boxstyle": "round,pad=0.25",
+                "facecolor": "white",
+                "edgecolor": "0.75",
+                "alpha": 0.85,
+            },
+        )
 
     if reset_img is not None:
         reset_refs: list[tuple[str, float, str]] = [
