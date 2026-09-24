@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daily backup of H2RG live data to archive, then 1-week retention on /data.
+"""Daily backup of H2RG live data to archive, then 48-hour retention on /data.
 
 Live trees (copied, then pruned):
 
@@ -7,10 +7,10 @@ Live trees (copied, then pruned):
     /data/bench_data    → /archive/bench_data    (MSAC / H2RG_ASIC, …)
 
 ``/archive/*`` is permanent: this script never deletes under archive.
-After a successful rsync, live data older than ``--retention-days`` (default 7)
-is removed from ``/data/nott`` and ``/data/bench_data`` only when the same
-paths already exist in the matching archive tree with the same file size
-(an empty or truncated archive copy is not enough).
+After a successful rsync, live data older than ``--retention-days`` (default 2,
+i.e. 48 hours) is removed from ``/data/nott`` and ``/data/bench_data`` only when
+the same paths already exist in the matching archive tree with the same file
+size (an empty or truncated archive copy is not enough).
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Backup /data/nott and /data/bench_data to /archive/*, then apply "
-            "1-week retention on the live /data trees only."
+            "48-hour retention on the live /data trees only."
         ),
     )
     parser.add_argument(
@@ -160,7 +160,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_RETENTION_DAYS,
         help=(
             f"Remove live /data entries older than this many days after a "
-            f"successful archive copy (default: {DEFAULT_RETENTION_DAYS}). "
+            f"successful archive copy (default: {DEFAULT_RETENTION_DAYS} = 48 h). "
             f"Use 0 to disable purge."
         ),
     )

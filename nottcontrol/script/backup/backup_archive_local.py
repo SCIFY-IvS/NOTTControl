@@ -7,7 +7,7 @@ By default this mirrors two trees via rsync over SSH:
 2. MSAC / bench archive:       ``/archive/bench_data`` → local ``.../Data/bench_data``
 
 (The server-side ``backup_hawaii_frames`` job archives ``/data/nott`` and
-``/data/bench_data`` into ``/archive/*``, then applies 1-week retention on
+``/data/bench_data`` into ``/archive/*``, then applies 48-hour retention on
 the live ``/data`` trees. Prefer pulling from ``/archive/bench_data`` so
 local copies stay complete after live data is pruned. Override with
 ``--bench-remote /data/bench_data`` if you need the live tree.)

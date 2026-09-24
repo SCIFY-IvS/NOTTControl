@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Backup live H2RG data to permanent archive, then apply 1-week retention on /data.
+# Backup live H2RG data to permanent archive, then apply 48-hour retention on /data.
 #
 # Copies (archive is never deleted by this script):
 #   /data/nott       → /archive/nott
 #   /data/bench_data → /archive/bench_data
 #
 # After a successful copy, removes from /data only what is already in /archive
-# and older than --retention-days (default: 7).
+# and older than --retention-days (default: 2 = 48 h).
 #
 # Usage:
 #   ./nottcontrol/script/backup/backup_hawaii_frames.sh

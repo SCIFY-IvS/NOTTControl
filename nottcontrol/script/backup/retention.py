@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 UTC_DAY_RE = re.compile(r"^\d{8}$")
-DEFAULT_RETENTION_DAYS = 7
+DEFAULT_RETENTION_DAYS = 2  # 48 hours
 
 
 def utc_now() -> datetime:
