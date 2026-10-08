@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import logging
 import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from urllib.parse import urlparse
 
 from nottcontrol import config
+
+logger = logging.getLogger(__name__)
 
 MACIE_DIR = Path(__file__).resolve().parent
 H2RG_SECTION = "H2RG DETECTOR"
@@ -88,12 +92,21 @@ def _server_environment() -> dict[str, str]:
     return env
 
 
+def _decode_stderr(data: bytes | str | None) -> str:
+    if not data:
+        return ""
+    if isinstance(data, bytes):
+        return data.decode("utf-8", errors="replace").strip()
+    return str(data).strip()
+
+
 class MacieZmqServerProcess:
     """Start and stop the MACIE zmq_server subprocess."""
 
     def __init__(self, zmq_address: str = DEFAULT_ZMQ_ADDRESS) -> None:
         self._zmq_address = zmq_address
         self._process: subprocess.Popen | None = None
+        self._stderr_file = None
 
     @property
     def zmq_address(self) -> str:
@@ -102,6 +115,27 @@ class MacieZmqServerProcess:
     @property
     def started_by_gui(self) -> bool:
         return self._process is not None and self._process.poll() is None
+
+    def _read_stderr_file(self) -> str:
+        handle = self._stderr_file
+        if handle is None:
+            return ""
+        try:
+            handle.flush()
+            handle.seek(0)
+            return _decode_stderr(handle.read())
+        except Exception:
+            return ""
+
+    def _close_stderr_file(self) -> None:
+        handle = self._stderr_file
+        self._stderr_file = None
+        if handle is None:
+            return
+        try:
+            handle.close()
+        except Exception:
+            pass
 
     def ensure_running(self) -> None:
         if is_zmq_port_open(self._zmq_address):
@@ -121,36 +155,67 @@ class MacieZmqServerProcess:
 
         executable = resolve_zmq_server_executable()
         if executable is None:
-            raise FileNotFoundError(
+            raise RuntimeError(
                 "MACIE zmq_server executable not found. Build it under "
                 f"{MACIE_DIR / 'macie_exe'} and set zmq_server_executable in config.ini"
             )
 
-        self._process = subprocess.Popen(
-            [str(executable)],
-            cwd=str(MACIE_DIR),
-            env=_server_environment(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        cmd = [str(executable)]
+        env = _server_environment()
+        ld_path = env.get("LD_LIBRARY_PATH", "")
+        logger.debug(
+            "Auto-starting zmq_server: cmd=%s cwd=%s LD_LIBRARY_PATH=%r",
+            cmd,
+            MACIE_DIR,
+            ld_path,
         )
+
+        self._close_stderr_file()
+        stderr_file = tempfile.TemporaryFile()
+        self._stderr_file = stderr_file
+        try:
+            self._process = subprocess.Popen(
+                cmd,
+                cwd=str(MACIE_DIR),
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=stderr_file,
+            )
+        except OSError as exc:
+            self._close_stderr_file()
+            raise RuntimeError(
+                f"Failed to launch MACIE zmq_server {cmd!r} "
+                f"(cwd={MACIE_DIR}, LD_LIBRARY_PATH={ld_path!r}): {exc}"
+            ) from exc
 
         deadline = time.monotonic() + ZMQ_STARTUP_TIMEOUT_S
         while time.monotonic() < deadline:
             if self._process.poll() is not None:
-                raise RuntimeError(
-                    f"zmq_server exited immediately with code {self._process.returncode}"
-                )
+                code = self._process.returncode
+                stderr = self._read_stderr_file()
+                self._process = None
+                self._close_stderr_file()
+                detail = f"zmq_server exited immediately with code {code}"
+                if stderr:
+                    detail = f"{detail}: {stderr}"
+                raise RuntimeError(detail)
             if is_zmq_port_open(self._zmq_address):
                 return
             time.sleep(0.2)
 
+        stderr = self._read_stderr_file()
         self.stop()
-        raise TimeoutError(
-            f"zmq_server did not open {self._zmq_address} within {ZMQ_STARTUP_TIMEOUT_S:g}s"
+        detail = (
+            f"zmq_server did not open {self._zmq_address} "
+            f"within {ZMQ_STARTUP_TIMEOUT_S:g}s"
         )
+        if stderr:
+            detail = f"{detail}: {stderr}"
+        raise RuntimeError(detail)
 
     def stop(self) -> None:
         if self._process is None:
+            self._close_stderr_file()
             return
         if self._process.poll() is None:
             self._process.terminate()
@@ -158,5 +223,9 @@ class MacieZmqServerProcess:
                 self._process.wait(timeout=3.0)
             except subprocess.TimeoutExpired:
                 self._process.kill()
-                self._process.wait(timeout=3.0)
+                try:
+                    self._process.wait(timeout=3.0)
+                except Exception:
+                    pass
         self._process = None
+        self._close_stderr_file()

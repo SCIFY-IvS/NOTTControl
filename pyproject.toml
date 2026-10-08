@@ -30,10 +30,14 @@ dependencies = [
   "pyzmq",
   "sympy",
   "matplotlib",
-  "astropy",
+  "astropy>=5.0",
+  # Required by main GUI import chain: scifygui → piezos_window → pypiezo.
   "pyserial",
-  "scikit-learn",
 ]
 
 [project.optional-dependencies]
 macos = ["pyobjc-framework-Cocoa"]
+# script/calibration/kappa_matrix*.py
+calibration = ["scikit-learn"]
+# lucid camera utils + components.correctors fitting (backend / HumInt paths)
+lucid = ["lmfit"]

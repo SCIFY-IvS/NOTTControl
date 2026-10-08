@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import warnings
 from io import BytesIO
@@ -10,7 +11,13 @@ from typing import Literal
 
 import numpy
 
+logger = logging.getLogger(__name__)
+
 RampReduction = Literal["SingleFrame", "Ramp", "CDS", "Fowler"]
+
+# Stashed on the ramp header when leading reset planes are dropped; consumed by
+# save_science_fits to write a COMMENT card (not a public FITS keyword).
+_STRIPPED_RESET_PLANES_KEY = "_STRIPPED_RESET_PLANES"
 
 
 class TruncatedFitsError(OSError):
@@ -195,6 +202,13 @@ def leading_reset_planes(
         science = max(1, int(ngroups)) * max(1, int(nreads))
         extra = nsamples - science
         if extra > 0:
+            logger.warning(
+                "Stripping %d leading reset plane(s) from FITS cube "
+                "(NAXIS3=%d, science=%d)",
+                extra,
+                nsamples,
+                science,
+            )
             return extra
         # Cube already matches the science stream (SaveRstFrames off, or a
         # file that never stored reset planes). Do not fall through to
@@ -202,7 +216,16 @@ def leading_reset_planes(
         return 0
 
     if nresets is not None:
-        return max(0, min(int(nresets), nsamples - 1))
+        extra = max(0, min(int(nresets), nsamples - 1))
+        if extra > 0:
+            logger.warning(
+                "Stripping %d leading reset plane(s) from FITS cube "
+                "(NAXIS3=%d, science=%d)",
+                extra,
+                nsamples,
+                nsamples - extra,
+            )
+        return extra
     return 0
 
 
@@ -226,6 +249,10 @@ def cube_without_reset_planes(
     )
     if skip <= 0 or arr.ndim <= 2:
         return arr, hdr
+    # Annotate the caller header so save_science_fits can record a COMMENT.
+    if header is not None:
+        header[_STRIPPED_RESET_PLANES_KEY] = int(skip)
+    hdr[_STRIPPED_RESET_PLANES_KEY] = int(skip)
     axis = ramp_sample_axis(hdr, arr.shape)
     sl: list[slice] = [slice(None)] * arr.ndim
     sl[axis] = slice(skip, None)
@@ -384,10 +411,26 @@ def save_science_fits(
         for key in ("DATE-OBS", "AMPGAIN", "AMPINPUT", "DETTYPE", "SMPLMODE"):
             if key in source_header:
                 header[key] = source_header[key]
-    if extra_cards:
-        from nottcontrol.camera.macie.fits_header_meta import apply_fits_header_cards
 
+    from nottcontrol.camera.macie.fits_header_meta import apply_fits_header_cards
+
+    if extra_cards:
         apply_fits_header_cards(header, extra_cards)
+    stripped = (
+        source_header.get(_STRIPPED_RESET_PLANES_KEY) if source_header else None
+    )
+    if stripped:
+        apply_fits_header_cards(
+            header,
+            [
+                (
+                    "COMMENT",
+                    None,
+                    f"Stripped {int(stripped)} leading reset plane(s) "
+                    "before science reduction",
+                )
+            ],
+        )
 
     hdu = fits.PrimaryHDU(data=image.astype(numpy.float32), header=header)
     hdu.writeto(output_path, overwrite=True)

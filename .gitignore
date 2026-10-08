@@ -234,6 +234,8 @@ nottcontrol/script/diagnostics/redis_lag_shutter_time_stats.png
 *.ipynb_checkpoints*
 
 nottcontrol/persist.json
+# Site-specific network/host settings — start from config.ini.example
+nottcontrol/config.ini
 nottcontrol/config.local.ini
 nottcontrol/camera/macie/macie_exe/zmq_server
 nottcontrol/nottcontrol.egg-info/

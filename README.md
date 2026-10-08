@@ -15,9 +15,15 @@ High-level control software for the **NOTT** instrument: a PyQt5 desktop applica
 - **Python 3.10+**
 - Network access to the configured **OPC UA** server and (if used) **Redis**
 
-Core dependencies are listed in [`pyproject.toml`](pyproject.toml) (PyQt5, asyncua, numpy, scipy, OpenCV headless, redis, pyzmq, sympy, matplotlib, pyqtgraph).
+Core dependencies are listed in [`pyproject.toml`](pyproject.toml) (PyQt5, asyncua, numpy, scipy, OpenCV headless, redis, pyzmq, sympy, matplotlib, pyqtgraph, **astropy≥5**, pyserial).
 
-Some code paths use **additional** packages that are not declared in `pyproject.toml` today, for example **Astropy** (`nottcontrol/config.py`, alignment / lucid utilities), **pyserial** (piezo hardware), **scikit-learn** (calibration scripts), or **lmfit** (lucid utilities). Install these only if you use those modules.
+Optional extras (install only if you need those code paths):
+
+```bash
+python -m pip install -e ".[calibration]"   # scikit-learn — script/calibration/kappa_matrix*
+python -m pip install -e ".[lucid]"         # lmfit — lucid utils / correctors fitting
+python -m pip install -e ".[macos]"         # macOS Cocoa helpers
+```
 
 ## Installation
 
@@ -26,6 +32,14 @@ From the repository root (use the same `python` / conda env you will run the GUI
 ```bash
 python -m pip install -e .
 ```
+
+Copy the example config and fill in your site values before first run:
+
+```bash
+cp nottcontrol/config.ini.example nottcontrol/config.ini
+```
+
+Edit `nottcontrol/config.ini` and replace every `<PLACEHOLDER>` (OPC UA, Redis, camera IPs, FITS paths, etc.). `config.ini` is gitignored so lab addresses are not committed.
 
 Non-editable install:
 
@@ -154,12 +168,13 @@ Full notes: [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Read
 
 ## Configuration
 
-Edit [`nottcontrol/config.ini`](nottcontrol/config.ini) for your site:
+Start from [`nottcontrol/config.ini.example`](nottcontrol/config.ini.example) (copy to `config.ini` as above). Site-specific keys include:
 
-- **`[DEFAULT]`** `opcuaaddress`, `databaseurl` (Redis), frame directories
-- Sections for delay lines, piezo/tip-tilt, camera, and other subsystems
+- **`[DEFAULT]`** `opcuaaddress`, `opcuaaddress_cry`, `databaseurl` (Redis)
+- Camera / FITS paths under **`[INFRATEC CAMERA]`** and **`[H2RG DETECTOR]`**
+- Lucid IPs under **`[connection]`**, filter-wheel IP under **`[FILTERWHEEL]`**
 
-Alignment and script helpers may read additional config under `nottcontrol/script/` and `nottcontrol/lucid/cfg/` depending on the feature you use.
+Optional machine tweaks (ROIs, etc.) can go in gitignored `config.local.ini`. Alignment and script helpers may also read config under `nottcontrol/script/` and `nottcontrol/lucid/cfg/`.
 
 ## Running the GUI
 
@@ -232,4 +247,4 @@ If Arena is not installed, avoid importing or running modules that require `aren
 
 ## Contributing
 
-Use branches and pull requests against the upstream repository. Keep `config.ini` free of site-specific secrets when committing; prefer local overrides or environment-specific copies where appropriate.
+Use branches and pull requests against the upstream repository. Do not commit `config.ini` (it is gitignored); keep site IPs in your local copy and share updates via `config.ini.example` placeholders only.

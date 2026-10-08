@@ -1359,6 +1359,7 @@ class H2rgMainWindow(QMainWindow):
     acquire_preview_frame = pyqtSignal(object, str)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
+    zmq_startup_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
     controls_enabled = pyqtSignal(bool)
     readouts_updated = pyqtSignal(object)
@@ -1391,6 +1392,9 @@ class H2rgMainWindow(QMainWindow):
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
             self._on_live_acquisition_failed, Qt.QueuedConnection
+        )
+        self.zmq_startup_failed.connect(
+            self._on_zmq_startup_failed, Qt.QueuedConnection
         )
         self.status_updated.connect(self._set_status, Qt.QueuedConnection)
         self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
@@ -2064,7 +2068,10 @@ class H2rgMainWindow(QMainWindow):
                 message = (
                     f"{message} — also set [H2RG DETECTOR] fits_directory for FITS preview"
                 )
+            # Show immediately on the GUI thread; do not proceed to ZMQ connect.
             self.status_updated.emit(message)
+            self.zmq_startup_failed.emit(message)
+            return
 
     def _relayout_control_panels(self) -> None:
         self._layout_conf_panel()
@@ -3705,6 +3712,10 @@ class H2rgMainWindow(QMainWindow):
         self._set_status(message)
         QMessageBox.warning(self, "H2RG", message)
 
+    def _on_zmq_startup_failed(self, message: str) -> None:
+        self._set_status(message)
+        QMessageBox.critical(self, "H2RG ZMQ server", message)
+
     def _on_live_macie_error(self, exc: Exception) -> None:
         self.live_acquisition_failed.emit(str(exc))
 
@@ -4881,6 +4892,9 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def halt(self) -> None:
+        if self._macie is not None:
+            # Unblock a hung acquire() poll without waiting for the operation lock.
+            self._macie.cancel_acquire()
         if self._live_session_busy() and self._macie is not None:
             self._macie.stop_continuous_acquisition()
             self._stop_live_ui()

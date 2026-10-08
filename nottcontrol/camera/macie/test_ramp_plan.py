@@ -34,11 +34,11 @@ def _zmq_store_display_preview(cube: numpy.ndarray, *, nresets_save: int) -> num
 
 
 class CalcRampPlanTests(unittest.TestCase):
-    def test_cds_short_integration_single_read(self) -> None:
-        plan = calc_ramp_plan(50.0, 200.0, mode="CDS")
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 1)
-        self.assertEqual(plan["ndrops"], 0)
+    def test_cds_short_integration_raises(self) -> None:
+        with self.assertRaises(ValueError) as ctx:
+            calc_ramp_plan(50.0, 200.0, mode="CDS")
+        self.assertIn("CDS requires tint_ms >= frametime_ms", str(ctx.exception))
+        self.assertIn("SingleFrame", str(ctx.exception))
 
     def test_cds_long_integration_two_groups(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="CDS")
@@ -272,9 +272,35 @@ class ResetPlaneSkipTests(unittest.TestCase):
         header = {"NAXIS": 3, "NAXIS3": 3, "NGROUPS": 2, "NREADS": 1, "NRESETS": 1}
         result = science_image_from_cube(cube, header, reduction="CDS")
         numpy.testing.assert_allclose(result, [[1.0, 2.0], [3.0, 4.0]])
+        self.assertEqual(header.get("_STRIPPED_RESET_PLANES"), 1)
         # Without skip this would be last-minus-reset: [[-89, -78], [-67, -56]]
         unskipped = cds_science_image(cube, {"NAXIS": 3, "NAXIS3": 3})
         numpy.testing.assert_allclose(unskipped, [[-89.0, -78.0], [-67.0, -56.0]])
+
+    def test_save_science_fits_comments_stripped_resets(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        from nottcontrol.camera.macie.fits_science import save_science_fits
+
+        cube = numpy.array(
+            [
+                [[100.0, 100.0], [100.0, 100.0]],
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        header = {"NAXIS": 3, "NAXIS3": 3, "NGROUPS": 2, "NREADS": 1, "NRESETS": 1}
+        frame = science_image_from_cube(cube, header, reduction="CDS")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "ramp_science.fits"
+            save_science_fits(path, frame, source_header=header, reduction="CDS")
+            from astropy.io import fits
+
+            with fits.open(path) as hdul:
+                comments = " ".join(str(c) for c in hdul[0].header["COMMENT"])
+                self.assertIn("Stripped 1 leading reset plane", comments)
 
     def test_zmq_display_preview_skips_reset_like_fits_cds(self) -> None:
         """Live/Acquire ZMQ preview must not be last-minus-reset.

@@ -21,6 +21,8 @@ ZMQ_REQUEST_TIMEOUT_MS = config.getint(
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=300_000
 )
+# Slice long acquire waits so cancel / live-stop can be noticed promptly.
+ACQUIRE_POLL_MS = 1_000
 MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "shutdown_timeout_ms", fallback=2_000
 )
@@ -154,6 +156,8 @@ class MacieInterface():
         self._acquiring = Event()
         self._acquiring.clear()
         self._closing = Event()
+        # Set by halt / live-stop so a blocked acquire() poll can exit early.
+        self._acquire_cancel = Event()
         self._pause_live = Event()
         self._live_session_open = False
         self._live_restore_exposure: tuple | None = None
@@ -237,7 +241,17 @@ class MacieInterface():
         if command in ("acquire", "fetchnewestfits"):
             # _request / _request_multipart already hold self._lock.
             self._attempt_halt_after_timeout()
+        if command == "acquire":
+            seconds = max(1, int(ZMQ_ACQUIRE_TIMEOUT_MS / 1000))
+            return TimeoutError(
+                f"Acquire timed out after {seconds}s "
+                "(detector not responding — check GigE cable / power)"
+            )
         return TimeoutError(f"ZMQ request timed out ({command})")
+
+    def cancel_acquire(self) -> None:
+        """Signal a blocked ``acquire()`` poll to abort (halt / live-stop)."""
+        self._acquire_cancel.set()
 
     def __enter__(self):
         self.init_camera()
@@ -287,6 +301,7 @@ class MacieInterface():
         )
         self._closing.set()
         self._acquiring.clear()
+        self._acquire_cancel.set()
 
         if self._continuous_thread is not None and self._continuous_thread.is_alive():
             self._continuous_thread.join(timeout=0.5)
@@ -405,11 +420,54 @@ class MacieInterface():
             return parts
 
     def acquire(self, no_recon: bool = True) -> AcquireResult:
-        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched)."""
-        parts = self._request_multipart(
-            f"acquire;{str(no_recon).lower()}",
-            timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
-        )
+        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched).
+
+        Waits up to ``zmq_acquire_timeout_ms``, polling in short slices so
+        ``cancel_acquire()`` / live-stop (``_acquire_cancel``) or ``disconnect``
+        can interrupt a hung readout instead of blocking until the full timeout.
+        Raises ``TimeoutError`` on operational timeout or cancel.
+        """
+        message = f"acquire;{str(no_recon).lower()}"
+        timeout_ms = max(1, int(ZMQ_ACQUIRE_TIMEOUT_MS))
+        poll_ms = max(100, min(ACQUIRE_POLL_MS, timeout_ms))
+        self._acquire_cancel.clear()
+
+        with self._lock:
+            self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+            self._socket.setsockopt(zmq.RCVTIMEO, poll_ms)
+            try:
+                self._socket.send_string(message)
+                deadline = time.monotonic() + timeout_ms / 1000.0
+                while True:
+                    if self._closing.is_set() or self._acquire_cancel.is_set():
+                        self._reset_socket()
+                        self._attempt_halt_after_timeout()
+                        raise TimeoutError(
+                            "Acquire cancelled "
+                            "(halt / live-stop while waiting for detector)"
+                        )
+                    remaining_ms = int((deadline - time.monotonic()) * 1000)
+                    if remaining_ms <= 0:
+                        raise self._handle_timeout(message, zmq.Again())
+                    self._socket.setsockopt(
+                        zmq.RCVTIMEO, min(poll_ms, remaining_ms)
+                    )
+                    try:
+                        parts = self._socket.recv_multipart()
+                        break
+                    except zmq.Again:
+                        continue
+            except TimeoutError:
+                raise
+            except zmq.Again as exc:
+                raise self._handle_timeout(message, exc) from exc
+            finally:
+                try:
+                    self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
+                    self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+                except Exception:
+                    pass
+
         return parse_acquire_preview_parts(parts)
 
     def get_save_dir(self) -> str | None:
@@ -467,6 +525,7 @@ class MacieInterface():
             pass
 
     def halt_acquisition(self):
+        self.cancel_acquire()
         return self._request("halt")
 
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
@@ -633,6 +692,7 @@ class MacieInterface():
         self._acquiring.set()
 
     def stop_continuous_acquisition(self):
+        self._acquire_cancel.set()
         self._acquiring.clear()
         try:
             self._set_live_session(False)
@@ -668,6 +728,11 @@ class MacieInterface():
                     if self._acquiring.is_set() and not self._closing.is_set():
                         time.sleep(0.005)
                 except Exception as exc:
+                    # Live-stop / halt sets _acquire_cancel; not a detector fault.
+                    if isinstance(exc, TimeoutError) and (
+                        not self._acquiring.is_set() or self._acquire_cancel.is_set()
+                    ):
+                        continue
                     failures += 1
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
                     self._reset_live_science_interface()

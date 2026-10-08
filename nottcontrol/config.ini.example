@@ -1,0 +1,444 @@
+# Example site configuration for NOTTControl.
+# Copy this file to config.ini and replace every <PLACEHOLDER> with your lab values:
+#   cp config.ini.example config.ini
+#
+# config.ini is gitignored — do not commit real hostnames or IPs.
+# Optional machine tweaks (ROIs, etc.) can go in config.local.ini.
+#
+#----------#
+# Pointers |
+#----------#
+[DEFAULT]
+# Redis time-series database (sensor history). Must be running on nott-server.
+databaseurl = redis://<REDIS-HOST>:6379
+opcuaaddress = opc.tcp://<ICS-SERVER-IP>:4840
+opcuaaddress_cry = opc.tcp://<CRYO-OPC-SERVER-IP>:4840
+[SCIFYSIM]
+# Config file for SCIFYsim
+config = <PATH-TO-SCIFYSIM-NOTT-CONFIG>/nott_config.ini
+
+#-------------------#
+# Hardware defaults |
+#-------------------#
+[DL]
+default_speed = 10 # um/s (50 for re-configuring, 10 to correctly sample fringes)
+# Double Bracewell cophasing on 05/06/2026
+dl1_pos = 4775.5085206
+dl2_pos = 4173.0709934
+dl3_pos = 4189.2989399
+dl4_pos = 5337.186207
+
+[PIEZO]
+# Serial port for piezo controller:
+#   Linux: /dev/ttyACM0
+#   macOS: /dev/cu.usbmodem* or /dev/cu.usbserial*
+#   Windows: COM3
+port = /dev/ttyACM0
+# ADU / um
+default_gains = 255,461.31166385,273.60503791,295.80487777
+# um
+default_offsets = 0,0,0,0
+# ADU
+default_min_raw = 0
+default_max_raw = 4000
+scan_steps = 50
+scan_step_delay_s = 0.05
+[FILTERWHEEL]
+ip = <FILTERWHEEL-IP>
+port = 11312
+[TIPTILT]
+default_speed = 10
+
+[SENSORS]
+# Cryostat sensor Redis save interval (milliseconds)
+sensor_save_interval_ms = 60000
+# OPC UA read timeout for cryostat batch reads (seconds)
+opcua_timeout_s = 30
+# Main-window DL temperature OPC UA nodes (ICS server; verify on PLC)
+dl_temp_opc_nodes = ns=4;s=MAIN.not_cryo_ctrl.lrTempC_1, ns=4;s=MAIN.not_cryo_ctrl.lrTempC_2, ns=4;s=MAIN.not_cryo_ctrl.lrTempC_3, ns=4;s=MAIN.not_cryo_ctrl.lrTempC_4
+# Redis position logging interval for motor/shutter sub-windows (milliseconds)
+position_save_interval_ms = 1000
+
+#--------------------------------#
+# Infratec IR camera (not H2RG)  #
+#--------------------------------#
+# PNG frame save paths and ROI/window settings for the Infratec camera GUI
+# (scify). H2RG FITS paths live under [H2RG DETECTOR] instead.
+[INFRATEC CAMERA]
+# Windows UNC path where Infratec PNG frames are saved (lab PC).
+frame_directory = \\<FILE-SERVER>\Frames
+# frame_directory = C:\Users\fys-lab-ivs\Documents\Frames\
+# Linux path for the same Infratec frame tree (nott-server / analysis PCs).
+linux_frame_directory = <LINUX-INFRATEC-FRAMES-DIR>
+# Time used for stamping frames & redis entries. If True, camera time. If False, estimated Windows machine time
+use_camera_time = False
+# If True, values of counts (avg,min,max) recorded within the rois are written to the redis database.
+# If False, rely on the transfer of full frames (Windows -> Linux) to get these values.
+record_rois = False
+# Acquisition tuning: larger queues reduce frame drops during recording.
+frame_queue_size = 64
+save_queue_size = 256
+# PNG compression 0=none, 1=fast, 9=smallest file.
+png_compression = 1
+# Camera image display scale in the GUI (camera pixels -> screen pixels).
+image_display_scale = 4
+# If True, print camera timing and frame-rate messages to the terminal.
+verbose = False
+# ROI brightness plot height in pixels.
+graph_height = 190
+# Detector image refresh rate in Hz.
+image_display_refresh_hz = 2
+# ROI Min/Max/Avg label refresh rate in Hz.
+roi_values_refresh_hz = 2
+# ROI time-series and 1D profile plot refresh rate in Hz.
+roi_plot_refresh_hz = 1
+# When not recording, process one ROI frame every N camera frames (~10 Hz at 240 fps).
+roi_idle_process_stride = 24
+# Rolling window width for the ROI brightness vs time plot [s].
+roi_time_plot_window_seconds = 60
+# Max frame rate assumed when sizing the in-memory ROI time-series buffer.
+roi_time_plot_max_framerate = 240
+# Estimated per-frame readout overhead (µs), used when frame rate is not yet measured.
+frame_readout_overhead_us = 5000
+
+# If True, frames saved to local storage are windowed.
+windowing = True
+window_w = 160
+window_h = 150
+window_x = 250
+window_y = 90
+# ROI positions & sizes as defined in the FULL (non-windowed) frame.
+# Loading/saving ROIs in the nottcontrol GUI uses below fields.
+ROI 10 = 340,105,4,105
+ROI 9 = 261,105,4,105
+ROI 8 = 268,105,4,105
+ROI 7 = 276,105,4,105
+ROI 6 = 284,105,4,105
+ROI 5 = 296,105,4,105
+ROI 4 = 304,105,4,105
+ROI 3 = 315,105,4,105
+ROI 2 = 324,105,4,105
+ROI 1 = 333,105,4,105
+# Matching channel labels to ROI indices
+channel_labels = P1,P2,I1,I2,I3,I4,P3,P4,B1,B2
+roi_indices = 1,2,3,4,5,6,7,8,9,10
+# Custom pixel-to-wavelength mapping (pixel row, micron), top-to-bottom. Length should correspond to the height of the outputs on te camera.
+pix_to_lamb = 1,2,3,4,5,6,7,8,9,10
+# Range of wavelengths viewed on camera (micron) # TBD
+up_lamb = 4.0
+low_lamb = 3.5
+up_index = 30.0
+low_index = 50.0
+
+roi1 = 383.14055376779913,326.1362205565628,4.695574827550445,4.730297918764165
+roi2 = 377.09301858190946,326.0903792857764,4.810794389421858,4.813500766193158
+roi3 = 372.05877068166444,326.0950571371673,4.803916792104815,4.83838412391782
+roi4 = 366.0588323038446,326.05626248609343,4.908820212354783,4.885505965298762
+roi5 = 361.132381499461,326.08103476646534,4.832741971509449,4.881096091508539
+roi6 = 355.0665826808992,326.068725418899,4.873372211119033,4.903651790279582
+roi7 = 350.0912357708507,326.0803377991091,4.8856350805367015,4.890432854183587
+roi8 = 344.099805242841,326.0669980316478,4.8611608398513795,4.893181156119795
+roi9 = 383.1209686576676,332.12019298239534,4.67963773210073,4.766118035720126
+roi10 = 357.4664191943618,346.49439213779146,10.697831477398154,14.012472196171814
+
+roi 10 = 343.46540094023857,167.78378312027394,2.932926669711321,2.91697201376820
+roi 9 = 328.47917555360016,168.51198231466958,2.9055735187287155,2.890574100226928
+roi 8 = 304.07383495854396,168.06978782257602,2.946209744627879,2.937358196429898
+roi 7 = 311.9555430061598,167.94449077174843,2.9292656879732704,2.9512044920048197
+roi 6 = 321.01229086195286,168.06704929087383,2.9313990787707667,2.9208311968606324
+roi 5 = 331.9438872690904,168.26707547357765,2.869263257352088,2.843292551837294
+roi 4 = 340.07230085070455,168.0331024919212,2.9213975345015797,2.915996594955402
+roi 3 = 350.95793834824366,168.06959072891772,2.914366319199928,2.9421466758680026
+roi 2 = 359.99204964095054,168.03964877661028,2.9127110404388645,2.9086342921387995
+roi 1 = 368.142053499904,167.99010364095645,2.927210411903843,2.9265924236565297
+
+#----------------#
+# H2RG detector  |
+#----------------#
+# Teledyne H2RG via MACIE controller. FITS save/preview paths and ROI settings
+# for the H2RG GUI. Infratec PNG paths live under [INFRATEC CAMERA] instead.
+[H2RG DETECTOR]
+# ZMQ address of the MACIE zmq_server process (runs on nott-server, not the GUI PC).
+zmq_address = tcp://<MACIE-ZMQ-HOST>:65534
+# Alternate ZMQ address tried when the primary port is unreachable.
+zmq_address_alt = tcp://<MACIE-ZMQ-HOST-ALT>:5900
+# If True, try to launch macie_exe/zmq_server locally when the H2RG window opens.
+auto_start_zmq_server = True
+# Path to zmq_server, relative to nottcontrol/camera/macie/ unless absolute.
+zmq_server_executable = macie_exe/zmq_server
+# Seconds to wait for zmq_server to listen after launch.
+zmq_startup_timeout_s = 10
+# Optional LD_LIBRARY_PATH entry for MACIE shared libraries (Linux).
+# Required for auto-started zmq_server (libMACIE / Teledyne libs).
+macie_library_path = <MACIE-LIB-DIR>
+# Detector config file under camera/macie/macie_exe/config_files/.
+config_file = teledyne_cold_slow.cfg
+config_file_slow = teledyne_cold_slow.cfg
+config_file_fast = basic_fast_H2RG_cold.cfg
+# If True, run MACIE in offline test mode (no hardware).
+offline_mode = False
+# pyqtgraph display scale for FITS preview.
+image_display_scale = 2
+# Acquire preview refresh rate [Hz]. Intermediate ramps are skipped so a fast
+# nseq does not queue a 100-frame replay; the latest frame is always shown.
+# 0 = last frame only.
+image_display_refresh_hz = 5
+# FITS directory for image preview on Windows (SMB/UNC). MACIE on nott-server
+# always writes under /data/nott/YYYYMMDD/ from the detector .cfg saveDir.
+# On Linux the GUI ignores this UNC path and uses the server /data/nott tree.
+fits_directory = \\<FILE-SERVER>\Data\nott
+# Local FITS root on nott-server (used by backup_hawaii_frames and Linux GUI).
+linux_fits_directory = <LINUX-FITS-ROOT>
+# Optional Linux-to-Windows path mapping for SMB preview (Windows GUI only).
+# Server /data/nott/YYYYMMDD → \\nott-server\...\Data\nott\YYYYMMDD
+fits_linux_path_prefix = <LINUX-PATH-PREFIX>
+fits_windows_unc_root = \\<FILE-SERVER>\Data
+# Seconds to wait when probing a network FITS directory at startup (Windows UNC paths).
+fits_directory_check_timeout_s = 1
+# Max groups passed to calc_ramp_settings (FromJarron intTime -g). Default 2 = CDS ramp.
+integration_ngroups_max = 2
+# Fowler pairs when ramp mode is Fowler (2 = Fowler-2, four reads in the ramp cube).
+fowler_pairs_default = 2
+# Extra seconds added to execution-time estimate when waiting for FITS after acquire.
+fits_wait_margin_s = 30
+# Write a derived *_science.fits next to each MACIE ramp archive.
+# Keep False to store only the detector ramp/cube (avoids a second file that is
+# often redundant for single-frame / Ramp-last-sample acquisitions).
+save_science_fits = False
+# Include MACIE reset plane(s) in the ramp FITS cube (ASIC SaveRstFrames).
+save_reset_frames = False
+# Command or path used by the H2RG GUI DS9 button (must be on PATH unless absolute).
+ds9_executable = ds9
+# Publish per-ROI brightness to Redis TimeSeries as h2rg_roiN_{avg,max,sum}
+# (distinct from Infratec roiN_* keys).
+record_rois = True
+# Local ZMQ REP for scripts (acquire / load_newest) while the GUI is open —
+# same idea as Infratec camera port 65535 ("Start record"). Loopback by default.
+# Python: from nottcontrol.camera.macie.gui_remote import acquire; acquire()
+gui_control_host = 127.0.0.1
+gui_control_port = 18765
+gui_control_timeout_s = 600
+# Poll FITS save dir for new ramps and refresh the display (0 = disable).
+gui_fits_watch_s = 2
+# ROI brightness-vs-time plot window and refresh.
+roi_time_plot_window_seconds = 60
+roi_plot_refresh_hz = 1
+roi_time_plot_max_framerate = 30
+graph_height = 240
+# ZMQ REQ socket timeouts [ms]. acquire uses zmq_acquire_timeout_ms.
+# Keep acquire finite so a dropped GigE link does not freeze the GUI for hours.
+zmq_request_timeout_ms = 120000
+zmq_acquire_timeout_ms = 300000
+# H2RG ROI overlays (independent of Infratec [INFRATEC CAMERA] ROIs).
+ROI 10 = 340,105,4,105
+ROI 9 = 261,105,4,105
+ROI 8 = 268,105,4,105
+ROI 7 = 276,105,4,105
+ROI 6 = 284,105,4,105
+ROI 5 = 296,105,4,105
+ROI 4 = 304,105,4,105
+ROI 3 = 315,105,4,105
+ROI 2 = 324,105,4,105
+ROI 1 = 333,105,4,105
+
+[redis]
+# Time it takes for the Infratec camera to write its ROI values to Redis, estimated to be about 15 ms. An overestimation is used.
+t_write = 20
+
+#---------------#
+# DL/piezo scan |
+#---------------#
+[cophasing]
+dl_speed = 0.02 #mm/s
+
+[ldc]
+# Beware, speed is in µm/s
+co2_idx_available = 0, 1, 2, 3
+co2_speed = 20.
+co2_pos_min = 0.
+co2_pos_max = 45.0e3
+co2_backlash = 4.0
+co2_address = MAIN.nott_ics.CO2TransStages
+co2_name = NCP
+
+glass_idx_available = 0, 1, 2, 3
+glass_speed = 20.
+glass_pos_min = 0.
+glass_pos_max = 25.0e3
+glass_backlash = 4.0
+glass_address = MAIN.nott_ics.ZnSeActuators
+glass_name = NGP
+
+air_idx_available = 0, 1, 2, 3
+air_speed = 20.
+air_pos_min = 0.
+air_pos_max = 12.5e3
+air_backlash = 4.0
+air_address = MAIN.nott_ics.Delay_Lines
+air_name = NDL
+
+biref_idx_available = 0, 1, 2, 3
+biref_speed = 2.
+biref_pos_min = 0.
+biref_pos_max = 360
+biref_backlash = 0.5
+biref_address = MAIN.nott_ics.Birefringence
+biref_name = NPC
+
+glass_angle = 6.                   # [deg] angle of the glass prism
+co2_meandiameter = 0.045           # [m] mean diameter of CO2 chamber
+glass_nominal_min = 2.0e-3         # [m]
+glass_nominal_max = 23.0e-3        # [m]
+glass_file = caf2_index.csv
+
+
+
+#--------------------#
+# nott_TTM_alignment |
+#--------------------#
+[tip_tilt_control]
+#units are in mm
+step_default = 0.00001
+step_localization = 0.02
+step_optimisation = 0.005
+speed = 0.002
+[injection]
+# ------- #
+# General |
+# ------- #   
+# bool_UT is True when NOTT is connected to the UTs.
+bool_UT = True
+# bool_offset is True when actuator motions should incorporate empirical offsets, retrieved from the simulated grids.
+bool_offset = False
+# --------#
+# Spirals |
+# ------- #
+# If (photo - noise_mean) / noise_std > fac_loc, the spiral is not started (localization spiral).
+fac_loc = 200
+# How much should the SNR improvement be for injection to be claimed (localization spiraling)?
+SNR_inj = 10
+# Over how much time (seconds) should frames be co-added when seeking injection based on SNR (localization spiral)?
+acq_time = 0.5
+# How much co-added frames (of timespan acq_time) should have a SNR improvement > SNR_inj for injection to be called (localization spiral)
+Ncrit = 1
+# Boundary stop condition for on-sky spiraling (localization spiral).
+Nsteps_skyb = 10
+# One measurement (noise/photometric) should consist of N exposures (localization & optimization spiraling).
+Nexp = 1
+# --------- #
+# Actuators |
+# --------- #
+# An actuator motion smaller than disp_double (mm) is carried out by a double-step motion.
+disp_double = 0.0005
+# The overshoot stepsize of the double-step motion (mm).
+step_double = 0.001
+# The speed of the double-step motion (mm/s).
+speed_double = 0.002
+
+#-----------------------#
+# Lucid visible cameras |
+#-----------------------#
+[connection]
+im_ip = <LUCID-IMAGER-IP>
+pup_ip = <LUCID-PUPIL-IP>
+[stream_im]
+StreamAutoNegotiatePacketSize = True
+StreamPacketResendEnable = True
+[stream_pup]
+StreamAutoNegotiatePacketSize = True
+StreamPacketResendEnable = True
+[readout_im]
+ExposureAuto = Off
+AcquisitionFrameRateEnable = True
+AcquisitionFrameRate = 1.4
+ExposureTimeSelector = Common 
+ExposureTime = 56318.0
+GainAuto = Off
+Gain = 12.0
+BlackLevel = 0.0
+GammaEnable = True 
+Gamma = 1.0
+Width = 248
+Height = 250
+OffsetX = 1100
+OffsetY = 1074
+[readout_pup]
+ExposureAuto = Off
+AcquisitionFrameRateEnable = True
+AcquisitionFrameRate = 0.5
+ExposureTimeSelector = Common 
+ExposureTime = 1959860.944
+GainAuto = Off
+Gain = 48.0
+BlackLevel = 0.0
+GammaEnable = True 
+Gamma = 1.0
+Width = 3072
+Height = 2048
+OffsetX = 0
+OffsetY = 0
+[fit_pup]
+# Standard deviation of Gaussian kernel used for image smoothening
+sigma = 50
+# Amounts of pixels per bin
+mybinx = 4
+mybiny = 4
+# Percentile thresholds for gradient-based edge detection
+perc_grad_low = 80
+perc_grad_high = 95
+# Percentile threshold for intensity-based filtering of high gradient pixels
+perc_int = 80
+[fit_im]
+# Amount of pixels per bin
+mybinx = 2
+mybiny = 2
+# Percentile thresholds for gradient-based edge detection
+perc_grad_low = 99.9
+perc_grad_high = 100
+# Percentile threshold for intensity-based filtering of high gradient pixels
+perc_int = 99.9
+# Outdated
+[ref_pup]
+# (pos_x,pos_y,radius) in px : 
+beam1 = (1339,717,629)
+beam2 = (1313,678,661)
+beam3 = (1323,711,658)
+beam4 = (1389,721,692)
+# Outdated
+[ref_im] 
+# (pos_x,pos_y,radius) in px : 
+beam1 = (103,77,3)
+beam2 = (97,129,3)
+beam3 = (93,175,3)
+beam4 = (88,225,3)
+[convert_dict]
+im_ip = String
+pup_ip = String
+StreamAutoNegotiatePacketSize = Bool
+StreamPacketResendEnable = Bool
+ExposureAuto = String
+AcquisitionFrameRateEnable = Bool
+AcquisitionFrameRate = Float
+ExposureTimeSelector = String
+ExposureTime = Float
+GainAuto = String
+Gain = Float
+BlackLevel = Float
+GammaEnable = Bool
+Gamma = Float
+Width = Int
+Height = Int
+OffsetX = Int
+OffsetY = Int
+sigma = Int
+mybinx = Int
+mybiny = Int
+perc_grad_low = Float
+perc_grad_high = Float
+perc_int = Float
+N = Int
+rfit = Int
+beam1 = IntTuple
+beam2 = IntTuple
+beam3 = IntTuple
+beam4 = IntTuple

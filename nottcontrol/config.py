@@ -69,6 +69,13 @@ class Config:
     def __init__(self, path: str, comment_prefixes="#", **kwargs):
         self._path = path
         self._local_path = local_config_path(path)
+        base = Path(path)
+        if not base.is_file():
+            raise FileNotFoundError(
+                f"Missing {base}. "
+                "Copy config.ini.example to config.ini and fill in your site "
+                "values before first run."
+            )
         self.config_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)
         self.config_parser.optionxform = str  # Preserve case sensitivity
         self._local_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)

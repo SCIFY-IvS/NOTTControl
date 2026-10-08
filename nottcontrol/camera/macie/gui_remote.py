@@ -20,12 +20,15 @@ Default bind: ``127.0.0.1:18765`` (``[H2RG DETECTOR] gui_control_*``).
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Callable
 
 import zmq
 
 from nottcontrol import config
+
+logger = logging.getLogger(__name__)
 
 H2RG_SECTION = "H2RG DETECTOR"
 DEFAULT_HOST = config.get(H2RG_SECTION, "gui_control_host", fallback="127.0.0.1")
@@ -70,15 +73,30 @@ class GuiControlServer:
     def endpoint(self) -> str:
         return f"{self.host}:{self.port}"
 
-    def start(self) -> None:
-        if self._thread is not None and self._thread.is_alive():
+    def _close_socket(self) -> None:
+        sock = self._socket
+        self._socket = None
+        if sock is None:
             return
-        self._stop.clear()
+        try:
+            sock.close(0)
+        except zmq.ZMQError:
+            pass
+
+    def _open_socket(self) -> zmq.Socket:
         ctx = zmq.Context.instance()
         sock = ctx.socket(zmq.REP)
         sock.setsockopt(zmq.LINGER, 0)
         sock.bind(control_address(self.host, self.port))
-        self._socket = sock
+        return sock
+
+    def start(self) -> None:
+        if self._thread is not None and self._thread.is_alive():
+            return
+        # Thread never started, or it died (e.g. uncaught path) — (re)bind REP.
+        self._stop.clear()
+        self._close_socket()
+        self._socket = self._open_socket()
         self._thread = threading.Thread(
             target=self._serve, name="h2rg-gui-control", daemon=True
         )
@@ -86,13 +104,7 @@ class GuiControlServer:
 
     def stop(self) -> None:
         self._stop.set()
-        sock = self._socket
-        self._socket = None
-        if sock is not None:
-            try:
-                sock.close(0)
-            except zmq.ZMQError:
-                pass
+        self._close_socket()
         thread = self._thread
         self._thread = None
         if thread is not None and thread.is_alive():
@@ -118,8 +130,32 @@ class GuiControlServer:
             reply = self._dispatch(message)
             try:
                 sock.send_string(reply)
-            except zmq.ZMQError:
-                break
+            except zmq.ZMQError as exc:
+                logger.error(
+                    "H2RG GUI control reply send failed on %s: %s",
+                    self.endpoint,
+                    exc,
+                )
+                # REP is unusable after a failed send; recreate before continuing.
+                try:
+                    poller.unregister(sock)
+                except zmq.ZMQError:
+                    pass
+                self._close_socket()
+                if self._stop.is_set():
+                    break
+                try:
+                    sock = self._open_socket()
+                except zmq.ZMQError as rebind_exc:
+                    logger.error(
+                        "H2RG GUI control rebind failed on %s: %s",
+                        self.endpoint,
+                        rebind_exc,
+                    )
+                    break
+                self._socket = sock
+                poller.register(sock, zmq.POLLIN)
+                continue
 
     def _dispatch(self, line: str) -> str:
         cmd = line.strip().lower()
