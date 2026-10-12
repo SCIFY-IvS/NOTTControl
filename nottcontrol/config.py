@@ -72,11 +72,14 @@ class Config:
         self._local_path = local_config_path(path)
         base = Path(path)
         if not base.is_file():
-            raise FileNotFoundError(
-                f"Missing {base}. "
-                "Copy config.ini.example to config.ini, then put lab IPs in "
-                "config.local.ini (see config.local.ini.example)."
-            )
+            if base.name == "config.ini":
+                hint = (
+                    "Copy config.ini.example to config.ini, then put lab IPs in "
+                    "config.local.ini (see config.local.ini.example)."
+                )
+            else:
+                hint = f"Expected config file at {base}."
+            raise FileNotFoundError(f"Missing {base}. {hint}")
 
         self.config_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)
         self.config_parser.optionxform = str  # Preserve case sensitivity
