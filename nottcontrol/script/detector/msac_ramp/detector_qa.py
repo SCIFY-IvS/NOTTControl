@@ -173,6 +173,7 @@ def subtract_channel_reference_pixels(
     *,
     n_out: int | None = None,
     ref_width: int = H2RG_REF_WIDTH,
+    inplace: bool = False,
 ) -> tuple[np.ndarray, bool]:
     """Subtract per-output reference-pixel mean from each plane / image.
 
@@ -182,9 +183,13 @@ def subtract_channel_reference_pixels(
     ``False``) when the frame is not full enough for a ref border or the
     width is not an integer number of outputs.
 
-    Accepts ``(y, x)`` or ``(n, y, x)`` arrays; always returns float64.
+    Accepts ``(y, x)`` or ``(n, y, x)`` arrays. Preserves floating dtypes
+    (``float32`` / ``float64``); integer inputs are promoted to ``float32``.
     """
-    arr = np.asarray(data, dtype=np.float64)
+    arr = np.asarray(data)
+    if arr.dtype.kind not in "fc":
+        arr = np.asarray(arr, dtype=np.float32)
+        inplace = False
     squeeze = False
     if arr.ndim == 2:
         arr = arr[np.newaxis, ...]
@@ -194,13 +199,14 @@ def subtract_channel_reference_pixels(
 
     masks = channel_ref_masks(arr.shape[1:], n_out=n_out, ref_width=ref_width)
     if masks is None:
-        out = np.array(arr, copy=True)
+        out = arr if inplace else np.array(arr, copy=True)
         return (out[0] if squeeze else out), False
 
     n_out_eff = len(masks)
     width = int(arr.shape[2])
     chan_w = width // n_out_eff
-    out = np.array(arr, copy=True)
+    out = arr if inplace else np.array(arr, copy=True)
+    offset_dtype = np.float64 if out.dtype == np.float64 else np.float32
     for ch, mask in enumerate(masks):
         c0 = ch * chan_w
         c1 = c0 + chan_w
@@ -209,7 +215,7 @@ def subtract_channel_reference_pixels(
             # Boolean index flattens; compute per-plane means explicitly.
             offsets = np.array(
                 [float(np.nanmean(plane[mask])) for plane in out],
-                dtype=np.float64,
+                dtype=offset_dtype,
             )
         bad = ~np.isfinite(offsets)
         if bool(bad.any()):
@@ -276,6 +282,64 @@ def fit_ramp(cube: np.ndarray, sample_index: np.ndarray) -> tuple[np.ndarray, np
     resid = data - pred
     rms = np.sqrt(np.mean(resid * resid, axis=0))
     return slope, intercept, rms
+
+
+def ramp_fit_design(sample_index: np.ndarray) -> tuple[np.ndarray, float, float] | None:
+    """Return ``(tt, t_mean, sxx)`` for a streaming per-pixel linear fit, or ``None``."""
+    t = np.asarray(sample_index, dtype=np.float64).reshape(-1)
+    if t.size < 2:
+        return None
+    t_mean = float(np.mean(t))
+    tt = t - t_mean
+    sxx = float(np.dot(tt, tt))
+    if sxx <= 0:
+        return None
+    return tt, t_mean, sxx
+
+
+def ramp_fit_accumulate_plane(
+    sum_y: np.ndarray,
+    sum_ty: np.ndarray,
+    plane: np.ndarray,
+    tt_i: float,
+) -> None:
+    """Add one CDS plane into streaming least-squares accumulators."""
+    p = np.asarray(plane, dtype=np.float64)
+    sum_y += p
+    sum_ty += tt_i * p
+
+
+def ramp_fit_slope_intercept(
+    sum_y: np.ndarray,
+    sum_ty: np.ndarray,
+    *,
+    nplane: int,
+    t_mean: float,
+    sxx: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Finalize slope/intercept from streaming accumulators."""
+    y_mean = sum_y / float(nplane)
+    slope = sum_ty / sxx
+    intercept = y_mean - slope * t_mean
+    return slope, intercept
+
+
+def ramp_fit_accumulate_resid2(
+    sum_resid2: np.ndarray,
+    plane: np.ndarray,
+    *,
+    slope: np.ndarray,
+    intercept: np.ndarray,
+    t_i: float,
+) -> None:
+    """Accumulate squared residual for one plane given a finished linear fit."""
+    p = np.asarray(plane, dtype=np.float64)
+    resid = p - (intercept + slope * t_i)
+    sum_resid2 += resid * resid
+
+
+def ramp_fit_rms(sum_resid2: np.ndarray, nplane: int) -> np.ndarray:
+    return np.sqrt(sum_resid2 / float(nplane))
 
 
 def _draw_box(
@@ -533,94 +597,98 @@ def _linear_fit_line(
 def _plot_linearity_curves(
     ax,
     t: np.ndarray,
-    cube: np.ndarray,
+    cube: np.ndarray | None = None,
     *,
     illum_box: tuple[int, int, int, int] | None,
     extra_box: tuple[int, int, int, int] | None,
     pixels: np.ndarray | None,
     include_ref_pixels: bool,
     reset_img: np.ndarray | None = None,
+    series: list[tuple[np.ndarray, str, str, str]] | None = None,
 ) -> None:
-    """Plot region median/mean ADU series on *ax* from *cube* planes.
+    """Plot region median/mean ADU series on *ax* from *cube* or *series*.
 
     Each series gets a thin dashed linear fit to the lowest 50% of ADU
     values (line drawn over the full sample range, no legend entry), with
     the fitted slope annotated on the axes.
     """
-    data = np.asarray(cube, dtype=np.float64)
-    nplane = int(data.shape[0])
-    series: list[tuple[np.ndarray, str, str, str]] = [
-        (
-            np.array(
-                [float(np.nanmedian(plane)) for plane in data],
-                dtype=np.float64,
-            ),
-            "o-",
-            "0.45",
-            "median full",
-        )
-    ]
-    if illum_box is not None:
-        r0, r1, c0, c1 = illum_box
-        series.append(
+    if series is None:
+        if cube is None:
+            raise ValueError("cube or series is required for linearity curves")
+        data = np.asarray(cube, dtype=np.float64)
+        nplane = int(data.shape[0])
+        series = [
             (
                 np.array(
-                    [
-                        float(np.nanmedian(plane[r0:r1, c0:c1]))
-                        for plane in data
-                    ],
+                    [float(np.nanmedian(plane)) for plane in data],
                     dtype=np.float64,
                 ),
-                "s-",
-                "C0",
-                "median box",
+                "o-",
+                "0.45",
+                "median full",
             )
-        )
-    if extra_box is not None:
-        er0, er1, ec0, ec1 = extra_box
-        series.append(
-            (
-                np.array(
-                    [
-                        float(np.nanmedian(plane[er0:er1, ec0:ec1]))
-                        for plane in data
-                    ],
-                    dtype=np.float64,
-                ),
-                "d-",
-                "#4cc9f0",
-                "median ROI",
-            )
-        )
-    if include_ref_pixels:
-        ref_mask = h2rg_ref_mask(data.shape[1:])
-        if ref_mask is not None and bool(ref_mask.any()):
+        ]
+        if illum_box is not None:
+            r0, r1, c0, c1 = illum_box
             series.append(
                 (
                     np.array(
-                        [float(np.nanmean(plane[ref_mask])) for plane in data],
+                        [
+                            float(np.nanmedian(plane[r0:r1, c0:c1]))
+                            for plane in data
+                        ],
                         dtype=np.float64,
                     ),
-                    "v-",
-                    REF_PIXEL_COLOR,
-                    "mean ref pixels",
+                    "s-",
+                    "C0",
+                    "median box",
                 )
             )
-    if pixels is not None and pixels.size:
-        series.append(
-            (
-                np.array(
-                    [
-                        float(np.mean(data[i, pixels[:, 0], pixels[:, 1]]))
-                        for i in range(nplane)
-                    ],
-                    dtype=np.float64,
-                ),
-                "^-",
-                "C3",
-                "10 brightest",
+        if extra_box is not None:
+            er0, er1, ec0, ec1 = extra_box
+            series.append(
+                (
+                    np.array(
+                        [
+                            float(np.nanmedian(plane[er0:er1, ec0:ec1]))
+                            for plane in data
+                        ],
+                        dtype=np.float64,
+                    ),
+                    "d-",
+                    "#4cc9f0",
+                    "median ROI",
+                )
             )
-        )
+        if include_ref_pixels:
+            ref_mask = h2rg_ref_mask(data.shape[1:])
+            if ref_mask is not None and bool(ref_mask.any()):
+                series.append(
+                    (
+                        np.array(
+                            [float(np.nanmean(plane[ref_mask])) for plane in data],
+                            dtype=np.float64,
+                        ),
+                        "v-",
+                        REF_PIXEL_COLOR,
+                        "mean ref pixels",
+                    )
+                )
+        if pixels is not None and pixels.size:
+            series.append(
+                (
+                    np.array(
+                        [
+                            float(np.mean(data[i, pixels[:, 0], pixels[:, 1]]))
+                            for i in range(nplane)
+                        ],
+                        dtype=np.float64,
+                    ),
+                    "^-",
+                    "C3",
+                    "10 brightest",
+                )
+            )
 
     slope_notes: list[tuple[str, float, str]] = []
     for y, style, color, label in series:
@@ -714,7 +782,7 @@ def _plot_linearity_curves(
 
 
 def plot_ramp_qa(
-    cube: np.ndarray,
+    cube: np.ndarray | None,
     sample_index: np.ndarray,
     *,
     output: Path,
@@ -727,19 +795,39 @@ def plot_ramp_qa(
     reset_frame: np.ndarray | None = None,
     show_reset_levels: bool = False,
     raw_cube: np.ndarray | None = None,
+    slope: np.ndarray | None = None,
+    rms: np.ndarray | None = None,
+    last: np.ndarray | None = None,
+    corrected_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+    raw_series: list[tuple[np.ndarray, str, str, str]] | None = None,
 ) -> dict[str, float]:
     """Ramp quality: per-pixel slope, residual RMS, and linearity.
 
-    Middle linearity uses *cube* (CDS / channel-ref corrected). Bottom-right
-    uses *raw_cube* (absolute ADU, no bias or ref-pixel correction) with the
-    same region series plus reference pixels when a border exists. If
-    *raw_cube* is omitted, *cube* is used so the raw panel is always drawn.
+    Middle linearity uses *cube* (CDS / channel-ref corrected) or
+    *corrected_series*. Bottom-right uses *raw_cube* / *raw_series*
+    (absolute ADU). Precomputed *slope* / *rms* / *last* skip holding a
+    full cube in memory (streaming fit path).
     """
-    data = np.asarray(cube, dtype=np.float64)
     t = np.asarray(sample_index, dtype=np.float64)
-    nplane = int(data.shape[0])
-    last = data[-1]
-    slope, _intercept, rms = fit_ramp(data, t)
+    data = None if cube is None else np.asarray(cube, dtype=np.float64)
+    if data is not None:
+        nplane = int(data.shape[0])
+        plane_shape = data.shape[1:]
+        if slope is None or rms is None:
+            slope, _intercept, rms = fit_ramp(data, t)
+        if last is None:
+            last = data[-1]
+    else:
+        if slope is None or rms is None or last is None:
+            raise ValueError(
+                "plot_ramp_qa needs cube, or precomputed slope/rms/last"
+            )
+        nplane = int(t.size)
+        plane_shape = np.asarray(last).shape
+
+    slope = np.asarray(slope, dtype=np.float64)
+    rms = np.asarray(rms, dtype=np.float64)
+    last = np.asarray(last, dtype=np.float64)
     vmin_s, vmax_s = _display_limits(slope)
     vmin_r, vmax_r = _display_limits(rms)
     vmin_l, vmax_l = _display_limits(last)
@@ -747,17 +835,15 @@ def plot_ramp_qa(
     reset_img: np.ndarray | None = None
     if show_reset_levels and reset_frame is not None:
         reset_img = np.asarray(reset_frame, dtype=np.float64)
-        if reset_img.shape != data.shape[1:]:
+        if reset_img.shape != plane_shape:
             logging.warning(
                 "Reset frame shape %s != ramp plane %s; "
                 "skipping reset reference lines on raw linearity plot",
                 reset_img.shape,
-                data.shape[1:],
+                plane_shape,
             )
             reset_img = None
 
-    # Corrected linearity: CDS / ch-ref cube as-is (no absolute rebuild).
-    lin_data = data
     if illum_box is not None:
         r0, r1, c0, c1 = illum_box
         illum_slope = slope[r0:r1, c0:c1]
@@ -765,19 +851,17 @@ def plot_ramp_qa(
         illum_slope = None
 
     raw = None if raw_cube is None else np.asarray(raw_cube, dtype=np.float64)
-    if (
-        raw is None
-        or raw.ndim != 3
+    if raw is not None and (
+        raw.ndim != 3
         or raw.shape[0] != nplane
-        or raw.shape[1:] != data.shape[1:]
+        or raw.shape[1:] != plane_shape
     ):
-        if raw_cube is not None:
-            logging.warning(
-                "raw_cube shape %s incompatible with corrected cube %s; "
-                "raw linearity falls back to corrected cube",
-                None if raw is None else raw.shape,
-                data.shape,
-            )
+        logging.warning(
+            "raw_cube shape %s incompatible with ramp plane %s; "
+            "raw linearity falls back to corrected series/cube",
+            raw.shape,
+            plane_shape,
+        )
         raw = data
 
     fig = plt.figure(figsize=(14.5, 9.8), layout="constrained")
@@ -889,11 +973,12 @@ def plot_ramp_qa(
     _plot_linearity_curves(
         ax_lin,
         t,
-        lin_data,
+        data,
         illum_box=illum_box,
         extra_box=extra_box,
         pixels=pixels,
         include_ref_pixels=False,
+        series=corrected_series,
     )
     ax_lin.set_title("Linearity (corrected)")
     ax_lin.set_xlabel("Sample index")
@@ -905,12 +990,13 @@ def plot_ramp_qa(
     _plot_linearity_curves(
         ax_raw,
         t,
-        raw,
+        raw if raw_series is None else None,
         illum_box=illum_box,
         extra_box=extra_box,
         pixels=pixels,
         include_ref_pixels=True,
         reset_img=reset_img,
+        series=raw_series,
     )
     ax_raw.set_title(
         "Linearity (raw absolute)"
@@ -979,7 +1065,7 @@ def plot_ramp_qa(
 def run_detector_qa(
     *,
     out_dir: Path,
-    cds_cube: np.ndarray,
+    cds_cube: np.ndarray | None,
     sample_index: np.ndarray,
     reset_frame: np.ndarray | None,
     reset_name: str | None,
@@ -994,6 +1080,11 @@ def run_detector_qa(
     show_reset_levels: bool = False,
     reset_levels_frame: np.ndarray | None = None,
     raw_cube: np.ndarray | None = None,
+    slope: np.ndarray | None = None,
+    rms: np.ndarray | None = None,
+    last_cds: np.ndarray | None = None,
+    corrected_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+    raw_series: list[tuple[np.ndarray, str, str, str]] | None = None,
 ) -> None:
     """Write reset and ramp QA products into *out_dir*.
 
@@ -1004,6 +1095,8 @@ def run_detector_qa(
     *reset_frame* is used for the spatial reset QA and for optional dashed
     reset levels on the raw absolute linearity panel.
     *raw_cube* is absolute ADU (no CDS / ref correction) for that raw panel.
+    Streaming callers may omit *cds_cube* and pass *slope* / *rms* /
+    *last_cds* plus linearity *series* instead.
     """
     out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1035,7 +1128,12 @@ def run_detector_qa(
     else:
         logging.warning("Detector QA: no reset or first-sample frame to analyse")
 
-    if cds_cube.shape[0] < 2:
+    nplane = (
+        int(cds_cube.shape[0])
+        if cds_cube is not None
+        else int(np.asarray(sample_index).size)
+    )
+    if nplane < 2:
         logging.warning("Detector QA: need ≥2 ramp samples for slope maps")
         return
 
@@ -1052,4 +1150,9 @@ def run_detector_qa(
         reset_frame=reset_frame,
         show_reset_levels=show_reset_levels,
         raw_cube=raw_cube,
+        slope=slope,
+        rms=rms,
+        last=last_cds,
+        corrected_series=corrected_series,
+        raw_series=raw_series,
     )

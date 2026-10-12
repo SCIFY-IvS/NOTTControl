@@ -65,6 +65,7 @@ import logging
 import re
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 # Avoid Qt ABI clashes on nott-server (e.g. system Qt 5.15.17 vs pip 5.15.15).
 import matplotlib
@@ -306,8 +307,7 @@ def load_reset_reference(
             chosen.name,
             file_indices_from_name(chosen.name).get(RESET_TAG),
         )
-    cube, _header = load_ramp_cube(chosen)
-    reference = np.asarray(last_plane(cube), dtype=np.float64)
+    reference, _header = load_last_science_plane(chosen, dtype=np.float32)
     logging.info(
         "Reset reference %s: shape=%s",
         chosen.name,
@@ -895,28 +895,58 @@ def reference_pixel_means(cube: np.ndarray) -> np.ndarray | None:
     )
 
 
-def load_ramp_cube(path: Path) -> tuple[np.ndarray, dict]:
-    """Return ``(nsamples, ny, nx)`` float64 cube and primary header dict."""
+def _cube_axis0(data: np.ndarray, header: dict) -> np.ndarray:
+    """Normalize FITS payload to ``(nsamples, ny, nx)`` without casting."""
+    if data.ndim == 2:
+        return data[np.newaxis, ...]
+    if data.ndim == 3:
+        naxis3 = int(header.get("NAXIS3", data.shape[0]))
+        if data.shape[0] == naxis3:
+            return data
+        if data.shape[-1] == naxis3:
+            return np.moveaxis(data, -1, 0)
+        return data
+    raise ValueError(f"expected 2-D or 3-D FITS, got shape {data.shape}")
+
+
+def load_ramp_cube(
+    path: Path,
+    *,
+    dtype: np.dtype | type = np.float32,
+) -> tuple[np.ndarray, dict]:
+    """Return ``(nsamples, ny, nx)`` cube and primary header dict."""
     from astropy.io import fits
 
     with fits.open(path, memmap=False) as hdul:
         header = dict(hdul[0].header)
         data = np.asarray(hdul[0].data)
 
-    if data.ndim == 2:
-        cube = data[np.newaxis, ...]
-    elif data.ndim == 3:
-        naxis3 = int(header.get("NAXIS3", data.shape[0]))
-        if data.shape[0] == naxis3:
-            cube = data
-        elif data.shape[-1] == naxis3:
-            cube = np.moveaxis(data, -1, 0)
-        else:
-            cube = data
-    else:
-        raise ValueError(f"{path.name}: expected 2-D or 3-D FITS, got shape {data.shape}")
+    try:
+        cube = _cube_axis0(data, header)
+    except ValueError as exc:
+        raise ValueError(f"{path.name}: {exc}") from exc
+    return np.asarray(cube, dtype=dtype), header
 
-    return np.asarray(cube, dtype=np.float64), header
+
+def load_last_science_plane(
+    path: Path,
+    *,
+    dtype: np.dtype | type = np.float32,
+) -> tuple[np.ndarray, dict]:
+    """Load only the last ramp plane (memmap) as ``dtype`` — avoids a full float cube."""
+    from astropy.io import fits
+
+    with fits.open(path, memmap=True) as hdul:
+        header = dict(hdul[0].header)
+        data = hdul[0].data
+        if data is None:
+            raise ValueError(f"{path.name}: empty FITS data")
+        try:
+            cube = _cube_axis0(np.asarray(data), header)
+        except ValueError as exc:
+            raise ValueError(f"{path.name}: {exc}") from exc
+        plane = np.asarray(last_plane(cube), dtype=dtype)
+    return plane, header
 
 
 def list_ramp_fits(directory: Path) -> list[Path]:
@@ -931,34 +961,202 @@ def list_ramp_fits(directory: Path) -> list[Path]:
     return paths
 
 
+def evenly_spaced_indices(n: int, max_count: int | None) -> np.ndarray:
+    """Indices ``0 … n-1``, or ``max_count`` evenly spaced samples including ends."""
+    if n <= 0:
+        return np.array([], dtype=int)
+    if max_count is None or max_count <= 0 or n <= max_count:
+        return np.arange(n, dtype=int)
+    return np.unique(np.linspace(0, n - 1, int(max_count)).astype(int))
+
+
+def subsample_sequence(items: list, max_count: int | None) -> list:
+    """Keep all items, or an evenly spaced subset of length ≤ ``max_count``."""
+    if not items:
+        return items
+    idx = evenly_spaced_indices(len(items), max_count)
+    if len(idx) == len(items):
+        return items
+    return [items[int(i)] for i in idx]
+
+
+class SampleRef(NamedTuple):
+    """One ramp sample on disk (last plane of a FITS, or one plane of a cube)."""
+
+    index: int
+    tag: str
+    name: str
+    path: Path
+    plane_index: int | None
+
+
+def peek_nplanes(path: Path) -> tuple[int, dict]:
+    """Return ``(nplanes, header)`` without loading the full array into RAM."""
+    from astropy.io import fits
+
+    with fits.open(path, memmap=True) as hdul:
+        header = dict(hdul[0].header)
+        data = hdul[0].data
+        if data is None:
+            raise ValueError(f"{path.name}: empty FITS data")
+        cube = _cube_axis0(np.asarray(data), header)
+        return int(cube.shape[0]), header
+
+
+def build_sample_refs(
+    paths: list[Path],
+    *,
+    preferred_tag: str | None,
+    max_frames: int | None,
+) -> tuple[list[SampleRef], dict | None]:
+    """Build ordered sample list (metadata only — no pixel stacks)."""
+    refs: list[SampleRef] = []
+    ref_header: dict | None = None
+
+    if len(paths) == 1:
+        nplanes, header = peek_nplanes(paths[0])
+        ref_header = header
+        if nplanes > 1:
+            parsed = file_index_from_name(
+                paths[0].name, preferred_tag=preferred_tag
+            )
+            base_tag = parsed[0] if parsed else "P"
+            plane_idx = evenly_spaced_indices(nplanes, max_frames)
+            if len(plane_idx) < nplanes:
+                logging.info(
+                    "%s: subsampled %d → %d plane(s) (--max-frames %s)",
+                    paths[0].name,
+                    nplanes,
+                    len(plane_idx),
+                    max_frames,
+                )
+            for iplane in plane_idx:
+                i = int(iplane)
+                refs.append(
+                    SampleRef(
+                        index=i + 1,
+                        tag=base_tag,
+                        name=f"{paths[0].name}[plane{i}]",
+                        path=paths[0],
+                        plane_index=i,
+                    )
+                )
+            logging.info(
+                "%s: using %d planes as ramp samples",
+                paths[0].name,
+                len(refs),
+            )
+            return refs, ref_header
+
+    for path in paths:
+        parsed = file_index_from_name(path.name, preferred_tag=preferred_tag)
+        if parsed is None:
+            logging.warning(
+                "Skipping %s: no _M###### / _N###### / _R###### "
+                "(or trailing _######) index",
+                path.name,
+            )
+            continue
+        tag, index = parsed
+        refs.append(
+            SampleRef(
+                index=index,
+                tag=tag,
+                name=path.name,
+                path=path,
+                plane_index=None,
+            )
+        )
+    refs.sort(key=lambda row: (row.index, row.name.lower()))
+    return refs, ref_header
+
+
+def load_sample_absolute(ref: SampleRef) -> tuple[np.ndarray, dict]:
+    """Load one absolute-ADU science plane as float32."""
+    if ref.plane_index is None:
+        return load_last_science_plane(ref.path, dtype=np.float32)
+    from astropy.io import fits
+
+    with fits.open(ref.path, memmap=True) as hdul:
+        header = dict(hdul[0].header)
+        data = hdul[0].data
+        if data is None:
+            raise ValueError(f"{ref.path.name}: empty FITS data")
+        cube = _cube_axis0(np.asarray(data), header)
+        plane = np.asarray(cube[int(ref.plane_index)], dtype=np.float32)
+    return plane, header
+
+
+def make_cds_plane(
+    abs_plane: np.ndarray,
+    *,
+    reset_only: bool,
+    reset_frame: np.ndarray | None,
+    first_abs: np.ndarray | None,
+    do_ref_correct: bool,
+) -> tuple[np.ndarray, bool]:
+    """Return ``(cds_plane float32, ref_corrected)`` for one absolute sample."""
+    plane = np.array(abs_plane, dtype=np.float32, copy=True)
+    if reset_only:
+        pass
+    elif reset_frame is not None:
+        plane -= np.asarray(reset_frame, dtype=np.float32)
+    elif first_abs is not None:
+        plane -= np.asarray(first_abs, dtype=np.float32)
+    else:
+        raise ValueError("CDS needs reset_frame or first_abs")
+    ref_ok = False
+    if do_ref_correct:
+        plane, ref_ok = subtract_channel_reference_pixels(plane, inplace=True)
+    return plane, ref_ok
+
+
 def last_plane(cube: np.ndarray) -> np.ndarray:
     """Science-like sample: last saved ramp plane (or the only 2-D frame)."""
     return cube[-1]
 
 
-def relative_to_first(cube: np.ndarray) -> np.ndarray:
-    """Return ``cube[k] - cube[0]`` for every plane (float64)."""
+def relative_to_first(
+    cube: np.ndarray,
+    *,
+    dtype: np.dtype | type = np.float32,
+    inplace: bool = False,
+) -> np.ndarray:
+    """Return ``cube[k] - cube[0]`` for every plane."""
     if cube.ndim != 3:
         raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
     if cube.shape[0] < 1:
         raise ValueError("Cube has no planes")
-    first = cube[0]
-    return np.asarray(cube, dtype=np.float64) - first
+    if inplace:
+        data = cube
+        first = np.array(data[0], copy=True)
+        data -= first
+        return data
+    data = np.asarray(cube, dtype=dtype)
+    return data - data[0]
 
 
-def relative_to_reference(cube: np.ndarray, reference: np.ndarray) -> np.ndarray:
-    """Return ``cube[k] - reference`` for every plane (float64)."""
-    data = np.asarray(cube, dtype=np.float64)
-    ref = np.asarray(reference, dtype=np.float64)
-    if data.ndim != 3:
-        raise ValueError(f"Expected (n, y, x) cube, got shape {data.shape}")
-    if ref.ndim != 2:
-        raise ValueError(f"Expected 2-D reset frame, got shape {ref.shape}")
-    if ref.shape != data.shape[1:]:
+def relative_to_reference(
+    cube: np.ndarray,
+    reference: np.ndarray,
+    *,
+    dtype: np.dtype | type = np.float32,
+    inplace: bool = False,
+) -> np.ndarray:
+    """Return ``cube[k] - reference`` for every plane."""
+    if cube.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
+    if reference.ndim != 2:
+        raise ValueError(f"Expected 2-D reset frame, got shape {reference.shape}")
+    if reference.shape != cube.shape[1:]:
         raise ValueError(
-            f"Reset shape {ref.shape} does not match science {data.shape[1:]}"
+            f"Reset shape {reference.shape} does not match science {cube.shape[1:]}"
         )
-    return data - ref
+    ref = np.asarray(reference, dtype=dtype if not inplace else cube.dtype)
+    if inplace:
+        cube -= ref
+        return cube
+    return np.asarray(cube, dtype=dtype) - ref
 
 
 def region_mean(
@@ -1641,6 +1839,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Evenly subsample at most N science samples (including first/last). "
+            "Use 0 or omit for the full ramp (default). Full ramps stream "
+            "one plane at a time — no full difference cube is kept in RAM."
+        ),
+    )
+    parser.add_argument(
         "--no-cds-cube",
         action="store_true",
         help="Skip writing the full-frame reduced FITS cube",
@@ -1835,84 +2044,36 @@ def main(argv: list[str] | None = None) -> int:
     bg_roi_index = int(args.bg_roi) if use_region2 else 0
     use_photonic = not use_manual_illum and illum_roi_index is None
 
-    records: list[tuple[int, str, str, np.ndarray, dict]] = []
-    index_tag = "M"
-    ref_header: dict | None = None
+    max_frames = args.max_frames
+    if max_frames is not None and max_frames < 0:
+        raise ValueError("--max-frames must be >= 0 (0 = unlimited)")
+    if max_frames == 0:
+        max_frames = None
 
-    # Single multi-sample FITS → treat planes as the ramp; otherwise one
-    # sample per file (last plane).
-    use_planes_from_one_cube = False
-    if len(paths) == 1:
-        only_cube, only_header = load_ramp_cube(paths[0])
-        if only_cube.shape[0] > 1:
-            use_planes_from_one_cube = True
-            ref_header = only_header
-            parsed = file_index_from_name(
-                paths[0].name, preferred_tag=preferred_tag
-            )
-            base_tag = parsed[0] if parsed else "P"
-            index_tag = base_tag
-            for iplane, plane in enumerate(only_cube):
-                records.append(
-                    (
-                        iplane + 1,
-                        base_tag,
-                        f"{paths[0].name}[plane{iplane}]",
-                        np.asarray(plane, dtype=np.float64),
-                        only_header,
-                    )
-                )
-            logging.info(
-                "%s: using %d planes as ramp samples",
-                paths[0].name,
-                only_cube.shape[0],
-            )
+    n_before_subsample = len(paths)
+    paths = subsample_sequence(paths, max_frames)
+    if len(paths) < n_before_subsample:
+        logging.info(
+            "Subsampled %d → %d frame(s) (--max-frames %d)",
+            n_before_subsample,
+            len(paths),
+            int(args.max_frames),
+        )
 
-    if not use_planes_from_one_cube:
-        for path in paths:
-            parsed = file_index_from_name(
-                path.name, preferred_tag=preferred_tag
-            )
-            if parsed is None:
-                logging.warning(
-                    "Skipping %s: no _M###### / _N###### / _R###### "
-                    "(or trailing _######) index",
-                    path.name,
-                )
-                continue
-            tag, index = parsed
-            index_tag = tag
-
-            cube, header = load_ramp_cube(path)
-            if ref_header is None:
-                ref_header = header
-            logging.info(
-                "%s: shape=%s  NAXIS=%s  index=%s%d",
-                path.name,
-                cube.shape,
-                header.get("NAXIS", "?"),
-                tag,
-                index,
-            )
-            records.append(
-                (
-                    index,
-                    tag,
-                    path.name,
-                    np.asarray(last_plane(cube), dtype=np.float64),
-                    header,
-                )
-            )
-
-    if not records:
+    sample_refs, ref_header = build_sample_refs(
+        paths, preferred_tag=preferred_tag, max_frames=max_frames
+    )
+    if not sample_refs:
         raise RuntimeError(
             "No usable FITS with an _M / _N / _R file index in the name"
         )
 
-    records.sort(key=lambda row: (row[0], row[2].lower()))
-    stack = np.stack([row[3] for row in records], axis=0)
+    indices = np.array([r.index for r in sample_refs], dtype=np.int64)
+    names = [r.name for r in sample_refs]
+    index_tag = sample_refs[0].tag
+    nplane = len(sample_refs)
+
     if reset_only:
-        cds_cube = np.asarray(stack, dtype=np.float64)
         cds_short = "reset"
         cds_label = "reset"
         reduct_card = ("RESET-ABS", "Each plane = reset frame (absolute ADU)")
@@ -1924,12 +2085,6 @@ def main(argv: list[str] | None = None) -> int:
     elif reset_frame is not None:
         if reset_fits_path is None:
             raise RuntimeError("Reset frame loaded without a FITS path")
-        if reset_frame.shape != stack.shape[1:]:
-            raise RuntimeError(
-                f"Reset frame {reset_fits_path.name} shape {reset_frame.shape} "
-                f"does not match science {stack.shape[1:]}"
-            )
-        cds_cube = relative_to_reference(stack, reset_frame)
         cds_short = "frame−reset"
         cds_label = "last − reset"
         reduct_card = ("FRAME-RESET", "Each plane = sample - reset frame")
@@ -1939,7 +2094,6 @@ def main(argv: list[str] | None = None) -> int:
             f"reset ({reset_fits_path.name})"
         )
     else:
-        cds_cube = relative_to_first(stack)
         cds_short = "frame−first"
         cds_label = "last − first"
         reduct_card = ("FRAME-FIRST", "Each plane = sample - first sample")
@@ -1949,47 +2103,69 @@ def main(argv: list[str] | None = None) -> int:
             "sample - first sample (ordered by file/plane index); "
             "zero reference plane omitted"
         )
-    indices = np.array([row[0] for row in records], dtype=np.int64)
-    names = [row[2] for row in records]
-    index_tag = records[0][1]
-    ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
-    windowed = not is_full_frame((ny, nx))
 
-    ref_corrected = False
+    first_abs, header0 = load_sample_absolute(sample_refs[0])
+    if ref_header is None:
+        ref_header = header0
+    last_abs, _ = load_sample_absolute(sample_refs[-1])
+    ny, nx = int(last_abs.shape[0]), int(last_abs.shape[1])
+    windowed = not is_full_frame((ny, nx))
+    do_ref_correct = (not args.no_ref_correct) and (not windowed)
+
+    if reset_frame is not None and reset_frame.shape != (ny, nx):
+        raise RuntimeError(
+            f"Reset frame {reset_fits_path.name} shape {reset_frame.shape} "
+            f"does not match science {(ny, nx)}"
+        )
+
     reset_frame_raw = (
-        np.asarray(reset_frame, dtype=np.float64).copy()
+        np.asarray(reset_frame, dtype=np.float32).copy()
         if reset_frame is not None
         else None
     )
-    if not args.no_ref_correct and not windowed:
-        cds_cube, ref_corrected = subtract_channel_reference_pixels(cds_cube)
-        if ref_corrected:
-            cds_short = f"{cds_short}−chref"
-            cds_label = f"{cds_label}, ch-ref"
-            reduct_history += (
-                "; per-channel HxRG reference-pixel mean subtracted "
-                "from each plane"
+    first_science = np.asarray(first_abs, dtype=np.float32).copy()
+    last_cds, ref_corrected = make_cds_plane(
+        last_abs,
+        reset_only=reset_only,
+        reset_frame=reset_frame,
+        first_abs=first_abs,
+        do_ref_correct=do_ref_correct,
+    )
+    del last_abs
+    reset_levels_frame = None
+    if ref_corrected:
+        cds_short = f"{cds_short}−chref"
+        cds_label = f"{cds_label}, ch-ref"
+        reduct_history += (
+            "; per-channel HxRG reference-pixel mean subtracted "
+            "from each plane"
+        )
+        logging.info(
+            "Full frame: subtracted per-channel reference-pixel means "
+            "(%d outputs)",
+            n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
+        )
+        if reset_frame is not None:
+            # Copy for QA dashed levels only — CDS still uses the raw reset.
+            reset_levels_frame, reset_ref_ok = subtract_channel_reference_pixels(
+                reset_frame
             )
-            logging.info(
-                "Full frame: subtracted per-channel reference-pixel means "
-                "(%d outputs)",
-                n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
-            )
-            if reset_frame is not None:
-                reset_frame, reset_ref_ok = subtract_channel_reference_pixels(
-                    reset_frame
+            if not reset_ref_ok:
+                logging.warning(
+                    "Could not apply channel ref correction to reset frame"
                 )
-                if not reset_ref_ok:
-                    logging.warning(
-                        "Could not apply channel ref correction to reset frame"
-                    )
-        else:
-            logging.info(
-                "Full frame: channel reference-pixel correction not applied "
-                "(no usable ref border / output map)"
-            )
+                reset_levels_frame = None
     elif args.no_ref_correct and not windowed:
         logging.info("Skipping channel reference-pixel correction (--no-ref-correct)")
+
+    logging.info(
+        "Streaming %d sample(s) at %d×%d (float32 CDS plane ~%.1f MiB each; "
+        "no full difference cube in RAM)",
+        nplane,
+        ny,
+        nx,
+        (ny * nx * 4) / (1024**2),
+    )
 
     illum_source = "manual"
     region_label: str | None = None
@@ -2010,6 +2186,7 @@ def main(argv: list[str] | None = None) -> int:
             center_x=center_x,
             center_y=center_y,
         )
+        illum_source = "manual"
     elif use_photonic:
         try:
             (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
@@ -2110,44 +2287,20 @@ def main(argv: list[str] | None = None) -> int:
     region2_box: tuple[int, int, int, int] | None = None
     region2_means: np.ndarray | None = None
     region2_label: str | None = None
+    want_region2 = False
     if windowed_fallback:
-        region2_means = np.array(
-            [
-                float(np.nanmean(plane[row0:row1, col0:col1]))
-                for plane in cds_cube
-            ],
-            dtype=np.float64,
-        )
         region2_label = "window mean"
-        logging.info(
-            "Window mean over %d×%d: ramp mean=%.4g ADU",
-            illum_w,
-            illum_h,
-            float(np.nanmean(region2_means)),
-        )
+        want_region2 = True
+        bg_row0, bg_row1, bg_col0, bg_col1 = row0, row1, col0, col1
     elif use_region2:
         resolved = resolve_second_roi_box((ny, nx), bg_roi_index)
         if resolved is not None:
             region2_box, (bx, by, bw, bh) = resolved
             bg_row0, bg_row1, bg_col0, bg_col1 = region2_box
-            region2_means = np.array(
-                [
-                    region_mean(
-                        plane,
-                        bg_row0,
-                        bg_row1,
-                        bg_col0,
-                        bg_col1,
-                        n_sigma=args.n_sigma,
-                    )
-                    for plane in cds_cube
-                ],
-                dtype=np.float64,
-            )
             region2_label = f"ROI {bg_roi_index}"
+            want_region2 = True
             logging.info(
-                "Second region ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
-                "mean over ramp=%.4g ADU (not subtracted)",
+                "Second region ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d)",
                 bg_roi_index,
                 bx,
                 by,
@@ -2157,12 +2310,11 @@ def main(argv: list[str] | None = None) -> int:
                 bg_row1,
                 bg_col0,
                 bg_col1,
-                float(np.nanmean(region2_means)),
             )
 
     n_brightest = max(1, int(args.n_brightest))
     pixels, n_rej = select_brightest_after_outliers(
-        cds_cube[-1],
+        last_cds,
         row0,
         row1,
         col0,
@@ -2171,13 +2323,6 @@ def main(argv: list[str] | None = None) -> int:
         n_sigma=args.n_sigma,
     )
     n_used = int(pixels.shape[0])
-    if n_used == 0:
-        means = np.full(cds_cube.shape[0], np.nan, dtype=np.float64)
-    else:
-        means = np.array(
-            [float(np.mean(pixel_values(plane, pixels))) for plane in cds_cube],
-            dtype=np.float64,
-        )
     logging.info(
         "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
         "flux = mean of %d pixels selected on last CDS plane "
@@ -2200,36 +2345,210 @@ def main(argv: list[str] | None = None) -> int:
     if args.track_pixels:
         requested_track = [(int(x), int(y)) for x, y in args.track_pixels]
     elif windowed_fallback:
-        # Photonic-chip defaults are outside typical windowed readouts.
         requested_track = []
     track_xy = resolve_track_pixels(requested_track, height=ny, width=nx)
-    track_matrix: np.ndarray | None = None
-    if track_xy:
-        track_matrix = np.column_stack(
-            [track_pixel_series(cds_cube, xy) for xy in track_xy]
-        )
-        for x, y in track_xy:
-            logging.info("Tracking detector pixel X=%d Y=%d", x, y)
-    ref_means: np.ndarray | None = None
-    ref_boxes: list[tuple[int, int, int, int]] | None = None
-    if is_full_frame((ny, nx)):
-        ref_means = reference_pixel_means(cds_cube)
-        if ref_means is not None:
-            ref_boxes = reference_pixel_boxes((ny, nx))
-            mask = h2rg_ref_mask((ny, nx))
-            n_ref = int(mask.sum()) if mask is not None else 0
-            logging.info(
-                "Full frame: reference-pixel mean over %d border pixels "
-                "(ramp mean=%.4g ADU)",
-                n_ref,
-                float(np.nanmean(ref_means)),
+    for x, y in track_xy:
+        logging.info("Tracking detector pixel X=%d Y=%d", x, y)
+
+    ref_mask = h2rg_ref_mask((ny, nx)) if is_full_frame((ny, nx)) else None
+    ref_boxes: list[tuple[int, int, int, int]] | None = (
+        reference_pixel_boxes((ny, nx)) if ref_mask is not None else None
+    )
+
+    means = np.full(nplane, np.nan, dtype=np.float64)
+    region2_means = (
+        np.full(nplane, np.nan, dtype=np.float64) if want_region2 else None
+    )
+    ref_means = (
+        np.full(nplane, np.nan, dtype=np.float64) if ref_mask is not None else None
+    )
+    track_matrix = (
+        np.full((nplane, len(track_xy)), np.nan, dtype=np.float64)
+        if track_xy
+        else None
+    )
+    pixel_matrix = (
+        np.full((nplane, n_used), np.nan, dtype=np.float64)
+        if args.show_pixels and n_used
+        else None
+    )
+
+    # QA linearity series (corrected + raw absolute) collected while streaming.
+    corr_med_full = np.full(nplane, np.nan, dtype=np.float64)
+    corr_med_box = np.full(nplane, np.nan, dtype=np.float64)
+    corr_med_roi = (
+        np.full(nplane, np.nan, dtype=np.float64) if region2_box is not None else None
+    )
+    corr_bright = np.full(nplane, np.nan, dtype=np.float64) if n_used else None
+    raw_med_full = np.full(nplane, np.nan, dtype=np.float64)
+    raw_med_box = np.full(nplane, np.nan, dtype=np.float64)
+    raw_med_roi = (
+        np.full(nplane, np.nan, dtype=np.float64) if region2_box is not None else None
+    )
+    raw_ref = np.full(nplane, np.nan, dtype=np.float64) if ref_mask is not None else None
+    raw_bright = np.full(nplane, np.nan, dtype=np.float64) if n_used else None
+
+    need_qa = not args.no_qa
+    sum_y = sum_ty = sum_resid2 = None
+    tt = t_mean = sxx = None
+    slope_map = rms_map = None
+    if need_qa and nplane >= 2:
+        try:
+            from .detector_qa import (
+                ramp_fit_accumulate_plane,
+                ramp_fit_accumulate_resid2,
+                ramp_fit_design,
+                ramp_fit_rms,
+                ramp_fit_slope_intercept,
             )
-    pixel_matrix: np.ndarray | None = None
-    if args.show_pixels:
-        pixel_matrix = np.stack(
-            [pixel_values(plane, pixels) for plane in cds_cube],
-            axis=0,
+        except ImportError:
+            from detector_qa import (
+                ramp_fit_accumulate_plane,
+                ramp_fit_accumulate_resid2,
+                ramp_fit_design,
+                ramp_fit_rms,
+                ramp_fit_slope_intercept,
+            )
+        design = ramp_fit_design(indices)
+        if design is not None:
+            tt, t_mean, sxx = design
+            sum_y = np.zeros((ny, nx), dtype=np.float64)
+            sum_ty = np.zeros((ny, nx), dtype=np.float64)
+
+    write_full = not args.no_cds_cube
+    write_illum = not args.no_illum_cube
+    # Full-frame CDS cube is huge; only materialize when explicitly requested.
+    cds_disk: np.ndarray | None = None
+    illum_disk: np.ndarray | None = None
+    mmap_path: Path | None = None
+    if write_full:
+        mmap_path = ramp_dir / f".{session_slug}_cds_cube.mmap"
+        cds_disk = np.memmap(
+            mmap_path, dtype=np.float32, mode="w+", shape=(nplane, ny, nx)
         )
+        logging.info(
+            "Writing full CDS cube via memmap (%d×%d×%d float32 → %s)",
+            nplane,
+            ny,
+            nx,
+            mmap_path.name,
+        )
+    if write_illum:
+        ih, iw = int(row1 - row0), int(col1 - col0)
+        illum_disk = np.empty((nplane, ih, iw), dtype=np.float32)
+
+    for i, ref in enumerate(sample_refs):
+        abs_plane, header = load_sample_absolute(ref)
+        if ref_header is None:
+            ref_header = header
+        logging.info(
+            "%s: shape=%s  NAXIS=%s  index=%s%d",
+            ref.name,
+            (1, *abs_plane.shape),
+            header.get("NAXIS", "?"),
+            ref.tag,
+            ref.index,
+        )
+        raw_med_full[i] = float(np.nanmedian(abs_plane))
+        raw_med_box[i] = float(np.nanmedian(abs_plane[row0:row1, col0:col1]))
+        if raw_med_roi is not None and region2_box is not None:
+            rr0, rr1, rc0, rc1 = region2_box
+            raw_med_roi[i] = float(np.nanmedian(abs_plane[rr0:rr1, rc0:rc1]))
+        if raw_ref is not None and ref_mask is not None:
+            raw_ref[i] = float(np.nanmean(abs_plane[ref_mask]))
+        if raw_bright is not None and n_used:
+            raw_bright[i] = float(np.mean(pixel_values(abs_plane, pixels)))
+
+        cds_plane, _ = make_cds_plane(
+            abs_plane,
+            reset_only=reset_only,
+            reset_frame=reset_frame,
+            first_abs=first_abs,
+            do_ref_correct=do_ref_correct,
+        )
+        del abs_plane
+
+        if n_used:
+            means[i] = float(np.mean(pixel_values(cds_plane, pixels)))
+        if region2_means is not None:
+            if windowed_fallback:
+                region2_means[i] = float(
+                    np.nanmean(cds_plane[bg_row0:bg_row1, bg_col0:bg_col1])
+                )
+            else:
+                region2_means[i] = region_mean(
+                    cds_plane,
+                    bg_row0,
+                    bg_row1,
+                    bg_col0,
+                    bg_col1,
+                    n_sigma=args.n_sigma,
+                )
+        if ref_means is not None and ref_mask is not None:
+            ref_means[i] = float(np.nanmean(cds_plane[ref_mask]))
+        if track_matrix is not None:
+            for j, (x, y) in enumerate(track_xy):
+                track_matrix[i, j] = float(cds_plane[int(y), int(x)])
+        if pixel_matrix is not None:
+            pixel_matrix[i] = pixel_values(cds_plane, pixels)
+
+        corr_med_full[i] = float(np.nanmedian(cds_plane))
+        corr_med_box[i] = float(np.nanmedian(cds_plane[row0:row1, col0:col1]))
+        if corr_med_roi is not None and region2_box is not None:
+            rr0, rr1, rc0, rc1 = region2_box
+            corr_med_roi[i] = float(np.nanmedian(cds_plane[rr0:rr1, rc0:rc1]))
+        if corr_bright is not None and n_used:
+            corr_bright[i] = means[i]
+
+        if sum_y is not None and tt is not None:
+            ramp_fit_accumulate_plane(sum_y, sum_ty, cds_plane, float(tt[i]))
+        if cds_disk is not None:
+            cds_disk[i] = cds_plane
+        if illum_disk is not None:
+            illum_disk[i] = cds_plane[row0:row1, col0:col1]
+        del cds_plane
+
+    if want_region2 and region2_means is not None:
+        logging.info(
+            "%s over ramp mean=%.4g ADU",
+            region2_label,
+            float(np.nanmean(region2_means)),
+        )
+    if ref_means is not None and ref_mask is not None:
+        logging.info(
+            "Full frame: reference-pixel mean over %d border pixels "
+            "(ramp mean=%.4g ADU)",
+            int(ref_mask.sum()),
+            float(np.nanmean(ref_means)),
+        )
+
+    if sum_y is not None and tt is not None:
+        slope_map, intercept_map = ramp_fit_slope_intercept(
+            sum_y, sum_ty, nplane=nplane, t_mean=t_mean, sxx=sxx
+        )
+        del sum_y, sum_ty
+        sum_resid2 = np.zeros((ny, nx), dtype=np.float64)
+        logging.info("Second pass for residual RMS maps (%d samples)", nplane)
+        for i, ref in enumerate(sample_refs):
+            abs_plane, _ = load_sample_absolute(ref)
+            cds_plane, _ = make_cds_plane(
+                abs_plane,
+                reset_only=reset_only,
+                reset_frame=reset_frame,
+                first_abs=first_abs,
+                do_ref_correct=do_ref_correct,
+            )
+            del abs_plane
+            ramp_fit_accumulate_resid2(
+                sum_resid2,
+                cds_plane,
+                slope=slope_map,
+                intercept=intercept_map,
+                t_i=float(indices[i]),
+            )
+            del cds_plane
+        rms_map = ramp_fit_rms(sum_resid2, nplane)
+        del sum_resid2, intercept_map
 
     if args.output is not None:
         output = args.output.expanduser()
@@ -2252,113 +2571,154 @@ def main(argv: list[str] | None = None) -> int:
             return out.resolve()
         return (ramp_dir / f"{session_slug}_{default_name}").resolve()
 
-    write_full = not args.no_cds_cube
-    write_illum = not args.no_illum_cube
     if write_full or write_illum:
-        if skip_ref:
-            try:
-                cds_for_disk = drop_reference_plane(cds_cube)
-            except ValueError as exc:
-                logging.warning("Skipping CDS cube write(s): %s", exc)
-                write_full = False
-                write_illum = False
-                cds_for_disk = None
-        else:
-            cds_for_disk = cds_cube
-        if cds_for_disk is not None and (write_full or write_illum):
-            reset_cards: dict = {
-                "REDUCT": reduct_card,
-                "SKIPREF": (
-                    skip_ref,
-                    (
-                        "Omitted plane 0 (frame0-frame0 == 0)"
-                        if skip_ref
-                        else (
-                            "Kept all reset planes (absolute ADU)"
-                            if reset_only
-                            else "Kept all science planes (reset subtraction)"
-                        )
-                    ),
-                ),
-                "REFCORR": (
-                    ref_corrected,
-                    "Per-channel HxRG ref-pixel mean subtracted",
-                ),
-            }
-            if reset_fits_path is not None:
-                reset_cards["RESETFIL"] = (
-                    reset_fits_path.name,
-                    "Reset FITS used as subtraction reference",
-                )
-            if write_full:
-                save_cube_fits(
-                    _resolve_out(
-                        args.cds_cube, "msac_uptheramp_frame_minus_first.fits"
-                    ),
-                    cds_for_disk,
-                    reference_header=ref_header,
-                    history=reduct_history + ".",
-                    extra_cards=reset_cards,
-                )
-            if write_illum:
-                illum_crop = cds_for_disk[:, row0:row1, col0:col1]
-                illum_history = (
-                    "MSAC UpTheRamp illuminated crop: "
-                    + (
-                        "each plane = reset frame (absolute ADU)"
+        reset_cards: dict = {
+            "REDUCT": reduct_card,
+            "SKIPREF": (
+                skip_ref,
+                (
+                    "Omitted plane 0 (frame0-frame0 == 0)"
+                    if skip_ref
+                    else (
+                        "Kept all reset planes (absolute ADU)"
                         if reset_only
+                        else "Kept all science planes (reset subtraction)"
+                    )
+                ),
+            ),
+            "REFCORR": (
+                ref_corrected,
+                "Per-channel HxRG ref-pixel mean subtracted",
+            ),
+        }
+        if reset_fits_path is not None:
+            reset_cards["RESETFIL"] = (
+                reset_fits_path.name,
+                "Reset FITS used as subtraction reference",
+            )
+        cds_for_disk = cds_disk
+        illum_for_disk = illum_disk
+        if skip_ref:
+            if cds_for_disk is not None:
+                if nplane < 2:
+                    logging.warning("Skipping CDS cube write(s): need ≥2 planes")
+                    cds_for_disk = None
+                    illum_for_disk = None
+                else:
+                    cds_for_disk = np.asarray(cds_for_disk[1:], dtype=np.float32)
+                    if illum_for_disk is not None:
+                        illum_for_disk = np.asarray(
+                            illum_for_disk[1:], dtype=np.float32
+                        )
+            elif illum_for_disk is not None:
+                if nplane < 2:
+                    illum_for_disk = None
+                else:
+                    illum_for_disk = np.asarray(illum_for_disk[1:], dtype=np.float32)
+        if write_full and cds_for_disk is not None:
+            save_cube_fits(
+                _resolve_out(
+                    args.cds_cube, "msac_uptheramp_frame_minus_first.fits"
+                ),
+                np.asarray(cds_for_disk, dtype=np.float32),
+                reference_header=ref_header,
+                history=reduct_history + ".",
+                extra_cards=reset_cards,
+            )
+        if write_illum and illum_for_disk is not None:
+            illum_history = (
+                "MSAC UpTheRamp illuminated crop: "
+                + (
+                    "each plane = reset frame (absolute ADU)"
+                    if reset_only
+                    else (
+                        f"each plane = sample - reset ({reset_fits_path.name})"
+                        if reset_fits_path is not None
                         else (
-                            f"each plane = sample - reset ({reset_fits_path.name})"
-                            if reset_fits_path is not None
-                            else (
-                                "each plane = sample - first sample; "
-                                "zero reference plane omitted"
-                            )
+                            "each plane = sample - first sample; "
+                            "zero reference plane omitted"
                         )
                     )
-                    + "; spatial crop is the illuminated analysis box"
-                    + "."
                 )
-                save_cube_fits(
-                    _resolve_out(
-                        args.illum_cube,
-                        "msac_uptheramp_frame_minus_first_illum.fits",
+                + "; spatial crop is the illuminated analysis box"
+                + "."
+            )
+            save_cube_fits(
+                _resolve_out(
+                    args.illum_cube,
+                    "msac_uptheramp_frame_minus_first_illum.fits",
+                ),
+                illum_for_disk,
+                reference_header=ref_header,
+                history=illum_history,
+                extra_cards={
+                    **reset_cards,
+                    "ILLUMROI": (
+                        0
+                        if use_manual_illum or use_photonic
+                        else int(illum_roi_index),
+                        "H2RG ROI index used for crop (0=photonic/manual)",
                     ),
-                    illum_crop,
-                    reference_header=ref_header,
-                    history=illum_history,
-                    extra_cards={
-                        **reset_cards,
-                        "ILLUMROI": (
-                            0
-                            if use_manual_illum or use_photonic
-                            else int(illum_roi_index),
-                            "H2RG ROI index used for crop (0=photonic/manual)",
-                        ),
-                        "BGROI": (
-                            bg_roi_index if region2_box is not None else 0,
-                            "Second plotted H2RG ROI (not subtracted; 0=none)",
-                        ),
-                        "ILLUMX0": (
-                            (detector_box[2] if detector_box else col0),
-                            "Crop col start (inclusive, detector)",
-                        ),
-                        "ILLUMX1": (
-                            (detector_box[3] if detector_box else col1),
-                            "Crop col end (exclusive, detector)",
-                        ),
-                        "ILLUMY0": (
-                            (detector_box[0] if detector_box else row0),
-                            "Crop row start (inclusive, detector)",
-                        ),
-                        "ILLUMY1": (
-                            (detector_box[1] if detector_box else row1),
-                            "Crop row end (exclusive, detector)",
-                        ),
-                        "ILLUMCX": (center_x, "Illuminated box centre X"),
-                        "ILLUMCY": (center_y, "Illuminated box centre Y"),
-                    },
-                )
+                    "BGROI": (
+                        bg_roi_index if region2_box is not None else 0,
+                        "Second plotted H2RG ROI (not subtracted; 0=none)",
+                    ),
+                    "ILLUMX0": (
+                        (detector_box[2] if detector_box else col0),
+                        "Crop col start (inclusive, detector)",
+                    ),
+                    "ILLUMX1": (
+                        (detector_box[3] if detector_box else col1),
+                        "Crop col end (exclusive, detector)",
+                    ),
+                    "ILLUMY0": (
+                        (detector_box[0] if detector_box else row0),
+                        "Crop row start (inclusive, detector)",
+                    ),
+                    "ILLUMY1": (
+                        (detector_box[1] if detector_box else row1),
+                        "Crop row end (exclusive, detector)",
+                    ),
+                    "ILLUMCX": (center_x, "Illuminated box centre X"),
+                    "ILLUMCY": (center_y, "Illuminated box centre Y"),
+                },
+            )
+        if cds_disk is not None:
+            del cds_disk
+        if mmap_path is not None and mmap_path.is_file():
+            try:
+                mmap_path.unlink()
+            except OSError:
+                pass
+
+    corrected_series = [
+        (corr_med_full, "o-", "0.45", "median full"),
+        (corr_med_box, "s-", "C0", "median box"),
+    ]
+    if corr_med_roi is not None:
+        corrected_series.append(
+            (corr_med_roi, "d-", "#4cc9f0", "median ROI")
+        )
+    if corr_bright is not None:
+        corrected_series.append(
+            (corr_bright, "^-", "C3", "10 brightest")
+        )
+    raw_series = [
+        (raw_med_full, "o-", "0.45", "median full"),
+        (raw_med_box, "s-", "C0", "median box"),
+    ]
+    if raw_med_roi is not None:
+        raw_series.append((raw_med_roi, "d-", "#4cc9f0", "median ROI"))
+    if raw_ref is not None:
+        try:
+            from .detector_qa import REF_PIXEL_COLOR as _REF_PIX_COLOR
+        except ImportError:
+            from detector_qa import REF_PIXEL_COLOR as _REF_PIX_COLOR
+        raw_series.append(
+            (raw_ref, "v-", _REF_PIX_COLOR, "mean ref pixels")
+        )
+    if raw_bright is not None:
+        raw_series.append((raw_bright, "^-", "C3", "10 brightest"))
 
     flux_label = f"{n_used} brightest"
     title_regions = illum_source
@@ -2369,7 +2729,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{session_name} — {title_regions} ({cds_short}) vs {x_axis} "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
-    last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
+    last_cds_f64 = np.asarray(last_cds, dtype=np.float64)
     plot_file_series(
         indices=indices,
         means=means,
@@ -2379,8 +2739,8 @@ def main(argv: list[str] | None = None) -> int:
         output=output,
         title=title,
         show=args.show,
-        full_frame=last_cds,
-        illum_frame=last_cds[row0:row1, col0:col1],
+        full_frame=last_cds_f64,
+        illum_frame=last_cds_f64[row0:row1, col0:col1],
         illum_box=(row0, row1, col0, col1),
         bg_box=region2_box,
         region_label=region_label,
@@ -2393,7 +2753,7 @@ def main(argv: list[str] | None = None) -> int:
         region2_means=region2_means,
         region2_label=region2_label,
         region2_frame=(
-            last_cds[
+            last_cds_f64[
                 region2_box[0] : region2_box[1],
                 region2_box[2] : region2_box[3],
             ]
@@ -2456,11 +2816,11 @@ def main(argv: list[str] | None = None) -> int:
 
         run_detector_qa(
             out_dir=ramp_dir,
-            cds_cube=cds_cube,
+            cds_cube=None,
             sample_index=indices,
             reset_frame=reset_frame_raw,
             reset_name=reset_fits_path.name if reset_fits_path is not None else None,
-            first_science=np.asarray(stack[0], dtype=np.float64),
+            first_science=first_science,
             illum_box=(row0, row1, col0, col1),
             extra_box=region2_box,
             pixels=qa_pixels,
@@ -2469,8 +2829,13 @@ def main(argv: list[str] | None = None) -> int:
             session_name=session_name,
             session_slug=session_slug,
             show_reset_levels=args.show_reset_levels,
-            reset_levels_frame=reset_frame if ref_corrected else None,
-            raw_cube=stack,
+            reset_levels_frame=reset_levels_frame,
+            raw_cube=None,
+            slope=slope_map,
+            rms=rms_map,
+            last_cds=last_cds,
+            corrected_series=corrected_series,
+            raw_series=raw_series,
         )
     return 0
 

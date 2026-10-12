@@ -4,7 +4,12 @@
 Intended for cron on the acquisition machine. Walks immediate subdirectories
 of ``--root`` (same layout as ``scan_uptheramp_sessions.py``), skips sessions
 whose flux / QA products are already up to date relative to the source FITS,
-and invokes ``plot_uptheramp.main`` for the rest.
+and invokes ``plot_uptheramp`` in a **subprocess** for the rest (so RAM is
+returned between sessions).
+
+Streams every science sample for the full flux/QA series (one float per
+file) without stacking a full-frame difference cube in RAM. Skips writing
+the full-frame CDS cube by default (``--write-cds-cube`` to enable).
 
 Example::
 
@@ -13,6 +18,8 @@ Example::
     ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh --force
     ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh \\
         --root /data/bench_data/H2RG_ASIC/UpTheRamp
+    ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh \\
+        --max-frames 0 --write-cds-cube   # full ramp + full cube (needs RAM)
 
 Cron (every 30 min, log to archive)::
 
@@ -23,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -30,6 +38,8 @@ from pathlib import Path
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 DEFAULT_ROOT = Path("/data/bench_data/H2RG_ASIC/UpTheRamp")
+# Full ramp by default (flux is one scalar/frame; no full difference cube in RAM).
+DEFAULT_MAX_FRAMES = 0
 
 try:
     from . import plot_uptheramp as ramp
@@ -109,6 +119,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Pass --no-qa to plot_uptheramp (also skip QA files in 'done' check)",
     )
     parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=DEFAULT_MAX_FRAMES,
+        metavar="N",
+        help=(
+            "Forwarded to plot_uptheramp: evenly subsample at most N frames "
+            f"(default: {DEFAULT_MAX_FRAMES} = full ramp; streaming keeps RAM low)"
+        ),
+    )
+    parser.add_argument(
+        "--write-cds-cube",
+        action="store_true",
+        help=(
+            "Write the full-frame reduced FITS cube (off by default in batch "
+            "mode to save memory and disk)"
+        ),
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -137,6 +165,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Debug logging",
     )
     return parser.parse_args(argv)
+
+
+def _plot_uptheramp_script() -> Path:
+    return Path(ramp.__file__).resolve()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -181,18 +213,34 @@ def main(argv: list[str] | None = None) -> int:
     if not pending:
         return 0
 
+    plot_script = _plot_uptheramp_script()
     failures = 0
     for session, reason in pending:
         logging.info("Process %s (%s)", session.name, reason)
         if args.dry_run:
             continue
-        plot_argv = ["--ramp-dir", str(session)]
+        plot_argv = [
+            sys.executable,
+            str(plot_script),
+            "--ramp-dir",
+            str(session),
+            "--max-frames",
+            str(int(args.max_frames)),
+        ]
+        if not args.write_cds_cube:
+            plot_argv.append("--no-cds-cube")
         if args.no_qa:
             plot_argv.append("--no-qa")
+        if args.verbose:
+            plot_argv.append("-v")
         plot_argv.extend(args.plot_arg)
         t0 = time.monotonic()
         try:
-            rc = int(ramp.main(plot_argv) or 0)
+            completed = subprocess.run(
+                plot_argv,
+                check=False,
+            )
+            rc = int(completed.returncode)
         except Exception as exc:  # noqa: BLE001 — keep cron going
             logging.exception("Failed %s: %s", session.name, exc)
             failures += 1

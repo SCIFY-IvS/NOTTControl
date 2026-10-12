@@ -12,6 +12,9 @@
 #   ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh --dry-run
 #   ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh --force
 #   ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh --limit 5
+#   ./nottcontrol/script/detector/msac_ramp/process_uptheramp_sessions.sh --max-frames 0
+#
+# Defaults: full ramp (streamed), no full CDS cube; subprocess per session.
 #
 # Environment:
 #   MSAC_RAMP_ROOT   override session parent (same as --root)
