@@ -5,7 +5,8 @@ from pathlib import Path
 
 _MISSING_CONFIG_MSG = (
     "Missing nottcontrol/config.ini. "
-    "Copy config.ini.example to config.ini and fill in your site values before first run."
+    "Copy config.ini.example to config.ini, then put lab IPs in "
+    "config.local.ini (see config.local.ini.example)."
 )
 
 

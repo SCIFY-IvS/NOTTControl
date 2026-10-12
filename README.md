@@ -33,13 +33,16 @@ From the repository root (use the same `python` / conda env you will run the GUI
 python -m pip install -e .
 ```
 
-Copy the example config and fill in your site values before first run:
+**Config split:** tracked `config.ini` holds evolving settings (committed). Stable lab IPs/hosts go in gitignored `config.local.ini` (merged on top at startup):
 
 ```bash
+# First-time machine setup (IPs only — once):
+cp nottcontrol/config.local.ini.example nottcontrol/config.local.ini
+# edit config.local.ini with OPC UA / Redis / camera / FITS hosts
+
+# If config.ini is missing:
 cp nottcontrol/config.ini.example nottcontrol/config.ini
 ```
-
-Edit `nottcontrol/config.ini` and replace every `<PLACEHOLDER>` (OPC UA, Redis, camera IPs, FITS paths, etc.). `config.ini` is gitignored so lab addresses are not committed.
 
 Non-editable install:
 
@@ -168,13 +171,11 @@ Full notes: [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Read
 
 ## Configuration
 
-Start from [`nottcontrol/config.ini.example`](nottcontrol/config.ini.example) (copy to `config.ini` as above). Site-specific keys include:
+- **[`nottcontrol/config.ini`](nottcontrol/config.ini)** — tracked defaults (DIT/ROI layouts, feature flags, …). Change and commit these.
+- **`nottcontrol/config.local.ini`** — gitignored lab IPs/hosts (see [`config.local.ini.example`](nottcontrol/config.local.ini.example)). Stays the same across branches and pulls.
+- Optional ROI/GUI tweaks also land in `config.local.ini` when saved from the GUI.
 
-- **`[DEFAULT]`** `opcuaaddress`, `opcuaaddress_cry`, `databaseurl` (Redis)
-- Camera / FITS paths under **`[INFRATEC CAMERA]`** and **`[H2RG DETECTOR]`**
-- Lucid IPs under **`[connection]`**, filter-wheel IP under **`[FILTERWHEEL]`**
-
-Optional machine tweaks (ROIs, etc.) can go in gitignored `config.local.ini`. Alignment and script helpers may also read config under `nottcontrol/script/` and `nottcontrol/lucid/cfg/`.
+Alignment and script helpers may also read config under `nottcontrol/script/` and `nottcontrol/lucid/cfg/`.
 
 ## Running the GUI
 
@@ -247,4 +248,4 @@ If Arena is not installed, avoid importing or running modules that require `aren
 
 ## Contributing
 
-Use branches and pull requests against the upstream repository. Do not commit `config.ini` (it is gitignored); keep site IPs in your local copy and share updates via `config.ini.example` placeholders only.
+Use branches and pull requests against the upstream repository. Commit `config.ini` changes freely; never commit `config.local.ini` (lab IPs).

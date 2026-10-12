@@ -1,9 +1,7 @@
-# Example site configuration for NOTTControl.
-# Copy this file to config.ini and replace every <PLACEHOLDER> with your lab values:
-#   cp config.ini.example config.ini
-#
-# config.ini is gitignored — do not commit real hostnames or IPs.
-# Optional machine tweaks (ROIs, etc.) can go in config.local.ini.
+# Template / mirror of tracked config.ini (placeholders for network keys).
+# Prefer editing config.ini in git for evolving settings.
+# Put stable lab IPs in config.local.ini (see config.local.ini.example):
+#   cp config.local.ini.example config.local.ini
 #
 #----------#
 # Pointers |
