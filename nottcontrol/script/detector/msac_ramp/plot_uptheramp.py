@@ -933,10 +933,14 @@ def load_last_science_plane(
     *,
     dtype: np.dtype | type = np.float32,
 ) -> tuple[np.ndarray, dict]:
-    """Load only the last ramp plane (memmap) as ``dtype`` — avoids a full float cube."""
+    """Load only the last ramp plane as ``dtype`` (one frame — not a stacked cube).
+
+    Uses ``memmap=False`` because MSAC FITS often carry BZERO/BSCALE/BLANK,
+    which astropy cannot memory-map.
+    """
     from astropy.io import fits
 
-    with fits.open(path, memmap=True) as hdul:
+    with fits.open(path, memmap=False) as hdul:
         header = dict(hdul[0].header)
         data = hdul[0].data
         if data is None:
@@ -991,16 +995,15 @@ class SampleRef(NamedTuple):
 
 
 def peek_nplanes(path: Path) -> tuple[int, dict]:
-    """Return ``(nplanes, header)`` without loading the full array into RAM."""
+    """Return ``(nplanes, header)`` from FITS keywords (no pixel array load)."""
     from astropy.io import fits
 
-    with fits.open(path, memmap=True) as hdul:
+    with fits.open(path, memmap=False) as hdul:
         header = dict(hdul[0].header)
-        data = hdul[0].data
-        if data is None:
-            raise ValueError(f"{path.name}: empty FITS data")
-        cube = _cube_axis0(np.asarray(data), header)
-        return int(cube.shape[0]), header
+    naxis = int(header.get("NAXIS", 0) or 0)
+    if naxis <= 2:
+        return 1, header
+    return max(1, int(header.get("NAXIS3", 1) or 1)), header
 
 
 def build_sample_refs(
@@ -1077,7 +1080,8 @@ def load_sample_absolute(ref: SampleRef) -> tuple[np.ndarray, dict]:
         return load_last_science_plane(ref.path, dtype=np.float32)
     from astropy.io import fits
 
-    with fits.open(ref.path, memmap=True) as hdul:
+    # memmap=False: scaled integer FITS (BZERO/BSCALE) cannot be memory-mapped.
+    with fits.open(ref.path, memmap=False) as hdul:
         header = dict(hdul[0].header)
         data = hdul[0].data
         if data is None:
