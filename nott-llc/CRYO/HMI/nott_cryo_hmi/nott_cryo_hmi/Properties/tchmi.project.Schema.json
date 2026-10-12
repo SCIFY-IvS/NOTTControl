@@ -581,22 +581,6 @@
       "type": "object",
       "id": "tchmi:project#/definitions/METISAnalogSensorUserControl"
     },
-    "NottHeater": {
-      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
-      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
-      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
-      "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\Heater\\NottHeater.usercontrol.json",
-      "type": "object",
-      "id": "tchmi:project#/definitions/NottHeater"
-    },
-    "METISHeaterFaceplateOperateTab": {
-      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
-      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
-      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
-      "frameworkUserControlConfig": "UserControls\\Faceplates\\METIS\\Heaters\\METISHeaterFaceplateOperateTab.usercontrol.json",
-      "type": "object",
-      "id": "tchmi:project#/definitions/METISHeaterFaceplateOperateTab"
-    },
     "METISHeaterFaceplate": {
       "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
       "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
@@ -637,14 +621,6 @@
       "type": "object",
       "id": "tchmi:project#/definitions/NOTTTempCtrlFaceplateStatus"
     },
-    "NOTTTempCtrlFaceplateServiceTab": {
-      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
-      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
-      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
-      "frameworkUserControlConfig": "UserControls\\NOTT\\TemperatureControl\\NOTTTempCtrlFaceplateServiceTab.usercontrol.json",
-      "type": "object",
-      "id": "tchmi:project#/definitions/NOTTTempCtrlFaceplateServiceTab"
-    },
     "NOTTTempCtrlFaceplate": {
       "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
       "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
@@ -676,6 +652,30 @@
       "frameworkUserControlConfig": "UserControls\\NOTT\\Sequence\\MetisNottSequenceControlFaceplate.usercontrol.json",
       "type": "object",
       "id": "tchmi:project#/definitions/MetisNottSequenceControlFaceplate"
+    },
+    "METISTempCtrlFaceplateServiceTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\TemperatureControl\\METISTempCtrlFaceplateServiceTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISTempCtrlFaceplateServiceTab"
+    },
+    "NottHeater": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\Heater\\NottHeater.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NottHeater"
+    },
+    "METISHeaterFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\METIS\\Heaters\\METISHeaterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISHeaterFaceplateOperateTab"
     }
   }
 }

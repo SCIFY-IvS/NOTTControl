@@ -214,7 +214,6 @@
 			</Settings>
 			<Licenses>
 				<Target>
-					<ManualSelect>{D58728E0-7762-4145-8A93-80D55E0453A6}</ManualSelect>
 					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSerialNumber="000btrgq" DongleCacheLicense="true"/>
 				</Target>
 			</Licenses>
@@ -226,7 +225,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{549E3860-A435-1513-95CF-89BFB9263B7C}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{6EC822E6-0641-8431-3C93-0E1A1B0BDD62}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">

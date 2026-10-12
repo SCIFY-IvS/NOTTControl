@@ -1,7 +1,7 @@
-<div id="METISTempCtrlFaceplateServiceTab" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="950" data-tchmi-height="540" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+<div id="METISTempCtrlFaceplateServiceTab_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="950" data-tchmi-height="650" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
 
-<div id="TcHmiContainer_2" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="114" data-tchmi-height-unit="px" data-tchmi-left="266" data-tchmi-left-unit="px" data-tchmi-top="330" data-tchmi-top-unit="px" data-tchmi-width="357" data-tchmi-width-unit="px">
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiButton_SaveConfig_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="62" data-tchmi-text="%l%L_Save_Configuration%/l%" data-tchmi-top="68" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+<div id="TcHmiContainer_9" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="147" data-tchmi-height-unit="px" data-tchmi-left="467" data-tchmi-left-unit="px" data-tchmi-top="275" data-tchmi-top-unit="px" data-tchmi-width="429" data-tchmi-width-unit="px">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiButton_SaveConfig_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="92" data-tchmi-text="%l%L_Save_Configuration%/l%" data-tchmi-top="82" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
 <script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
@@ -20,8 +20,30 @@
     ]
   }
 ]</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiButton_LoadConfig_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="62" data-tchmi-text="%l%L_Load_Configuration%/l%" data-tchmi-top="20" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiButton_LoadConfig_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="92" data-tchmi-text="%l%L_Load_Configuration%/l%" data-tchmi-top="34" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
 <script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
@@ -40,8 +62,30 @@
     ]
   }
 ]</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiTextbox_SaveConfigStatus_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="228" data-tchmi-top="68" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::fbTcConfig::sWriteError%/pp%">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiTextbox_SaveConfigStatus_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="258" data-tchmi-top="82" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::fbTcConfig::sWriteError%/pp%">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -65,8 +109,30 @@
 </script>
 
 
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiTextbox_LoadConfigStatus_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="228" data-tchmi-top="20" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::fbTcConfig::sReadError%/pp%">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiTextbox_LoadConfigStatus_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="258" data-tchmi-top="34" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::fbTcConfig::sReadError%/pp%">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -90,8 +156,30 @@
 </script>
 
 
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiRectangle__SaveConfigStatus_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="20" data-tchmi-top="73" data-tchmi-width="20" data-tchmi-width-unit="px">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiRectangle__SaveConfigStatus_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="50" data-tchmi-top="87" data-tchmi-width="20" data-tchmi-width-unit="px">
 <script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%TCtrlObject::fbTcConfig::bWriting%/pp%",
@@ -152,8 +240,30 @@
     ]
   }
 ]</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
-<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiRectangle__LoadConfigStatus_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="20" data-tchmi-top="25" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-tooltip="Command coming from the Control System">
+<div id="METISTemperatureVoterFaceplateConfiguration_TcHmiRectangle__LoadConfigStatus_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="50" data-tchmi-top="39" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-tooltip="Command coming from the Control System">
 <script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%TCtrlObject::fbTcConfig::bReading%/pp%",
@@ -214,10 +324,32 @@
     ]
   }
 ]</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
 </div>
 </div>
-<div id="TcHmiContainer_3" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="224" data-tchmi-height-unit="px" data-tchmi-left="77" data-tchmi-left-unit="px" data-tchmi-top="53" data-tchmi-top-unit="px" data-tchmi-width="300" data-tchmi-width-unit="px">
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiCombobox_Startupmode" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCombobox" data-tchmi-auto-focus-out="True" data-tchmi-combobox-text="Select" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-left-unit="px" data-tchmi-top="56" data-tchmi-top-unit="px" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-enum-data-symbol="%pp%TCtrlObject::cfg::eStartupCtrlMode%/pp%">
+<div id="TcHmiContainer_8" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="224" data-tchmi-height-unit="px" data-tchmi-left="10" data-tchmi-left-unit="px" data-tchmi-top="10" data-tchmi-top-unit="px" data-tchmi-width="300" data-tchmi-width-unit="px">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiCombobox_Startupmode_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCombobox" data-tchmi-auto-focus-out="True" data-tchmi-combobox-text="Select" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-left-unit="px" data-tchmi-top="56" data-tchmi-top-unit="px" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-enum-data-symbol="%pp%TCtrlObject::cfg::eStartupCtrlMode%/pp%">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -228,67 +360,11 @@
 </script>
 
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_GenSettings_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="79" data-tchmi-top="15" data-tchmi-width="209" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="General Settings" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_GenSettings_Label_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="79" data-tchmi-top="15" data-tchmi-width="209" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="General Settings" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupMode_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="56" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Startup Mode" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupMode_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="56" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Startup Mode" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_StartupTimeout" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="97" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nStartupTimeout%/pp%" data-tchmi-tooltip="Maximum time before the input temperature (and if used, the variable setpoint temperature) must be valid. Otherwise the Error flag is set, and the control mode is forced to MANUAL.">
-<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
-{
-  "top": 3,
-  "right": 3,
-  "bottom": 3,
-  "left": 3
-}
-</script>
-
-
-
-
-<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
-[
-  {
-    "accessright": "operate",
-    "group": "Monitoring",
-    "permission": "Deny"
-  }
-]
-</script>
-
-
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupTimeout_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="97" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Startup Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="138" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Sensor Input Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_SenIpTimeout" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="138" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nInputTempTimeout%/pp%" data-tchmi-tooltip="Maximum time that the input sensor can be invalid, before automatically switching to AUTO.">
-<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
-{
-  "top": 3,
-  "right": 3,
-  "bottom": 3,
-  "left": 3
-}
-</script>
-
-
-
-
-<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
-[
-  {
-    "accessright": "operate",
-    "group": "Monitoring",
-    "permission": "Deny"
-  }
-]
-</script>
-
-
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_VarSetpntTimeout_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="180" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Variable Setpoint Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_VarSetpntTimeout" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="180" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nSetpointTempTimeout%/pp%" data-tchmi-tooltip="Maximum time that the variable setpoint sensor can be invalid, before automatically switching to AUTO.">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_StartupTimeout_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="96" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nStartupTimeout%/pp%" data-tchmi-tooltip="Maximum time before the input temperature (and if used, the variable setpoint temperature) must be valid. Otherwise the Error flag is set, and the control mode is forced to MANUAL.">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -313,11 +389,11 @@
 
 
 </div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupTimeout_Label_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="97" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Startup Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
 </div>
-<div id="TcHmiContainer_4" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="193" data-tchmi-height-unit="px" data-tchmi-left="503" data-tchmi-left-unit="px" data-tchmi-top="68" data-tchmi-top-unit="px" data-tchmi-width="300" data-tchmi-width-unit="px">
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_GenSettings_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="61" data-tchmi-top="15" data-tchmi-width="227" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Last Force Switch to MANUAL" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="138" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Sensor Input Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_StartupTimeout_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="71" data-tchmi-top="54" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::stat::sLastForcedManualTime%/pp%">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_SenIpTimeout_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="138" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nInputTempTimeout%/pp%" data-tchmi-tooltip="Maximum time that the input sensor can be invalid, before automatically switching to AUTO.">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -342,11 +418,9 @@
 
 
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupTimeout_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="54" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Time" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_VarSetpntTimeout_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="180" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Variable Setpoint Timeout" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
 </div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="95" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Cause" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
-</div>
-<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_SenIpTimeout_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="71" data-tchmi-top="95" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::stat::sLastForcedManualCause%/pp%">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_VarSetpntTimeout_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="171" data-tchmi-top="180" data-tchmi-width="117" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::nSetpointTempTimeout%/pp%" data-tchmi-tooltip="Maximum time that the variable setpoint sensor can be invalid, before automatically switching to AUTO.">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -371,7 +445,399 @@
 
 
 </div>
-<div id="TcHmiButton_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="36" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-left-unit="px" data-tchmi-text="Clear Diagnostics" data-tchmi-top="144" data-tchmi-top-unit="px" data-tchmi-width="277" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+</div>
+<div id="TcHmiContainer_7" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="224" data-tchmi-height-unit="px" data-tchmi-left="355" data-tchmi-left-unit="px" data-tchmi-top="10" data-tchmi-top-unit="px" data-tchmi-width="300" data-tchmi-width-unit="px">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_GenSettings_Label_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="61" data-tchmi-top="15" data-tchmi-width="227" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Last Force Switch to MANUAL" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_StartupTimeout_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="71" data-tchmi-top="56" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::stat::sLastForcedManualTime%/pp%">
+<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
+{
+  "top": 3,
+  "right": 3,
+  "bottom": 3,
+  "left": 3
+}
+</script>
+
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
+[
+  {
+    "accessright": "operate",
+    "group": "Monitoring",
+    "permission": "Deny"
+  }
+]
+</script>
+
+
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupTimeout_Label_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="56" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Time" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="96" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Cause" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_SenIpTimeout_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="71" data-tchmi-top="96" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::stat::sLastForcedManualCause%/pp%">
+<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
+{
+  "top": 3,
+  "right": 3,
+  "bottom": 3,
+  "left": 3
+}
+</script>
+
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
+[
+  {
+    "accessright": "operate",
+    "group": "Monitoring",
+    "permission": "Deny"
+  }
+]
+</script>
+
+
+</div>
+<div id="TcHmiButton_5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="36" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-left-unit="px" data-tchmi-text="Clear Diagnostics" data-tchmi-top="151" data-tchmi-top-unit="px" data-tchmi-width="277" data-tchmi-width-unit="px" data-tchmi-word-wrap="True">
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+</div>
+<div id="TcHmiContainer_6" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="147" data-tchmi-height-unit="px" data-tchmi-left="10" data-tchmi-left-unit="px" data-tchmi-top="275" data-tchmi-top-unit="px" data-tchmi-width="432" data-tchmi-width-unit="px">
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_GenSettings_Label_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="10" data-tchmi-top="17" data-tchmi-width="386" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Ramp Generator Tracking" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_StartupTimeout_Label_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="54" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Max Tracking Difference" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="Maximum permitted difference between ramped SP and process value ">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_StartupTimeout_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="179" data-tchmi-top="54" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::lrMaxTrackingDifference%/pp%" data-tchmi-tooltip="Maximum permitted difference between ramped SP and process value  ">
+<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
+{
+  "top": 3,
+  "right": 3,
+  "bottom": 3,
+  "left": 3
+}
+</script>
+
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
+[
+  {
+    "accessright": "operate",
+    "group": "Monitoring",
+    "permission": "Deny"
+  }
+]
+</script>
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "%pp%TCtrlObject::cfg::lrMaxTrackingDifference%/pp%",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%ctx%owner::Text%/ctx%",
+        "value": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+          "symbolExpression": "%f%%pp%TCtrlObject::cfg::lrMaxTrackingDifference%/pp%.toFixed(2)%/f%"
+        },
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onTextChanged",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%f%isNaN(Number(%ctx%owner::Text%/ctx%))%/f%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "value": "TRUE"
+                },
+                "compareOperator": "==",
+                "logic": null
+              },
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%f%%ctx%owner::Text%/ctx%.length%/f%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "value": "0"
+                },
+                "compareOperator": "==",
+                "logic": "OR"
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%tr%TextboxErrorColor%/tr%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": null
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onFocusOut",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%pp%TCtrlObject::cfg::lrMaxTrackingDifference%/pp%",
+        "value": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:general#/definitions/LREAL",
+          "symbolExpression": "%f%parseFloat(%ctx%owner::Text%/ctx%)%/f%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="95" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Target Change Threshold" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="A target step larger than this restarts the ramp from the process value">
+</div>
+<div id="METISTempCtrlFaceplateServiceTab_TcHmiTextbox_SenIpTimeout_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="179" data-tchmi-top="95" data-tchmi-width="217" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%pp%TCtrlObject::cfg::lrTargetChangeThreshold%/pp%" data-tchmi-tooltip="A target step larger than this restarts the ramp from the process value">
+<script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
+{
+  "top": 3,
+  "right": 3,
+  "bottom": 3,
+  "left": 3
+}
+</script>
+
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
+[
+  {
+    "accessright": "operate",
+    "group": "Monitoring",
+    "permission": "Deny"
+  }
+]
+</script>
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "%pp%TCtrlObject::cfg::lrTargetChangeThreshold%/pp%",
+    "actions": []
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onTextChanged",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%f%isNaN(Number(%ctx%owner::Text%/ctx%))%/f%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "value": "TRUE"
+                },
+                "compareOperator": "==",
+                "logic": null
+              },
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%f%%ctx%owner::Text%/ctx%.length%/f%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "value": "0"
+                },
+                "compareOperator": "==",
+                "logic": "OR"
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%tr%TextboxErrorColor%/tr%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": null
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onFocusOut",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%pp%TCtrlObject::cfg::lrTargetChangeThreshold%/pp%",
+        "value": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:general#/definitions/LREAL",
+          "symbolExpression": "%f%parseFloat(%ctx%owner::Text%/ctx%)%/f%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+<div id="METISTempCtrlFaceplateStatus_TcHmiTextblock_TemperatureUnit1_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="400" data-tchmi-top="53" data-tchmi-width="16" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="K" data-tchmi-zindex="1">
+</div>
+<div id="METISTempCtrlFaceplateStatus_TcHmiTextblock_TemperatureUnit1_5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="400" data-tchmi-top="95" data-tchmi-width="16" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="K" data-tchmi-zindex="1">
 </div>
 </div>
 </div>

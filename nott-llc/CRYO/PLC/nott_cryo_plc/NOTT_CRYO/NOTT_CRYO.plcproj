@@ -17,6 +17,7 @@
     <Implicit_Jitter_Distribution>{122191b3-06a1-4417-90a5-310a11516dbf}</Implicit_Jitter_Distribution>
     <LibraryReferences>{a0c54e93-68dd-4473-b58f-4b314ee0cda7}</LibraryReferences>
     <CompilerDefines>VISU_USEPROPERTYINFO</CompilerDefines>
+    <Released>false</Released>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="DUTs\Enumerations\CoolDOwn\E_NOTT_CRYO_COOLDOWN_STATE.TcDUT">
