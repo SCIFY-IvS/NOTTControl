@@ -26,7 +26,17 @@ fi
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Recover if the launching shell's cwd was deleted/unmounted (getcwd fails).
+if ! pwd >/dev/null 2>&1; then
+  cd / || cd "${HOME:-/}" || true
+fi
+
+_src="${BASH_SOURCE[0]}"
+case "${_src}" in
+  /*) ;;
+  *) _src="$(pwd)/${_src}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "${_src}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 cd "${REPO_ROOT}"
