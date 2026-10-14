@@ -42,7 +42,12 @@ def main():
 
     opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=10.0)
     opcua_conn = OPCUAConnection(url, timeout=opcua_timeout_s)
-    opcua_conn.connect()
+    # Soft-connect: GUI must open even when ICS CU is offline (e.g. detector-only).
+    if not opcua_conn.try_connect():
+        print(
+            f"ICS OPC UA unavailable ({url}); starting GUI offline. "
+            "DL/TT/shutter status will reconnect when the CU is back."
+        )
 
     # set up the main window
     # Must set OpenGL attribute before QApplication exists (Linux/VNC stability).

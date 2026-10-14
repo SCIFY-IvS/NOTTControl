@@ -183,7 +183,12 @@ class MainWindow(QMainWindow):
         opcuaddress_cry = config["DEFAULT"]["opcuaaddress_cry"]
         opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
         self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
-        self.opcua_conn_cry.connect()
+        # Soft-connect: cryo CU offline must not block GUI (detector-only use, etc.).
+        if not self.opcua_conn_cry.try_connect():
+            print(
+                f"Cryo OPC UA unavailable ({opcuaddress_cry}); "
+                "temps/pressures will reconnect when the cryo CU is back."
+            )
 
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
 
@@ -224,11 +229,14 @@ class MainWindow(QMainWindow):
 
         self._layout_title()
 
-        # Dl status on main window
-        self.load_dl_status()
-        self.load_tt_status()
-        self.load_shutter_status()
-        self.load_camera_status()
+        # Status panels: tolerate offline ICS / cryo CUs at startup.
+        try:
+            self.load_dl_status()
+            self.load_tt_status()
+            self.load_shutter_status()
+            self.load_camera_status()
+        except Exception as e:
+            print(f"Initial ICS status load skipped (OPC offline?): {e}")
         self._poll_cryo_opc()
         self._apply_cryo_cache_to_display()
 
