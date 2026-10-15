@@ -10,7 +10,7 @@
       "name": "data-tchmi-ctrlvalveobject",
       "displayName": "CtrlValveObject",
       "visible": true,
-      "type": "tchmi:server#/definitions/ADS-PLC1.FB_METIS_CONTROL_VALVE",
+      "type": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_CONTROL_VALVE",
       "category": "",
       "description": "",
       "readOnly": false,

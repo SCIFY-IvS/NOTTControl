@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <DUT Name="T_NOTT_THERMAL_BOX_CFG" Id="{9cc14d30-f474-442e-8107-6e5c81134611}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.ShowRecursively'}
+TYPE T_NOTT_THERMAL_BOX_CFG :
+STRUCT
+    lrSetpointOffset: LREAL := 0.0; // K, added to outside temperature
+    tSensorFaultHold: TIME := T#30M;
+    tValveClose: TIME := T#120S; // Powered zero-command time; verify during commissioning
+    bAutoCommissioned: BOOL := FALSE; // Legacy commissioning record; not an enable interlock
+    bHighTempAlarmEnabled: BOOL := FALSE;
+    lrHighTempAlarm: LREAL := 313.15; // K, provisional and disabled by default
+    lrHighTempHysteresis: LREAL := 2.0;
+    tHighTempDelay: TIME := T#60S;
+    bTrackingWarningEnabled: BOOL := FALSE;
+    lrTrackingWarning: LREAL := 5.0; // K above target
+    lrTrackingHysteresis: LREAL := 1.0;
+    tTrackingDelay: TIME := T#10M;
+    lrCoolantMargin: LREAL := 0.0; // Warn if coolant inlet is not below target
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
+

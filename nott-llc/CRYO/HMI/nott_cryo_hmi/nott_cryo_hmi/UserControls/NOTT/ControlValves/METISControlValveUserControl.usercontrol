@@ -1,0 +1,133 @@
+<div id="METISControlValveUserControl" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="METISControlValveUserControl_ValveSymbol" data-tchmi-type="TcHmi.Controls.CryoFramework.ValveSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-height="80" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-top="0" data-tchmi-top-unit="%" data-tchmi-valvesymbol-symbol-type="Regulation" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-is-enabled="True">
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%CtrlValveObject::stat::bActive%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "symbolExpression": "%pp%CtrlValveObject::stat::bActive%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/TcHmi.Controls.CryoFramework.BaseSymbol.State",
+                  "value": "On"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/TcHmi.Controls.CryoFramework.BaseSymbol.State",
+                  "value": "Off"
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="METISControlValveUserControl_EventBox" data-tchmi-type="TcHmi.Controls.CryoFramework.EventBox" data-tchmi-eventbox-box-size="20" data-tchmi-eventbox-box-size-unit="px" data-tchmi-eventbox-stroke-thickness="2" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-top="0" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-eventbox-alarm-raised="%pp%CtrlValveObject::stat::stAlarms::bAlarmRaised%/pp%" data-tchmi-eventbox-alarm-confirmed="%pp%CtrlValveObject::stat::stAlarms::bWarningConfirmed%/pp%" data-tchmi-eventbox-warning-raised="%pp%CtrlValveObject::stat::stAlarms::bWarningRaised%/pp%" data-tchmi-eventbox-warning-confirmed="%pp%CtrlValveObject::stat::stAlarms::bWarningConfirmed%/pp%">
+</div>
+<div id="METISControlValveUserControl_DeviceState" data-tchmi-type="TcHmi.Controls.CryoFramework.DeviceState" data-tchmi-devicestate-box-size="20" data-tchmi-devicestate-box-size-unit="px" data-tchmi-devicestate-engineering-mode="False" data-tchmi-devicestate-interlock-active="False" data-tchmi-devicestate-manual-mode="%pp%CtrlValveObject::stat::bManual%/pp%" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-top="0" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%">
+</div>
+<div id="METISControlValveUserControl_DataLabel" data-tchmi-type="TcHmi.Controls.CryoFramework.DataLabel" data-tchmi-datalabel-data-valid="%f%!%pp%CtrlValveObject::stat::bError%/pp%%/f%" data-tchmi-height="20" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-top="80" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-word-wrap="True" data-tchmi-text="%f%%pp%CtrlValveObject::stat::lrActValveFlow%/pp%.toFixed(1) + ' %'%/f%" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-font-size="16">
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%CtrlValveObject::stat::bSimulated%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "symbolExpression": "%pp%CtrlValveObject::stat::bSimulated%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "symbolExpression": "%tr%SimulationModeColor%/tr%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": null
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

@@ -9,7 +9,7 @@
     "CACHEMAXAGE": "P30D",
     "CACHEMAXENTRYSIZE": 1048576,
     "CACHEMAXSIZE": 2097152,
-    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQUl0UTlGSytFekVKTUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd09ERXlNVFV6TkRVMVdoZ1BNakEyTkRFeU1UQXhOVE0wCk5UVmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUF1dG1lb1I3TGc1THFUZHNLR0ZpalNMRkpreTRNSWRId21RTFcrc1pMODBYcU9nbVhaSUdwCkFvSUZicURIN1JLS0lBdWpiMFBOcXNFRVM3bXJIbG1xVXRTb01CanlPL0lqbUNYd1lORm9JRlUvVENwcHk4bTYKNHNhZFd2REVHakI4SXMyR2piU016VDZndkpGL3pJT1YzS0wzT3A2YmM1YmI3M3dtSFJqK1BMUndVVjkyZ1ZJQwpxSjkwaHg5dnJWVWpEZ1ZjRlJKUUxnUnphTEFYTks5TlcwNzE3U1ZHYW8xQ2FLRGY0bmROby9MbE8rTkJqWjBJCm5oYjBhRFl6Uk82bThGb3NrdmZtQjNCUXVVZnQ4SzVOa2lvZWlHSGw1WkZlM3dtMUxHcmZ6SFZBMDI0MEV4TFMKRkJrQ3VtSmpLaUI5bDJrSy9Ea1VhSE4vVHdhR1lKUEREUUlEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKUEljRXJCYm1YNGNRL29BQUFBQUFBQUFieVp6SjBXT3hlNGNRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVVV5KzZBQnBvWE1IMlZtY2loSHRuNVdUY1JXWXdId1lEVlIwakJCZ3dGb0FVZEpzUUQwV0xSZXQ4ClNNSkFIdUtDT1VrbXdlc3dEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFBZGs5aXY1Y1MzbDduV0pjWDVzbWJDb0x6cHppcjZJR3I5UEhrUUFuQnhkbUN5egpUSk5GZHVsNmRKQU9vRkRhODdEWkZLV0ltN0o4MjZCRkhOVmZSQ3FXcmgxcWd4ZHdkcGtDL3BiRUExWEptS0Z1ClQyak5Pb2UzbmJYdHluZ3VZNWVNU3YrODlsMFFqMC9ERkpiR1NDdjIzWXF2OVliT2ZGaFpHdjVwcnJPb3BubXgKRXF0TnhkclhYZXdzelZNek9EU2x5endXQ2tWRWhJVENVeFR1YmJWbGNIVVBNRVlodENhb1VEakVDZlVXRThmUgpLOVlRQTNiWCtRZVZ4SGMrMzUyc2pQY1Y5VFFaRmxWVVdXUEs4L0ZLMmZiMTRENGVOYXpaR1ljNXRDYW84NXRwCkFLbkYvREJLZ21Ic1ByaUE1Z1FIMlg0QytQU1gxaXIraEhzODBLMD0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBT3B6cVBNMDJPaHlNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall3TmpJeU1UY3lORFF3V2hnUE1qQTJOREV3TWpBeE56STAKTkRCYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUMvbkhCTzlZMjFDcHBqL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkUKbE1PT2g5d3drSFNhK0Q4MWR1TTJOeUQzSEFVYVlYbjhPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNAprVXQ0bUVFWFllQWNjZzdiQm4vWE92S3oyV3k0MlBTNm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjCjFsWHhDV1RZRUJqZGdwM3k4c0JkaVJVQWt2b3dTdGs3aVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQKMXdpSkRuSERLL1pVSTY2YUp0YTl1TFJaSlJ2Q0NoTUxzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdAptUWtYQ0I0Vk0yVk5NYXJ0dXF0bXMyVjNsNkVKYXRaSVBxcDBTNitMQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOS2h3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCUjBteEFQUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFmQmdOVkhTTUVHREFXZ0JSMG14QVAKUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBdmJ4bm82RnFxRVRXQkNXUE5ycnhiUWVLQjRhL3ozNWR0cVRyCjA0cTBrNXlhMjRVR21uS1ZnWnpXWU5aaTVaK1BOaTA4Ymx2NWdFclBaTjlYcTFjbDZKbnVmK1lmd2ErQ0dvUWYKcCtlTkUvc2lyNUxUaVJZc0hYSHhJaHpFUW80b1JieHc5UnBrN3pqbi9wSkZrUjJqS3RQWTJnUURMVkJ6ODc0RQpsNDZlN1BLZjF0Z045RzJoZnlpOTQ1YnllRjdhZG1MRnk0RTFDYVBiZ3pjb3BCWHVKM0tDT2R2eFRDWmxITEtmCnNqa1RmZTdHYVdjcmFxWXI5RWt4RmFPTTNyZHRuUktiMllvMVlDRFhZSUROM2xCMm42a3dqU08rRzV0M291dkcKMVNIK1l6MjN5c2dtdXNMUE05dTd3UXpUdHp0MEZVdWtZU3p1cWcwN1c0VnZ2dzFyQVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQUtuTFE2OFBlZXc3TUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZeE1ERXpNRGMxTVRBeFdoZ1BNakEyTlRBeU1UQXdOelV4Ck1ERmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUF6Y0NkdjRYY0ZCTDlHelNDNHZDRGNsazZlWmVqdThvNDRnMW54dGJxOGFNTExYK1duS3RtCm9CTG53WUd0eVYya29TY0s1bkp1MnRSemVMTEM5N05ab2sxUG80ZVJjamFJRGVUUkpscVZlZ2tsbTZ3QnVvd0oKa01YSWFCNmsvUTZWWlRVUEszdmJ6SDFEWmE1RXhoZWJuMkYwc1JCcWNKMGx3bllyeURoNnRZTUk2NGppSTd2ZQpWeUpKaG0ycWxraytlVW5aMEpSQUtUT29GNDYzWnhoa3lJaEJDNFM5YzFLVGNnMHRNandCUHBEZ2V1Sk5LOUVPCmZRT3MvWHVDYzFZTDFncFlBakIxWTk5bnZiR1pvYWd2eGREMk5Fa2dZYXFMZklvNjMxUUlqQ0FPeDBoUmZGVVEKWEowUE9ucjBJME80cjU4bU8yOEptTTZsbXZ0Ny9hRXhGd0lEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKZlljRXJCYm1YNGNRL29BQUFBQUFBQUJKYTlzb0FiNDhCb2NRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVVJPaENUUlFvZGd5VUt5bndBL1FxSUtiU09EOHdId1lEVlIwakJCZ3dGb0FVaUpWY0NrQkd2ZmJyCkdiZHBWNnlaN1g4bXVvOHdEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFGQlBaZ3VHczFxYUpSVmpSN28xVGJMY3hXc0ZJZ0pJR2dpZ2JxbWtvWnM1dTBSMgpRMWhOeG1sM3ROQitJd3hrTXp1eTVzUnp2cEcwZGU1L0tRNDY0VElCV09hZHdXdENOWUduamdtOXJ6QUtRVG0wCmhtTXNrUm9oekY2ell6bzZsTEI2cHdtaUVSekxocW9EWGdNdlhFRDVabzlLSE9Bdms1cHVlMmNwUUgzZXpjVUMKZlRxWklsVHBZQnAwa3ViR3lIa0h2VDFSeWc1aTJmd2ZvaGxncVJWZ0poSkViRGJGcHdXTDRHbUMwMlhCeUVyMQoyeUxVeG1rTS9BOWlBNTcwdTlPUDIvUE9PY2pmNDZmMVE4MjJKREhLYUZwSkQ5c3NOa1pPNGdEckhLVERDVVVUCmg2dXZTRXFMdTBtaEdwcGdEWUEvclhEUmtBODViRDFKN1RaQzZ3Zz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBSXRXemNlK1dZTnNNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall4TURFek1EYzFNVEF4V2hnUE1qQTJOVEF5TVRBd056VXgKTURGYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUM0RzdXK1J1dEdsYkoxcGQ4VDVqaEhWbnBsREIxdTY5aFo1S1FpWFVmYmZqMjMKTDh0dGhWbnR3aVI3K05VSkFwcUF0NjhGajNXZ0R3eEw4UWJxTEtjZitsU3pLOUpxWHVvelM4ZDJLWEpETG9zegpKVG51dzN4NTR5Y3Z3dVpCaTljVjdKQnFRNmNKQWdUd3Z5cE9JNmdLTmV4cDgzL2xnN21ML2xLZU13WmFaNHgxCjkzSk93N2d4SWtaKzZ4VjZja1RzTmdFaXYwYjB2Z1RzMnJ6NEVwOEx2dFh6ak5xbGdJRklFQVp0WGpxaWV1aVMKR292cFV5d2F2MHRObXdXVm5HK0JWcjZPODVrY2RJcnVQL0xrMDRibit6MVpORytmbFFaK1k3bkE3b2g4L0hBMwpuUU5KMzFTK2c0NEVGVThDTDBDU3lHVlA2a2I3UTdJck1VQVR1WmdiQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOOWh3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCU0lsVndLUUVhOTl1c1p0MmxYckpudGZ5YTZqekFmQmdOVkhTTUVHREFXZ0JTSWxWd0sKUUVhOTl1c1p0MmxYckpudGZ5YTZqekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBYTJJVlVkamNSSDZBMU8xcDlwdGlVcWRvalZjblVvVzF4SnpZCld5cm0zaWh5NWNHWitJekE0cTV0cmt1RURNQ1hXUmN0T2p0T1pyUUwxc1NrL3R6TWhFREFoWWJrcUFWdDBTL1cKY1lhMXhTN0JMMmxVWnhnQ1BjbUZKZ3J5NW5lOXdyRFNONWYrenYyK09tTSt5ZFUxb2FkVk1WRWttVEFLc20rMgpndHFCMlB5WTRRSTcxdGdxN2RjS1Zuc1FEalVpQ0VyNU9YMFZOYWUxQUVML2tvaGp1Mk16TVZKbGtnSzJZREFHClNuemhpVVExaE9FdjkwaTlLaEU4Rm5lOFkxZU9VS2UvRk1kNWlTUE9Kcm5qYVFJSzBZTWw5Ym9ZYVJFTHQ2L1AKZHdPZXM4TTlLUGg4cDkxQ0hGWjk3bXd5RC9JZmRBTUhNc2FGYTVJZWE2R3hUOFAyTHc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
     "CERTIFICATEEXPIRATION": "P14000D",
     "CHECKSUMENABLED": true,
     "CHUNKSIZE": 1048576,
@@ -117,6 +117,23 @@
                 "maxItems": 9,
                 "minItems": 9,
                 "readOnly": true,
+                "type": "array"
+            },
+            "ADS-NOTT_CRYO_PLC.ARRAY_1..5_OF-INT-ReadOnly-ShowRecursively": {
+                "items": {
+                    "allOf": [
+                        {
+                            "$ref": "tchmi:general#/definitions/INT"
+                        },
+                        {
+                            "readOnly": true
+                        }
+                    ]
+                },
+                "maxItems": 5,
+                "minItems": 5,
+                "readOnly": true,
+                "startOffset": 1,
                 "type": "array"
             },
             "ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.E_HMI_CRYO_COOLER_CTRL-ShowRecursively": {
@@ -288,7 +305,8 @@
                 "enum": [
                     0,
                     1,
-                    2
+                    2,
+                    3
                 ],
                 "options": [
                     {
@@ -302,6 +320,10 @@
                     {
                         "label": "CLOSE",
                         "value": 2
+                    },
+                    {
+                        "label": "RESET",
+                        "value": 3
                     }
                 ],
                 "type": "integer"
@@ -383,6 +405,7 @@
             "ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_HELIUM_COMPRESSOR": {
                 "additionalProperties": false,
                 "attributes": {
+                    "PouType": "FunctionBlock",
                     "TcHmiSymbol.Show": ""
                 },
                 "properties": {
@@ -457,6 +480,7 @@
             "ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_PRESSURE_VOTE": {
                 "additionalProperties": false,
                 "attributes": {
+                    "PouType": "FunctionBlock",
                     "TcHmiSymbol.Show": ""
                 },
                 "properties": {
@@ -571,6 +595,7 @@
             "ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_PUMP": {
                 "additionalProperties": false,
                 "attributes": {
+                    "PouType": "FunctionBlock",
                     "TcHmiSymbol.Show": ""
                 },
                 "properties": {
@@ -645,6 +670,7 @@
             "ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_VALVE": {
                 "additionalProperties": false,
                 "attributes": {
+                    "PouType": "FunctionBlock",
                     "TcHmiSymbol.Show": ""
                 },
                 "properties": {
@@ -1398,6 +1424,9 @@
             },
             "ADS-NOTT_CRYO_PLC.ESO_LDC_Comm_Common_Library.FB_RS_BASE": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "properties": {
                     "RPC_Disable": {
                         "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METHOD-RETURNING-INT"
@@ -1617,6 +1646,9 @@
             },
             "ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.FB_CRYO_PRESSURE_VOTE": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "properties": {
                     "stat": {
                         "allOf": [
@@ -1643,6 +1675,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Comm_Common_Library.FB_RS_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "ESO_LDC_Comm_Common_Library.FB_RS_BASE"
                 },
                 "properties": {
@@ -1670,6 +1703,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.FB_CRYO_PUMP_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "ESO_LDC_Cryo_Library.FB_CRYO_PUMP_BASE"
                 },
                 "properties": {
@@ -1693,6 +1727,9 @@
             },
             "ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.FB_CRYO_SENSOR_BASE": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "type": "object"
             },
             "ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_ALARMS-ReadOnly-ShowRecursively": {
@@ -3113,6 +3150,17 @@
             "ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_PRESSURE_VOTE_STATUS-ReadOnly-ShowRecursively": {
                 "additionalProperties": false,
                 "properties": {
+                    "aDiffSumIdx": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ARRAY_1..5_OF-INT-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "comment": "Array of indexes of sums of absolute differences",
+                                "propertyOrder": 9
+                            }
+                        ]
+                    },
                     "bConnSens1": {
                         "allOf": [
                             {
@@ -3120,7 +3168,7 @@
                             },
                             {
                                 "comment": "Flags for each sensor indicating if it is connected.",
-                                "propertyOrder": 14,
+                                "propertyOrder": 15,
                                 "readOnly": true
                             }
                         ]
@@ -3131,7 +3179,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 15,
+                                "propertyOrder": 16,
                                 "readOnly": true
                             }
                         ]
@@ -3142,7 +3190,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 16,
+                                "propertyOrder": 17,
                                 "readOnly": true
                             }
                         ]
@@ -3153,7 +3201,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 17,
+                                "propertyOrder": 18,
                                 "readOnly": true
                             }
                         ]
@@ -3164,7 +3212,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 18,
+                                "propertyOrder": 19,
                                 "readOnly": true
                             }
                         ]
@@ -3212,7 +3260,7 @@
                             },
                             {
                                 "comment": "Flags indicating warnings for each connected sensor.\r\n Only connected sensors can have warnings!!!",
-                                "propertyOrder": 9,
+                                "propertyOrder": 10,
                                 "readOnly": true
                             }
                         ]
@@ -3223,7 +3271,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 10,
+                                "propertyOrder": 11,
                                 "readOnly": true
                             }
                         ]
@@ -3234,7 +3282,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 11,
+                                "propertyOrder": 12,
                                 "readOnly": true
                             }
                         ]
@@ -3245,7 +3293,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 12,
+                                "propertyOrder": 13,
                                 "readOnly": true
                             }
                         ]
@@ -3256,7 +3304,7 @@
                                 "$ref": "tchmi:general#/definitions/BOOL"
                             },
                             {
-                                "propertyOrder": 13,
+                                "propertyOrder": 14,
                                 "readOnly": true
                             }
                         ]
@@ -3327,7 +3375,7 @@
                                 "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_ALARMS-ReadOnly-ShowRecursively"
                             },
                             {
-                                "propertyOrder": 19
+                                "propertyOrder": 20
                             }
                         ]
                     }
@@ -4131,6 +4179,9 @@
             },
             "ADS-NOTT_CRYO_PLC.FB_NOTT_CTRL_TEMPERATURE": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "properties": {
                     "aSetpointSwitchNames": {
                         "allOf": [
@@ -4301,12 +4352,104 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.FB_NOTT_FAN": {
+                "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
+                "properties": {
+                    "cfg": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CFG"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 5
+                            }
+                        ]
+                    },
+                    "ctrl": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CTRL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 6
+                            }
+                        ]
+                    },
+                    "i_bTach": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcDataArea": "Input",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Link these process-image variables to the selected EL2535 and ES1084 channels.",
+                                "propertyOrder": 8
+                            }
+                        ]
+                    },
+                    "q_bEnable": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcDataArea": "Output",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 10
+                            }
+                        ]
+                    },
+                    "q_nPwmCommand": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/INT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcDataArea": "Output",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 9
+                            }
+                        ]
+                    },
+                    "stat": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_FAN_STAT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 7
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.FB_NOTT_PUMP_HIPACE80": {
                 "additionalProperties": false,
                 "attributes": {
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.FB_CRYO_PUMP_SERIAL"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "ESO_LDC_Cryo_Library.FB_CRYO_PUMP_SERIAL"
                 },
                 "properties": {
@@ -4349,6 +4492,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                 },
                 "properties": {
@@ -4809,6 +4953,9 @@
             },
             "ADS-NOTT_CRYO_PLC.FB_NOTT_VOTER": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "properties": {
                     "bAutoMode": {
                         "allOf": [
@@ -6345,6 +6492,43 @@
                 ],
                 "type": "integer"
             },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CRYO_CTRL_VALVE_STATE-ReadOnly": {
+                "attributes": {
+                    "qualified_only": "",
+                    "strict": ""
+                },
+                "enum": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ],
+                "options": [
+                    {
+                        "label": "OFF",
+                        "value": 0
+                    },
+                    {
+                        "label": "STARTING",
+                        "value": 1
+                    },
+                    {
+                        "label": "ON",
+                        "value": 2
+                    },
+                    {
+                        "label": "STOPPING",
+                        "value": 3
+                    },
+                    {
+                        "label": "ERROR",
+                        "value": 4
+                    }
+                ],
+                "readOnly": true,
+                "type": "integer"
+            },
             "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CRYO_HEATER_STATE-ReadOnly": {
                 "attributes": {
                     "qualified_only": "",
@@ -6642,6 +6826,127 @@
                 ],
                 "type": "integer"
             },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_CONTROL_VALVE": {
+                "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
+                "properties": {
+                    "bConfirmAllAlarms": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 23
+                            }
+                        ]
+                    },
+                    "bInterlock": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "OPC.UA.DA": "0",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "External Interlock",
+                                "propertyOrder": 7
+                            }
+                        ]
+                    },
+                    "cfg": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_CFG-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "OPC.UA.DA": "1",
+                                    "TcHmiSymbol.Show": "",
+                                    "TcHmiSymbol.ShowRecursively": ""
+                                },
+                                "propertyOrder": 18
+                            }
+                        ]
+                    },
+                    "ctrl": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_CTRL-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "OPC.UA.DA": "1",
+                                    "TcHmiSymbol.ShowRecursively": ""
+                                },
+                                "propertyOrder": 17
+                            }
+                        ]
+                    },
+                    "fbConfig": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONTROL_VALVE_CONFIG"
+                            },
+                            {
+                                "attributes": {
+                                    "OPC.UA.DA": "0",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 19
+                            }
+                        ]
+                    },
+                    "sEventClassName": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.Tc2_System.T_MaxString-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 24
+                            }
+                        ]
+                    },
+                    "sInstanceName": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.Tc2_System.T_MaxString-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 22
+                            }
+                        ]
+                    },
+                    "stat": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_STAT"
+                            },
+                            {
+                                "attributes": {
+                                    "OPC.UA.DA": "1",
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "{attribute 'OPC.UA.DA' := '0'}\r\n    io_cxwui60  : T_METIS_HEATER_IO_CXWUI60;",
+                                "propertyOrder": 16
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_CRYO_CPA": {
                 "additionalProperties": false,
                 "attributes": {
@@ -6671,6 +6976,9 @@
             },
             "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_HEATER": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "properties": {
                     "bConfirmAllAlarms": {
                         "allOf": [
@@ -6838,6 +7146,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.FB_CRYO_SENSOR_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "ESO_LDC_Cryo_Library.FB_CRYO_SENSOR_BASE"
                 },
                 "type": "object"
@@ -6848,6 +7157,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_SENSOR_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "METIS_Cryo_PLC.FB_METIS_SENSOR_BASE"
                 },
                 "properties": {
@@ -6870,6 +7180,78 @@
             },
             "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
+                "properties": {
+                    "bReading": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 18,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bWriting": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 23,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sReadError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 16,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sWriteError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 21,
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONTROL_VALVE_CONFIG": {
+                "additionalProperties": false,
+                "attributes": {
+                    "$extends": [
+                        "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
+                    ],
+                    "PouType": "FunctionBlock",
+                    "TcExtends": "METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
+                },
                 "properties": {
                     "bReading": {
                         "allOf": [
@@ -6936,6 +7318,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                 },
                 "properties": {
@@ -7004,6 +7387,7 @@
                     "$extends": [
                         "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                     ],
+                    "PouType": "FunctionBlock",
                     "TcExtends": "METIS_Cryo_PLC.FB_READ_WRITE_CONFIG_BASE"
                 },
                 "properties": {
@@ -8257,6 +8641,545 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_CFG-ShowRecursively": {
+                "additionalProperties": false,
+                "properties": {
+                    "lrAutoScalePercent": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "scaling of the Auto value in % (range [0..100])",
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "lrBlowerAlarmSetPoint": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Air Blower setpoint during Alarm Conditions",
+                                "propertyOrder": 4
+                            }
+                        ]
+                    },
+                    "lrBlowerNormalSetPoint": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Air Blower setpoint for Normal Operations",
+                                "propertyOrder": 3
+                            }
+                        ]
+                    },
+                    "sDescription": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "comment": "User description of the controller",
+                                "propertyOrder": 1
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_CTRL-ShowRecursively": {
+                "additionalProperties": false,
+                "properties": {
+                    "bEnableSimulation": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "V2_SIM only: generate nominal valve feedback",
+                                "propertyOrder": 6
+                            }
+                        ]
+                    },
+                    "bManualEnable": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "Manual mode ON/OFF command (TRUE = ON, FALSE = OFF)",
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "bReadConfig": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 4
+                            }
+                        ]
+                    },
+                    "bWriteConfig": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 5
+                            }
+                        ]
+                    },
+                    "eCtrlMode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CTRL_MODE-ShowRecursively"
+                            },
+                            {
+                                "comment": "Auto/manual mode",
+                                "propertyOrder": 1
+                            }
+                        ]
+                    },
+                    "lrManualSetpoint": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Manual mode output power to set (0 - 100%) [W]",
+                                "propertyOrder": 3
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_CTRL_VALVE_STAT": {
+                "additionalProperties": false,
+                "properties": {
+                    "bActive": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 10,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bAuto": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 27,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bConfigured": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 23,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bHwError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 9,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bInputOver": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 30,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 26,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOpenLoad": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "EL2819 Diagnostics",
+                                "propertyOrder": 33,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOverCurrent": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 35,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOverTemperature": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 36,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bShortTo24V": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 34,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bSimulated": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Flag indicating if valve feedback is simulated",
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bValveFeedbackError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 39,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bValveOpenLoadError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 37,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bValveShortCircuitError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 38,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "lrMaxCurrent:\t\t\tLREAL;",
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "eCtrlMode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CTRL_MODE-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Actual Auto/manual mode",
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "lrActCurrent": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Calculated Current [A]",
+                                "propertyOrder": 14,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrActFlow": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Actual flow percentage of opening of valve",
+                                "propertyOrder": 32,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrActSetpoint": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 22,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrActValveFlow": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Calculated Power [W]",
+                                "propertyOrder": 13,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrAutoCtrlOut": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "controller output for AUTO mode",
+                                "propertyOrder": 21,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrAutoSetpointValue": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 19,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrSimFlow": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Simulated valve opening [%]",
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nValveState": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CRYO_CTRL_VALVE_STATE-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 15
+                            }
+                        ]
+                    },
+                    "sAutoSetpointSource": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 20,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sName": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "The PLC shall monitor the health status OF the\tHeaters:\r\n- heater open loop\r\n- heater short\r\n- heater current\r\n- heater power\r\n\tin stable conditions (cold mode): the heater output shall NOT be AT 0% OR 100% in steady-state operation\r\n- under normal conditions, the heater output must not be set to “manual out” or “off”\r\n- correct selection of the range (low / medium / high)\r\n Any deviation from above shall trigger an alarm, warning or automated reaction, as appropriate.",
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sValveState": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 16,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "stAlarms": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_ALARMS-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.ShowRecursively": ""
+                                },
+                                "propertyOrder": 29
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.T_METIS_HEATER_CFG": {
                 "additionalProperties": false,
                 "properties": {
@@ -9252,6 +10175,110 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.NOTT_FAN_BOX_CTRL": {
+                "additionalProperties": false,
+                "properties": {
+                    "bConfirmAlarms": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bEnable": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bResetSafety": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bStop": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "eCtrlMode": {
+                        "$ref": "tchmi:general#/definitions/INT"
+                    },
+                    "lrManualFanPct": {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    },
+                    "lrManualValvePct": {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTT_FAN_BOX_STAT": {
+                "additionalProperties": true,
+                "properties": {
+                    "bActive": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bAlarm": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bAutoReady": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bClosingValve": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bControlSensorsValid": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bFanLoopManual": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bFanManual": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bManual": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bMixedMode": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bPermitStart": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bPermitStop": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bSafetyTrip": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bSensorFaultHold": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bValveLoopManual": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bValveManual": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "bWarning": {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    "lrInsideTempK": {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    },
+                    "lrTargetTempK": {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    },
+                    "sStartInhibitReason": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/String"
+                            },
+                            {
+                                "maxLength": 255
+                            }
+                        ]
+                    },
+                    "sStatus": {
+                        "$ref": "tchmi:general#/definitions/String",
+                        "maxLength": 255
+                    },
+                    "tSensorFaultElapsed": {
+                        "$ref": "tchmi:general#/definitions/TIME"
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.POINTER-TO-METIS_Cryo_PLC.FB_METIS_TEMPERATURE": {
                 "allOf": [
                     {
@@ -9309,6 +10336,16 @@
                     {
                         "maxLength": 255,
                         "readOnly": true
+                    },
+                    {
+                        "$ref": "tchmi:general#/definitions/String"
+                    }
+                ]
+            },
+            "ADS-NOTT_CRYO_PLC.STRING-255-ShowRecursively": {
+                "allOf": [
+                    {
+                        "maxLength": 255
                     },
                     {
                         "$ref": "tchmi:general#/definitions/String"
@@ -9842,6 +10879,199 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CFG": {
+                "additionalProperties": false,
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CTRL": {
+                "additionalProperties": false,
+                "properties": {
+                    "bAuto": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "bEnable": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 1
+                            }
+                        ]
+                    },
+                    "lrManualDutyPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 3
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_FAN_STAT": {
+                "additionalProperties": false,
+                "properties": {
+                    "bActive": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bRunning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 2,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bStallAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bTachMeasurementLimited": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrDemandPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 5,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrDutyPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrSpeedRpm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nPulseCount": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 8,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sAutoSetpointSource": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-64-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 10
+                            }
+                        ]
+                    },
+                    "sName": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-64-ReadOnly"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 9
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.T_NOTT_PUMP_HIPACE80_STAT": {
                 "additionalProperties": false,
                 "attributes": {
@@ -9852,8 +11082,597 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_THERMAL_BOX_CTRL-ShowRecursively": {
+                "additionalProperties": false,
+                "attributes": {
+                    "TcHmiSymbol.ShowRecursively": ""
+                },
+                "properties": {
+                    "bConfirmAlarms": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 6
+                            }
+                        ]
+                    },
+                    "bEnable": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 1
+                            }
+                        ]
+                    },
+                    "bResetSafety": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "One-shot; accepted only after sensor/config recovery",
+                                "propertyOrder": 7
+                            }
+                        ]
+                    },
+                    "bStop": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "One-shot stop, including independently running devices",
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "eCtrlMode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CTRL_MODE-ShowRecursively"
+                            },
+                            {
+                                "comment": "Legacy, no longer controls device/loop modes",
+                                "propertyOrder": 3
+                            }
+                        ]
+                    },
+                    "lrManualFanPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Legacy; use fan.ctrl.lrManualDutyPct",
+                                "propertyOrder": 4
+                            }
+                        ]
+                    },
+                    "lrManualValvePct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Legacy; use valve.ctrl.lrManualSetpoint",
+                                "propertyOrder": 5
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_THERMAL_BOX_STAT-ShowRecursively": {
+                "additionalProperties": false,
+                "attributes": {
+                    "TcHmiSymbol.ShowRecursively": ""
+                },
+                "properties": {
+                    "bActive": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 5
+                            }
+                        ]
+                    },
+                    "bAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 46
+                            }
+                        ]
+                    },
+                    "bAuto": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 3
+                            }
+                        ]
+                    },
+                    "bAutoReady": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 11
+                            }
+                        ]
+                    },
+                    "bClosingValve": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 6
+                            }
+                        ]
+                    },
+                    "bConfigValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 10
+                            }
+                        ]
+                    },
+                    "bConfigured": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 1
+                            }
+                        ]
+                    },
+                    "bControlSensorsValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 19
+                            }
+                        ]
+                    },
+                    "bControllerAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 41
+                            }
+                        ]
+                    },
+                    "bCoolantInValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 22
+                            }
+                        ]
+                    },
+                    "bCoolantOutValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 23
+                            }
+                        ]
+                    },
+                    "bCoolantWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 44
+                            }
+                        ]
+                    },
+                    "bFanLoopManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 15
+                            }
+                        ]
+                    },
+                    "bFanManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 13
+                            }
+                        ]
+                    },
+                    "bFanStallAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 39
+                            }
+                        ]
+                    },
+                    "bHighTempAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 42
+                            }
+                        ]
+                    },
+                    "bInsideValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 21
+                            }
+                        ]
+                    },
+                    "bManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 4
+                            }
+                        ]
+                    },
+                    "bMixedMode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 17
+                            }
+                        ]
+                    },
+                    "bOutsideValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 20
+                            }
+                        ]
+                    },
+                    "bPermitStart": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 8
+                            }
+                        ]
+                    },
+                    "bPermitStop": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 9
+                            }
+                        ]
+                    },
+                    "bSafetyTrip": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 12
+                            }
+                        ]
+                    },
+                    "bSensorFaultAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 35
+                            }
+                        ]
+                    },
+                    "bSensorFaultHold": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 36
+                            }
+                        ]
+                    },
+                    "bSensorFaultStopped": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 37
+                            }
+                        ]
+                    },
+                    "bTachMeasurementLimited": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 45
+                            }
+                        ]
+                    },
+                    "bTrackingWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 43
+                            }
+                        ]
+                    },
+                    "bValveAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 40
+                            }
+                        ]
+                    },
+                    "bValveCloseTimeElapsed": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "Timer only; not physical closed feedback",
+                                "propertyOrder": 7
+                            }
+                        ]
+                    },
+                    "bValveLoopManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 16
+                            }
+                        ]
+                    },
+                    "bValveManual": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 14
+                            }
+                        ]
+                    },
+                    "bWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 47
+                            }
+                        ]
+                    },
+                    "eCtrlMode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.E_METIS_CTRL_MODE-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "lrCoolantInTempK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 26
+                            }
+                        ]
+                    },
+                    "lrCoolantOutTempK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 27
+                            }
+                        ]
+                    },
+                    "lrFanAppliedPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 32
+                            }
+                        ]
+                    },
+                    "lrFanDemandPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 30
+                            }
+                        ]
+                    },
+                    "lrFanSpeedRpm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 34
+                            }
+                        ]
+                    },
+                    "lrInsideTempK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 25
+                            }
+                        ]
+                    },
+                    "lrOutsideTempK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 24
+                            }
+                        ]
+                    },
+                    "lrTargetTempK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 28
+                            }
+                        ]
+                    },
+                    "lrTemperatureErrorK": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Inside minus target",
+                                "propertyOrder": 29
+                            }
+                        ]
+                    },
+                    "lrValveCommandPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Command, not measured valve position",
+                                "propertyOrder": 33
+                            }
+                        ]
+                    },
+                    "lrValveDemandPct": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 31
+                            }
+                        ]
+                    },
+                    "sStartInhibitReason": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 18
+                            }
+                        ]
+                    },
+                    "sStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 48
+                            }
+                        ]
+                    },
+                    "stAlarms": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_ALARMS-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 49
+                            }
+                        ]
+                    },
+                    "tSensorFaultElapsed": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/TIME"
+                            },
+                            {
+                                "propertyOrder": 38
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.Tc2_ControllerToolbox.FB_CTRL_PID": {
                 "additionalProperties": false,
+                "attributes": {
+                    "PouType": "FunctionBlock"
+                },
                 "type": "object"
             },
             "ADS-NOTT_CRYO_PLC.Tc2_ControllerToolbox.ST_CTRL_PID_PARAMS": {
@@ -13383,7 +15202,7 @@
                 "$ref": "tchmi:server#/definitions/ADS-PLC1.STRING-255-ReadOnly"
             }
         },
-        "TcHmiSrv": {
+        "PLC1": {
             "PLC1.ARRAY_0..10_OF-BOOL": {
                 "items": {
                     "$ref": "tchmi:general#/definitions/BOOL"
@@ -23229,7 +25048,7 @@
     "DISCOVERY": 2,
     "ENDPOINTS": [
         "http://127.0.0.1:13005",
-        "http://127.0.0.1:3005"
+        "http://127.0.0.1:3006"
     ],
     "ETAGENABLED": true,
     "EXTENSIONS": {
@@ -23247,19 +25066,6 @@
             "REQUIRED": true,
             "STARTUPTYPE": 1
         },
-        "RFIDAuth": {
-            "ENABLED": true,
-            "METADATA": {
-                "migrationVersion": "1.14",
-                "previousVersions": [
-                    "1.12"
-                ]
-            },
-            "NAME": "RFIDAuth",
-            "PATH": "..\\..\\Packages\\RFIDAuth.1.0.0\\runtimes\\win-x64\\net472\\",
-            "REQUIRED": false,
-            "STARTUPTYPE": 1
-        },
         "TcHmiEventLogger": {
             "ENABLED": true,
             "METADATA": {
@@ -23269,7 +25075,7 @@
                 ]
             },
             "NAME": "TcHmiEventLogger",
-            "PATH": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.EventLogger.23.0.198\\runtimes\\win-x64\\native\\",
+            "PATH": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.EventLogger.24.0.7\\runtimes\\win-x64\\native\\",
             "REQUIRED": false,
             "STARTUPTYPE": 1
         },
@@ -23337,7 +25143,7 @@
     "FILESREGEX": [
         {
             "ENABLE_GZIP": true,
-            "FILESHTTPHEADERS": "Content-Security-Policy: frame-ancestors 'self'\r\n Content-Type: text/html",
+            "FILESHTTPHEADERS": "Content-Security-Policy: frame-src 'self'; media-src 'self'; frame-ancestors 'self'\r\n Content-Type: text/html",
             "REGEX": ".*\\.(htm|html|shtml)$"
         },
         {
@@ -23482,7 +25288,7 @@
     "HTTP_FLOODPROTECTION": 10,
     "INITTIMEOUT": "PT10S",
     "KEEP_ALIVE": "PT40S",
-    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQzYyWjZoSHN1RGt1cE4KMndvWVdLTklzVW1UTGd3aDBmQ1pBdGI2eGt2elJlbzZDWmRrZ2FrQ2dnVnVvTWZ0RW9vZ0M2TnZRODJxd1FSTAp1YXNlV2FwUzFLZ3dHUEk3OGlPWUpmQmcwV2dnVlQ5TUttbkx5YnJpeHAxYThNUWFNSHdpellhTnRJek5QcUM4CmtYL01nNVhjb3ZjNm5wdHpsdHZ2ZkNZZEdQNDh0SEJSWDNhQlVnS29uM1NISDIrdFZTTU9CVndWRWxBdUJITm8Kc0JjMHIwMWJUdlh0SlVacWpVSm9vTi9pZDAyajh1VTc0MEdOblFpZUZ2Um9Oak5FN3Fid1dpeVM5K1lIY0ZDNQpSKzN3cmsyU0toNklZZVhsa1Y3ZkNiVXNhdC9NZFVEVGJqUVRFdElVR1FLNlltTXFJSDJYYVFyOE9SUm9jMzlQCkJvWmdrOE1OQWdNQkFBRUNnZ0VBUElsZkpKSm1tMVZSQmpKdVBkOFIzKzVZaVEvRkxIdnBPSm03N3ZtcUI4SmkKRmJXZjBCZFdHNUxta2FZVHdCSmVuKzFGWVRvVmV6b1gyelRuWk9qbUR2b0pGN1F0WHhDZlNaOFpGelVoU0VCMgpSb1lEU3R3cjZXY3graEhCWno3SUtUcHZXcC9oY21uVkIrTVlCYm1vSnhqQmdzTjZWK1BMay9ha0hvOUhaNEQ3CnB5NE9ZR2RMcnJwZ3doVlh6M293WGtvTHlTMzU1eXhEOFJ0YTh5ckk4RjJ5QXhza1d4K0lKMXVWUHNZYndxdGMKNW9Ga1R4SFM4Q20vSGpmOWtoWjAxUjlsaFMvOEIvTlQzN0pmN1YvMlhyNGtzejdMNHNyWWJVTm5ldUxWMzk4Mwp1ZXc0MFFQVE96UzIxZVdwZW05SVc2MHJIeFB1ZFlvRTlDQlo5RkwydlFLQmdRRDF5N1RFTE1rSHgzWjEwTHo3Ck05c0FsVC93MHlMWXNDMVByME5DazJtdzFvcXVXSzZSaHBoOElOejNNTlUzMmp5cjRvLzhvNHdGeFJKYW16MkcKK0lwSFJ1K29ZcUxSNVVSYjROVVpZTC9ya0x3bmJKRWNzNWFnaSswTUViRTBNU2JKeGhUZ2k0T3hKYlNHek5CWAoyU2V5WEFDV3ZWQzA0QjZOYWpVZnBOSFVGd0tCZ1FEQ20zSFhzRHJ5cmtHSlcrWFdrZTJYYlpid2dXcTFteHl1ClpXTGxLbHdldDVjVEVEWTczSy96bHp2elJuNDF3TUNQMGpuenphV3VwK294ZGwza1FLd3lTUkYxTWYxMXZzN2UKWlVlbzZHM0F3Qzg5cnhVTXBUaCt5Tlh0VGtCM21QcDduclNHdmxsZFpTMEN2UnZNc1U3TC9md2RienIzbVJ2bQpFSDdvaWpHRWV3S0JnUURWa1ZwUDJsb1NXRTJsc09tRG0xcis5cS9JSUt4MmV4M2p6dlV5TThQeDAzaE1aT0hKCnNKbHR3V0E5cUVDYmR4U2doUXQzQ09QeFgzckRINEFtZG00djRJTDhYRGY5Q0tpTTdKNDhuc1FqZW04Q0VtTkQKL1FjMEdHQ3Z5KytjMmRoS0djS3FHSThrclE1ZTBqZDFIVXBRdjRBRGVodFdEaVo5Mlhxdk5CYmRvUUtCZ0hWMApvcEplMEVWV3ZVRnRVTnhmdVRuekwrMjYvcS9iamNVSWRsY0FhUmMxRVo2MDR6YmdMT1psdWc1TDFyTVV3bVJMCnF5U21VMENHSWtoMk81Y2ZIWTlBSUtST1pyOGhTZlJheHBTQXJIVnd5Vkora01MUUdiZ1QrV0pBSDVMUHB5YmoKayt2YmlVNWdXWGxVc0Ntc1BuWEt0dGNCSW1MOGF5VkJnWWRTbVM1dkFvR0FkLytwenM3KzJwbmhOZUUxRFIyTwpYUGZMNDZEUXRnSVdHK1orOGJidFZmcjdoWlBSUUNkOEVjMTZ3akRuc3huT2ZtNXJoeUtJWVNvZ3hmdGxKRFRsCnNwNTQ0Q2hQRFhVbGt4MjZHNXlGM1AyRlU3MzVwdmpUMGpRVTZjYktqMEN1RmFTQVpGWXg2N0d5WXNEVk5seHYKcXljOHhPbjdjSUs1dVNxTnR4VE9ySnM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRRE53SjIvaGR3VUV2MGIKTklMaThJTnlXVHA1bDZPN3lqamlEV2ZHMXVyeG93c3RmNWFjcTJhZ0V1ZkJnYTNKWGFTaEp3cm1jbTdhMUhONApzc0wzczFtaVRVK2poNUZ5Tm9nTjVORW1XcFY2Q1NXYnJBRzZqQW1ReGNob0hxVDlEcFZsTlE4cmU5dk1mVU5sCnJrVEdGNXVmWVhTeEVHcHduU1hDZGl2SU9IcTFnd2pyaU9JanU5NVhJa21HYmFxV1NUNTVTZG5RbEVBcE02Z1gKanJkbkdHVElpRUVMaEwxelVwTnlEUzB5UEFFK2tPQjY0azByMFE1OUE2ejllNEp6Vmd2V0NsZ0NNSFZqMzJlOQpzWm1ocUMvRjBQWTBTU0JocW90OGlqcmZWQWlNSUE3SFNGRjhWUkJjblE4NmV2UWpRN2l2bnlZN2J3bVl6cVdhCiszdjlvVEVYQWdNQkFBRUNnZ0VBTmloZHZYUjhKZktMbWZZYi82VkVURHlOWmtVU2JaTkFuc3ZkaFpxN2srZ1IKUUtRbFhrN0ZnQndKMGNjVEdmNWluNktadldmZ293d3A2dHJPOUFsSzdpeEFhckI4Q2Q2dHVFNkMrUC85K1hYZgo1dGFEUy9taGFQQ09uRTE0cXoyRCtIUmJibHczVWwra2RtYkZKb2svUnRnTnNhKzYvTEo0cG5PWmVhWFlNdDkyCmd4MjY4MlQ5c2pjdm9Qbnk4Ky9tVWgvZUNjTnNPM0hMNk16eExZdFZvdTVSRXVEY3kvTTkwZ3NpODl4TnFNS1MKeWl3YnQxcTgyQnFNS1lWTUpjQkVlbFhuSHpXZTBlbEFEdHdwM2FFUDQvc1hkYytPV0V4SkZMelpIcmc4YnJ1Nwp2MXJUY2pzMnhBZnRvZjl4UTBkQ1R0Sk1Fc2xMdlNDbENZN1d5andKaFFLQmdRRHI1MWxzSVNZb2dKcVJPTEZzClVzczVSTVJmNWxKU1oxR1pBaGFHclBrVWQzTEhEWjE0elhvSWRTRlkxQkxQZkJ6eHJ1dUQxV1BCUGlaa1ZXMUkKU24yd0REekdtTGlWUUJkWkpwZWpMdmdPYnppQmVWK0NoaGszTEZTODNvN2FwbXNzY2tuYW5kTi92Y1VmWnJGbwplYXdWQ2tlUUxhNVZsUWxreW1vTEtKV3dKUUtCZ1FEZlI3Z2xLcUcraTgzb29yZGVpUVZESUJWdVFaWEEzaXprCmZiNzZhWXdyeE5oZFhxUE5YM2RFNXJENVBQdGg3Z1VrbHJCN29MSDIwNGpjbHVpTHFUTG81UEtKRTl2NHo2RWQKN1FldkJvTUY5d2hiNTJ6ajZhdmJvQjNtQWxwVDlJOGhqTHVGKzZaWXBiQjVkTGhkUFR5V0VzZDlaeXFsaWcrTwpMR1MxRnFCSml3S0JnUURmYkkrKzMyNTZjY0x5dzVVV21SdXNzN3FoY1V5S2l4dzNKRWtkYUhuSHJwSGdnTDZpCkNVb0k5SmFPd056SDhpNmZvQ0dqRE5tYnpqY2lVOTVhMTJKTytHZ2ZWOG1LWWRjN01sZnZ6NjVVVFhaZytnbEIKWDZ4R0d4QnVpUU1YaHdKK2FBZ1dxK0FDWGtOeVNCckNibXBTeXhlWU1BdXJOcXBjOFhDWi9PZzRtUUtCZ0FPbgoxL0w3MUxRYTg5OFlNdXBnVWU2OGFyMW9ZM3hKNXZCQ3dzcTB5YSs1eEZVYkJKR0xPNWVzTXorUmFRZzhibWNmCjlIbkJzc2c0eEdmZ0xLU0V1Nm1tZmZZU2xpcG5zOXFhaytLZ3Q2cDBWZld6UDB3bitrRlpTTVFJUzlST0Q3M2IKNFFJYmthaW41ZERIUVhGOVhDMlUxeUZOZkJ4RHUyZDNnSnFhYVR0ckFvR0JBTjdaZ25PM3NRNXdoY2U3bEZOcQpJQStHVGh6NDVOSktVaTM5QnJuL0RqeldkRGxCQkhGcEh4NGdrQWYrN3czdW0wVHpjVHR6RE5FTnhzdktIdCs2CkJmL1ZQblFPTzgwS1JpbnRSUDMrMmltYlJDdlhOK3p6N2RLVzJCVWwxWVlTcjB1VTlob2JocjUzeEJIcFBrajgKMUVBZU9lc0RsZVJYdUNtM1pHbVZZTHVxCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
     "KEYPASSWORD": "",
     "MAXCONNECTIONSPERCLIENT": 32,
     "MAXHTTPHEADERSIZE": 32768,
@@ -23497,8 +25303,8 @@
     "REQUIREAUTH": 1,
     "REQUIRE_CLIENT_CERTIFICATE": false,
     "SAMESITE_ATTRIBUTE": 2,
-    "SELFSIGNEDROOTCA": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVFVENDQXZtZ0F3SUJBZ0lKQU9wenFQTTAyT2h5TUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd05qSXlNVGN5TkRRd1doZ1BNakEyTkRFd01qQXhOekkwCk5EQmFNRWd4Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKSERBYUJnTlZCQU1NRTBaWlV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQQpBNElCRHdBd2dnRUtBb0lCQVFDL25IQk85WTIxQ3Bwai9PNTh3VzFDUmV0WVUrUGROTHBXMklYSkJFUnZsN1JFCmxNT09oOXd3a0hTYStEODFkdU0yTnlEM0hBVWFZWG44TzFUV0FHUm9rekFBYmMxQWtOTDNSQVBsVlZ2RDhWRTQKa1V0NG1FRVhZZUFjY2c3YkJuL1hPdkt6Mld5NDJQUzZuRW9mVzh5WlN2UkFybmE2L3FxRUtpU2NQS1pGcjBhYwoxbFh4Q1dUWUVCamRncDN5OHNCZGlSVUFrdm93U3RrN2laUk5IeDVKSlpXbkwyWDU1aHdzSXJlMmVpSWRsZkpUCjF3aUpEbkhESy9aVUk2NmFKdGE5dUxSWkpSdkNDaE1Mc0hORURpVVJWTDlXa2wyL1lTcDUycithV21xOWJkc3QKbVFrWENCNFZNMlZOTWFydHVxdG1zMlYzbDZFSmF0WklQcXAwUzYrTEFnTUJBQUdqZ2Zzd2dmZ3dnWlFHQTFVZApFUVNCakRDQmlZSUpiRzlqWVd4b2IzTjBod1IvQUFBQmh4QUFBQUFBQUFBQUFBQUFBQUFBQUFBQmdnNUdXVk10ClRDMXBkbk10TURBd040SWtSbGxUTFV3dGFYWnpMVEF3TURjdVJsbFRRVVF1UmxsVExrdFZURVZWVmtWT0xrSkYKaHdRS0liTktod1NzRnVaZmh4RCtnQUFBQUFBQUFFbHIyeWdCdmp3R2h4RCtnQUFBQUFBQUFFb1dPWXluL1I0RApNQjBHQTFVZERnUVdCQlIwbXhBUFJZdEY2M3hJd2tBZTRvSTVTU2JCNnpBZkJnTlZIU01FR0RBV2dCUjBteEFQClJZdEY2M3hJd2tBZTRvSTVTU2JCNnpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUE0R0ExVWREd0VCL3dRRUF3SUIKQmpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQXZieG5vNkZxcUVUV0JDV1BOcnJ4YlFlS0I0YS96MzVkdHFUcgowNHEwazV5YTI0VUdtbktWZ1p6V1lOWmk1WitQTmkwOGJsdjVnRXJQWk45WHExY2w2Sm51ZitZZndhK0NHb1FmCnArZU5FL3NpcjVMVGlSWXNIWEh4SWh6RVFvNG9SYnh3OVJwazd6am4vcEpGa1Iyakt0UFkyZ1FETFZCejg3NEUKbDQ2ZTdQS2YxdGdOOUcyaGZ5aTk0NWJ5ZUY3YWRtTEZ5NEUxQ2FQYmd6Y29wQlh1SjNLQ09kdnhUQ1psSExLZgpzamtUZmU3R2FXY3JhcVlyOUVreEZhT00zcmR0blJLYjJZbzFZQ0RYWUlETjNsQjJuNmt3alNPK0c1dDNvdXZHCjFTSCtZejIzeXNnbXVzTFBNOXU3d1F6VHR6dDBGVXVrWVN6dXFnMDdXNFZ2dncxckFRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=",
-    "SELFSIGNEDROOTCAKEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRQy9uSEJPOVkyMUNwcGoKL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkVsTU9PaDl3d2tIU2ErRDgxZHVNMk55RDNIQVVhWVhuOApPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNGtVdDRtRUVYWWVBY2NnN2JCbi9YT3ZLejJXeTQyUFM2Cm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjMWxYeENXVFlFQmpkZ3AzeThzQmRpUlVBa3Zvd1N0azcKaVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQxd2lKRG5IREsvWlVJNjZhSnRhOXVMUlpKUnZDQ2hNTApzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdG1Ra1hDQjRWTTJWTk1hcnR1cXRtczJWM2w2RUphdFpJClBxcDBTNitMQWdNQkFBRUNnZ0VBUVhJYytCTXQvaDZyZ2loaml0QUVVZ1VRcitBamJhd3pVek5zYXE3ZTh5Q2wKVFdGa2MvdmFqT25pTWdaRmpLelpTV3pHQVRFY1d4amRNZlpQOFRJOEdXM2drTnp3SkxQeW9zc2o2NEplc0F2dQpHbnlpQXdRNkExTUdXYURwaXd6cXdHaGRlbWx5bGFaZzNKWkNTUGl4WnRCdm9lSVZJcVNXT0VNdXN3Q1NLQzF4CkRHYXF1WlN5ZU44Yng1Q3o5WGVEUjlVWXVIMEd0cmpFQ0JyakxWTFhMRWRVVERGNWp1TGpzaStWOHZ3TXRHcFcKeFhWQ21XV1U5czgrdnd6U20rQUNWSVBEMW9FUUw4bVVtNm9kdEVaUFR6V0I5UFF0T0l0dGdYZjdRaXF2cnhrTApVUVlNQnpPeEh6RktzMW9kaW9vS3dRb2dsRElxQUMyc0RhcVdXTUxSRlFLQmdRRGVLV0xEVTdZTnpRL0VmNm9tClZOTGRwV1NjMnl2OGtKb0M5eVlyMkxHWGtXUkcvUVBFaUZyN0RlVzBQNGppM2JoTkFXdFpvRGZqNE5PZXFUbUIKK3FQcWZOQitWbURrYm40aXkvcVRrblcraWpwelBRckpxbk1pSlZEbmpGdkNBMURLbUdaKzhUK1dQekxCU245NQoxbHJNL0tRQ1BPa2tNSjJrS3F3WHdNL2pod0tCZ1FEY3k5QWdjbThVSHlEcWhSbjhraEloWXlYZExNOXhqQURLCjBobEdCR0puZ0NPelFRc0xrMkVBaTlCVXdSMGNDdXVMY1luNDNKeEZFRWIvbGc4ODlxeFpaRU1LamdlWkEwYlAKMUZCR0NNeGczRm8xU2tQQW0zQTJwakI3ZmVWTGI3U0U1WlNQcURtdzRJbFhtZ3I2NmpkeGRUMlo0V2ZXSi94Ywo1cmk0SStLYzNRS0JnSDBTajZlbjJUYXIyOVNraXdaSmV1Mk56N2IvTFNSanhGRW5FelpjS0o5TUcwaGI2V01iCjRSeTJGandFQ095d0pySXp1bHdhOTF3emx2QWNGV1EzMTFDTU5GVHNER0NPVkRVQzRXOXpaUmFBZTZlbEZnMnoKQ0Y2UTQ1dDRTYkJRYll1aGdSSzJmelgzSG52emxSRGl2UHZxditzQ243N2dIOS9zcGpZNU50REJBb0dCQU5MdgpXNnhENXQ2Z1JvQUdIS2R3blNXTVpSWUJ3MFRFN2RUV0Z4TVBDVHU3N1Y5STJsWjZ2QWNiaXpJTk05UWdrcHFyCkk1YStuQVJXNHAwMkxPU2UvRlNDTnBJVTBpbGFPZ0krNFZtbStpbm5HYjhqYmNyS05NL2d3UnlaVDc5YnZtZmcKTktkeG5YdmZaeFpyc2VXNGNMTlJ3RUlNVjNqK3hsZXlpL0pQUmlWNUFvR0JBS0pIQXNQRzZadTNGcHh2TTZtawpPYjRYbGp0SHpXaEkzUlhESGVaYUE5dU1wSk02RkhndVZqcDVqMEJCMDdvVmY2QlE1MHJHZDd6VENOVUxNS25hCkhOaXA0ajVjUUh5WHpsanhIa20wdjkvQTRiYnpEYmxmQUh1d0ljU0h5RkpXNzVoaWxJQ01hUlhIVlhZZG5CbVkKTThWVnJEdTBRV1dsRDA0N2d2K3NZUitQCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+    "SELFSIGNEDROOTCA": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVFVENDQXZtZ0F3SUJBZ0lKQUl0V3pjZStXWU5zTUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZeE1ERXpNRGMxTVRBeFdoZ1BNakEyTlRBeU1UQXdOelV4Ck1ERmFNRWd4Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKSERBYUJnTlZCQU1NRTBaWlV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQQpBNElCRHdBd2dnRUtBb0lCQVFDNEc3VytSdXRHbGJKMXBkOFQ1amhIVm5wbERCMXU2OWhaNUtRaVhVZmJmajIzCkw4dHRoVm50d2lSNytOVUpBcHFBdDY4RmozV2dEd3hMOFFicUxLY2YrbFN6SzlKcVh1b3pTOGQyS1hKRExvc3oKSlRudXczeDU0eWN2d3VaQmk5Y1Y3SkJxUTZjSkFnVHd2eXBPSTZnS05leHA4My9sZzdtTC9sS2VNd1phWjR4MQo5M0pPdzdneElrWis2eFY2Y2tUc05nRWl2MGIwdmdUczJyejRFcDhMdnRYempOcWxnSUZJRUFadFhqcWlldWlTCkdvdnBVeXdhdjB0Tm13V1ZuRytCVnI2Tzg1a2NkSXJ1UC9MazA0Ym4rejFaTkcrZmxRWitZN25BN29oOC9IQTMKblFOSjMxUytnNDRFRlU4Q0wwQ1N5R1ZQNmtiN1E3SXJNVUFUdVpnYkFnTUJBQUdqZ2Zzd2dmZ3dnWlFHQTFVZApFUVNCakRDQmlZSUpiRzlqWVd4b2IzTjBod1IvQUFBQmh4QUFBQUFBQUFBQUFBQUFBQUFBQUFBQmdnNUdXVk10ClRDMXBkbk10TURBd040SWtSbGxUTFV3dGFYWnpMVEF3TURjdVJsbFRRVVF1UmxsVExrdFZURVZWVmtWT0xrSkYKaHdRS0liTjlod1NzRnVaZmh4RCtnQUFBQUFBQUFFbHIyeWdCdmp3R2h4RCtnQUFBQUFBQUFFb1dPWXluL1I0RApNQjBHQTFVZERnUVdCQlNJbFZ3S1FFYTk5dXNadDJsWHJKbnRmeWE2anpBZkJnTlZIU01FR0RBV2dCU0lsVndLClFFYTk5dXNadDJsWHJKbnRmeWE2anpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUE0R0ExVWREd0VCL3dRRUF3SUIKQmpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWEySVZVZGpjUkg2QTFPMXA5cHRpVXFkb2pWY25Vb1cxeEp6WQpXeXJtM2loeTVjR1orSXpBNHE1dHJrdUVETUNYV1JjdE9qdE9aclFMMXNTay90ek1oRURBaFlia3FBVnQwUy9XCmNZYTF4UzdCTDJsVVp4Z0NQY21GSmdyeTVuZTl3ckRTTjVmK3p2MitPbU0reWRVMW9hZFZNVkVrbVRBS3NtKzIKZ3RxQjJQeVk0UUk3MXRncTdkY0tWbnNRRGpVaUNFcjVPWDBWTmFlMUFFTC9rb2hqdTJNek1WSmxrZ0syWURBRwpTbnpoaVVRMWhPRXY5MGk5S2hFOEZuZThZMWVPVUtlL0ZNZDVpU1BPSnJuamFRSUswWU1sOWJvWWFSRUx0Ni9QCmR3T2VzOE05S1BoOHA5MUNIRlo5N213eUQvSWZkQU1ITXNhRmE1SWVhNkd4VDhQMkx3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=",
+    "SELFSIGNEDROOTCAKEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQzRHN1crUnV0R2xiSjEKcGQ4VDVqaEhWbnBsREIxdTY5aFo1S1FpWFVmYmZqMjNMOHR0aFZudHdpUjcrTlVKQXBxQXQ2OEZqM1dnRHd4TAo4UWJxTEtjZitsU3pLOUpxWHVvelM4ZDJLWEpETG9zekpUbnV3M3g1NHljdnd1WkJpOWNWN0pCcVE2Y0pBZ1R3CnZ5cE9JNmdLTmV4cDgzL2xnN21ML2xLZU13WmFaNHgxOTNKT3c3Z3hJa1orNnhWNmNrVHNOZ0VpdjBiMHZnVHMKMnJ6NEVwOEx2dFh6ak5xbGdJRklFQVp0WGpxaWV1aVNHb3ZwVXl3YXYwdE5td1dWbkcrQlZyNk84NWtjZElydQpQL0xrMDRibit6MVpORytmbFFaK1k3bkE3b2g4L0hBM25RTkozMVMrZzQ0RUZVOENMMENTeUdWUDZrYjdRN0lyCk1VQVR1WmdiQWdNQkFBRUNnZ0VBRFJ3c21uQktpRVVoWGd6aDhENElYY09HTTBIL2hiUGpoaTh4eWNUeWozeUIKRG1lNkZua1VyNlRySlMwYXVuTGhnemcrK3ZwMGN3WW1KenFFclMyRjA2eWVIMG1IN1hzSGZ4SlRTRzJ4alRKdgpFR21udFlIdmE1TmwxMURtMTkzbDNqK1Yzd3h1RnFHZlFFd0xicW9Fbis0Vk45NkVybjBSNEpoZHI1WVdKaFhwCnBPQ0lwcGpHejNYeklNS1IvdUVCVm9ZRTZyRHQwUmg1OVo3NXFsd1Q0Z3o2RmtqTE4yM2dUMTZPdnFOdmJWNG4KK0VvQ3FtVDc0elJGTE1ld0szWUhIWHJKOWZ5VzNOZGtHVVl1Z3BDR1JmVkRYTDJLWkIrVFJUY3pIOXNvYmdVMQpJRFc3OEEzMVhKaXpZTkwwekxmWGJPSThZZ2pVWkJQQWVHbm9FTEZINlFLQmdRRDVCR1A0RDBwTW8zbFBiYWU5CkV6eTNKOUtiUjNKeXFLajlVM2tpcXo2RDVLYjFKR3RMZnBaa01aVVpPaGJKMGRFUi9lMDVKRmZBNUJWc3Nob00KYnExb2JlRWs4Mzk3WlN2eE13N0J3UmlGVWpZMnZUbmd2Ym9RWXU2N1NDWnB3b0owdlFKZjFaTUxDSkE4YmV3SQpXYUQ2bk4zZDVNZ0tMQWxBbi91TjQvVnY2UUtCZ1FDOVJWeEZnejJrNjJEb1A3RUY4Q3dVU3B2SDltSkJBaGZWCkIwL1VWYlNzRXhVZ3VLZVVYZUw2SXBsTGNvaVdDNmI4bk01ZjJwWkozTmdqb1A0ekxXZFhlWHNMdHpBd2ZmOFIKMWk1MUE1TkdxVC9QaDY3N3RBQnVBNGVnVnhlM09MWXNzV2FmakRDQUVOdlNmZ2FrdS9xTDlybm9ncFNyczVuQQp0ZzBPa3VzcFl3S0JnR2N3MEpSOUVaY01yenFoQUQrejl4Y1hJNGxCWkVYcmFvdi95VlQ2alo5dVkxbDJ6QmV1CnozZVpyR1dWMHRlellPWUp5Z0pCOHpOMTBRTUlFdzlQMWdCT2VGd3RvNGhvOW5xdlk5QWF5cVNFMnY1NEQ4SDQKSFdDby9yRVJSd25RbHVyMVlFU0NacnJOdzZlbkRZYXdUYXRNMGd3ZndGMm12ZmJQMVJpSmZLM3hBb0dBRWtXNgo5YjhJMlg0YjJmQWtML1dTMjlha0dYYnczMlBMVnphZ2YxaFMyL1h2cVR3S2VhbGl1MUZSeVZYaVY5SUNLZ3NkClpXV2Q4cjJPWkVvcm9GYzJ6ZHdkZy9FSWh2WHpCUTdQWjE2VC9sTmlwSzl0dGtFWGRZZUR0WGdUQXc1SGtDTUUKVEV6bGRjZXE0VFJuZ2NuZ0Uxa2JjNVgvc2wvaGJSaG1SRXpzeFE4Q2dZRUE3NVZZMndTQUxpODFTNEdpZjZUZQpZaE9PcXovTFZLU0piY0RiQzZzc1MrVmxGdlJjUjRNYng2SGsyQjIydWJaelRySlN4bERDcU5OVHNNU2tFUFhBCnRyWThIQ2VaWUM3TWkyN21nMDRXZGZCcUpibUhLcG12dlhWM2ZMNG16ZmlJY083L213UWd5cjBjZDR0TnZRK2MKWWtmWnd3RzlRblIvdDhjeWpoaEhDVG89Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
     "SESSIONSTORAGE": {},
     "SHOW_CONFIGURATION_HINTS": true,
     "SHOW_MAINTENANCE_MODE": true,
@@ -23837,7 +25643,7 @@
                                 },
                                 "type": "object",
                                 "versions": [
-                                    1.0
+                                    1
                                 ]
                             },
                             {
@@ -23922,7 +25728,7 @@
                                 ],
                                 "type": "object",
                                 "versions": [
-                                    2.0
+                                    2
                                 ]
                             }
                         ]
@@ -24802,6 +26608,48 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_tctrl::tc_thermalbox_fan_ctrl",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.FB_NOTT_CTRL_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Thermal Box fan Speed Control",
+                        "propertyOrder": 9
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_tctrl::tc_thermalbox_valve_ctrl",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.FB_NOTT_CTRL_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Thermal Box Valve control",
+                        "propertyOrder": 10
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.empty_temp": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -25614,6 +27462,161 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.autoCommissioned": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::cfg::bAutoCommissioned",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "comment": "Set only after both cooling loops are tuned",
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.ctrl": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::ctrl",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_THERMAL_BOX_CTRL-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 5
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::fan",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.FB_NOTT_FAN"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 7
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::fan::cfg",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CFG"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 5
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::fan::ctrl",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CTRL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 6
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::stat",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_THERMAL_BOX_STAT-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 6
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat.sStatus": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::stat::sStatus",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ShowRecursively"
+                    },
+                    {
+                        "propertyOrder": 48
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::thermal_box_ctrl::valve",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_CONTROL_VALVE"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 8
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStart": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -25969,8 +27972,8 @@
                 "function": true,
                 "type": "object",
                 "versions": [
-                    1.0,
-                    2.0
+                    1,
+                    2
                 ],
                 "writeValue": {
                     "properties": {
@@ -26178,8 +28181,8 @@
             "SCHEMA": {
                 "function": true,
                 "versions": [
-                    1.0,
-                    2.0
+                    1,
+                    2
                 ],
                 "writeValue": {
                     "$ref": "tchmi:server#/definitions/event"
@@ -26643,7 +28646,7 @@
                     {
                         "function": true,
                         "versions": [
-                            1.0
+                            1
                         ],
                         "writeValue": {
                             "properties": {
@@ -26679,7 +28682,7 @@
                     {
                         "function": true,
                         "versions": [
-                            2.0
+                            2
                         ],
                         "writeValue": {
                             "properties": {
@@ -26816,7 +28819,7 @@
                         "function": true,
                         "type": "string",
                         "versions": [
-                            1.0
+                            1
                         ],
                         "writeValue": {
                             "properties": {
@@ -26855,7 +28858,7 @@
                         ],
                         "type": "object",
                         "versions": [
-                            2.0
+                            2
                         ],
                         "writeValue": {
                             "properties": {
@@ -27241,7 +29244,7 @@
                         "function": true,
                         "type": "object",
                         "versions": [
-                            1.0
+                            1
                         ],
                         "writeValue": {
                             "anyOf": [
@@ -27279,7 +29282,7 @@
                         "function": true,
                         "type": "object",
                         "versions": [
-                            2.0
+                            2
                         ],
                         "writeValue": {
                             "additionalProperties": false,
@@ -27302,7 +29305,7 @@
                             ],
                             "type": "object",
                             "versions": [
-                                2.0
+                                2
                             ]
                         }
                     }
@@ -27493,7 +29496,7 @@
                         },
                         "type": "array",
                         "versions": [
-                            1.0
+                            1
                         ]
                     },
                     {
@@ -27531,7 +29534,7 @@
                         },
                         "type": "array",
                         "versions": [
-                            2.0
+                            2
                         ]
                     }
                 ]
@@ -28902,6 +30905,11 @@
             "FILES": {},
             "SYMBOLACCESS": 0,
             "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.autoCommissioned": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -28918,6 +30926,11 @@
             "FILES": {},
             "SYMBOLACCESS": 0,
             "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.autoCommissioned": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -28934,6 +30947,11 @@
             "FILES": {},
             "SYMBOLACCESS": 0,
             "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.autoCommissioned": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -29034,6 +31052,8 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_photonic_chip": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_shields": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_sidecar": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.empty_temp": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_2": 3,
@@ -29072,6 +31092,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sHighestTempName": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sLowestTempName": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sState": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.autoCommissioned": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat.sStatus": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStart": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStop": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.bActive": 3,
@@ -29214,9 +31241,9 @@
     "VIDEOSEGMENTSIZE": 1048576,
     "VIRTUALDIRECTORIES": {
         "/": "..\\..\\nott_cryo_hmi\\",
-        "/Beckhoff.TwinCAT.HMI.Controls": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Controls.14.4.32\\runtimes\\native1.12-tchmi",
-        "/Beckhoff.TwinCAT.HMI.Framework": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Framework.14.3.431\\runtimes\\native1.12-tchmi",
-        "/Beckhoff.TwinCAT.HMI.Functions": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Functions.14.3.344\\runtimes\\native1.12-tchmi",
+        "/Beckhoff.TwinCAT.HMI.Controls": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Controls.14.8.3\\runtimes\\native1.12-tchmi",
+        "/Beckhoff.TwinCAT.HMI.Framework": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Framework.14.6.3\\runtimes\\native1.12-tchmi",
+        "/Beckhoff.TwinCAT.HMI.Functions": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.Functions.14.6.2\\runtimes\\native1.12-tchmi",
         "/CryoFramework": "..\\..\\Packages\\CryoFramework.2.0.2\\runtimes\\native1.12-tchmi",
         "/JB.TcHmiDynamicPopup": "..\\..\\Packages\\JB.TcHmiDynamicPopup.2.0.2\\runtimes\\native1.12-tchmi",
         "/bin": "..\\..\\nott_cryo_hmi\\bin\\"

@@ -1,0 +1,92 @@
+<div id="NOTTFanUserControl" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="155" data-tchmi-height="150" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="155" data-tchmi-creator-viewport-height="150">
+<div id="NOTTFan_Name" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="155" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Fan" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-weight="Bold">
+
+</div>
+<div id="NOTTFan_Image" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-left="40" data-tchmi-top="30" data-tchmi-width="75" data-tchmi-height="65" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-src="%f%%pp%FanObject::stat::bRunning%/pp% === true ? 'Images/NOTT/FanRunning.svg' : 'Images/NOTT/FanStopped.svg'%/f%" data-tchmi-tooltip="Fan operation and configuration">
+
+</div>
+<div id="NOTTFan_Readout" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="0" data-tchmi-top="96" data-tchmi-width="155" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%typeof %pp%FanObject::stat::lrDutyPct%/pp% === 'number' &amp;&amp; typeof %pp%FanObject::stat::lrSpeedRpm%/pp% === 'number' ? Number(%pp%FanObject::stat::lrDutyPct%/pp%).toFixed(1) + ' % | ' + Number(%pp%FanObject::stat::lrSpeedRpm%/pp%).toFixed(0) + ' rpm' : '-- % | -- rpm'%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Center">
+
+</div>
+<div id="NOTTFan_State" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="0" data-tchmi-top="123" data-tchmi-width="155" data-tchmi-height="27" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%typeof %pp%FanObject::stat::bRunning%/pp% !== 'boolean' ? 'Unavailable' : (%pp%FanObject::stat::bStallAlarm%/pp% === true ? 'STALL' : (%pp%FanObject::stat::bTachMeasurementLimited%/pp% === true ? 'Tach limited' : (%pp%FanObject::stat::bRunning%/pp% === true ? 'Running' : 'Stopped')))%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Center">
+
+</div>
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "NOTTFanPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-fanobject": "%pp%FanObject%/pp%",
+                "data-tchmi-thermalstatus": "%pp%ThermalStatus%/pp%",
+                "data-tchmi-fansymbol": "%pp%FanSymbol%/pp%",
+                "data-tchmi-controlsymbol": "%pp%ControlSymbol%/pp%"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Thermal box fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 640
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 610
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

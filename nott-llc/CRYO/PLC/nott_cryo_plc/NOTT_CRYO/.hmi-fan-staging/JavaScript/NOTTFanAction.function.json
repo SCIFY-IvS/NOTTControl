@@ -1,0 +1,47 @@
+{
+  "function": {
+    "name": "NOTTFanAction",
+    "namespace": null,
+    "displayName": "NOTT Fan Action",
+    "description": "Guarded thermal-box commands and staged fan configuration.",
+    "waitMode": "Synchronous",
+    "category": "NOTT Fan",
+    "returnValue": null,
+    "visible": true,
+    "injectContextObject": false,
+    "arguments": [
+      {
+        "name": "ownerId",
+        "displayName": "ownerId",
+        "type": "tchmi:general#/definitions/String",
+        "description": "ownerId",
+        "defaultValue": ""
+      },
+      {
+        "name": "fanSymbol",
+        "displayName": "fanSymbol",
+        "type": "tchmi:general#/definitions/String",
+        "description": "fanSymbol",
+        "defaultValue": ""
+      },
+      {
+        "name": "controlSymbol",
+        "displayName": "controlSymbol",
+        "type": "tchmi:general#/definitions/String",
+        "description": "controlSymbol",
+        "defaultValue": ""
+      },
+      {
+        "name": "action",
+        "displayName": "action",
+        "type": "tchmi:general#/definitions/String",
+        "description": "action",
+        "defaultValue": ""
+      }
+    ]
+  },
+  "$schema": "../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.6.3/runtimes/native1.12-tchmi/Schema/FunctionDescription.Schema.json",
+  "apiVersion": 1,
+  "dependencyFiles": []
+}
+

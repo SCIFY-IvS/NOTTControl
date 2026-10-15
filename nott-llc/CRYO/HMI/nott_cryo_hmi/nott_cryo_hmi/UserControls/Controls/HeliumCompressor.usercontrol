@@ -29,8 +29,7 @@
 </div>
 </div>
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%CompressorHmiObject::out_stat::cmd_over_stat::sMode%/pp%",
     "actions": [
@@ -267,6 +266,5 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>

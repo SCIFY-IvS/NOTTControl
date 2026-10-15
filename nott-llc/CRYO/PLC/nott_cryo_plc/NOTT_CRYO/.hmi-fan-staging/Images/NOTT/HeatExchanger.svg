@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 130" role="img" aria-label="Water cooled heat exchanger">
+<rect x="24" y="12" width="112" height="106" rx="2" fill="#f4f7f8" stroke="#586b76" stroke-width="3"/>
+<g stroke="#a0adb3" stroke-width="2"><path d="M40 22V108"/><path d="M56 22V108"/><path d="M72 22V108"/><path d="M88 22V108"/><path d="M104 22V108"/><path d="M120 22V108"/></g>
+<path d="M0 32H114V48H46V65H114V82H46V100H160" fill="none" stroke="#237eaf" stroke-width="5" stroke-linejoin="round"/>
+<path d="M3 60H21M3 76H21M139 60H157M139 76H157" stroke="#586b76" stroke-width="2"/>
+<path d="M15 56L21 60L15 64M15 72L21 76L15 80M151 56L157 60L151 64M151 72L157 76L151 80" fill="none" stroke="#586b76" stroke-width="2"/>
+</svg>
+

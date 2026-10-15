@@ -134,7 +134,7 @@
             "caseValue": {
               "objectType": "StaticValue",
               "valueType": "tchmi:project#/definitions/PageIdentity",
-              "value": "EvacuateSequence"
+              "value": "DetectorPower"
             },
             "actions": [
               {
@@ -144,7 +144,7 @@
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/ContentPath",
-                  "value": "Pages/EvacuateSequence.content"
+                  "value": "Pages/DetectorPower.content"
                 },
                 "asyncWait": true
               }
@@ -154,7 +154,7 @@
             "caseValue": {
               "objectType": "StaticValue",
               "valueType": "tchmi:project#/definitions/PageIdentity",
-              "value": "ContentTest"
+              "value": "ThermalBox"
             },
             "actions": [
               {
@@ -164,7 +164,7 @@
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/ContentPath",
-                  "value": "Pages/ContentTest_ControlCabinet.content"
+                  "value": "Pages/ThermalBox.content"
                 },
                 "asyncWait": true
               }
@@ -179,154 +179,5 @@
 </div>
 <div id="ControlCabinet_TcHmiRegion_StatusBar" data-tchmi-type="TcHmi.Controls.System.TcHmiRegion" data-tchmi-grid-column-index="0" data-tchmi-grid-row-index="2" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="1280" data-tchmi-width-unit="px" data-tchmi-target-content="Pages/StatusBar.content">
 </div>
-</div>
-<div id="ControlCabinet_InMaintenanceModePopup" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-grid-column-index="0" data-tchmi-grid-row-index="1" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/InMaintenanceModePopupUserControl.usercontrol" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-visibility="Collapsed">
-
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
-  {
-    "event": "%s%PLC1.MAIN.bMaintenanceUserLoggedIn%/s%",
-    "actions": [
-      {
-        "objectType": "Condition",
-        "active": true,
-        "parts": [
-          {
-            "if": [
-              {
-                "compare1": {
-                  "objectType": "Symbol",
-                  "valueType": "tchmi:general#/definitions/BOOL",
-                  "symbolExpression": "%s%PLC1.MAIN.bMaintenanceUserLoggedIn%/s%"
-                },
-                "compare2": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/BOOL",
-                  "value": true
-                },
-                "compareOperator": "==",
-                "logic": null
-              },
-              {
-                "compare1": {
-                  "objectType": "Symbol",
-                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
-                  "symbolExpression": "%f%GetCurrentUsername()%/f%"
-                },
-                "compare2": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
-                  "value": "Maintenance"
-                },
-                "compareOperator": "!=",
-                "logic": "AND"
-              }
-            ],
-            "then": [
-              {
-                "objectType": "WriteToSymbol",
-                "active": true,
-                "symbolExpression": "%ctx%owner::Visibility%/ctx%",
-                "value": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:framework#/definitions/Visibility",
-                  "value": "Visible"
-                },
-                "asyncWait": true
-              }
-            ]
-          },
-          {
-            "else": [
-              {
-                "objectType": "WriteToSymbol",
-                "active": true,
-                "symbolExpression": "%ctx%owner::Visibility%/ctx%",
-                "value": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:framework#/definitions/Visibility",
-                  "value": "Collapsed"
-                },
-                "asyncWait": true
-              }
-            ]
-          }
-        ],
-        "asyncWait": true
-      }
-    ]
-  },
-  {
-    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onInitialized",
-    "actions": [
-      {
-        "objectType": "Condition",
-        "active": true,
-        "parts": [
-          {
-            "if": [
-              {
-                "compare1": {
-                  "objectType": "Symbol",
-                  "valueType": "tchmi:general#/definitions/BOOL",
-                  "symbolExpression": "%s%PLC1.MAIN.bMaintenanceUserLoggedIn%/s%"
-                },
-                "compare2": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/BOOL",
-                  "value": true
-                },
-                "compareOperator": "==",
-                "logic": null
-              },
-              {
-                "compare1": {
-                  "objectType": "Symbol",
-                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
-                  "symbolExpression": "%f%GetCurrentUsername()%/f%"
-                },
-                "compare2": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
-                  "value": "Maintenance"
-                },
-                "compareOperator": "!=",
-                "logic": "AND"
-              }
-            ],
-            "then": [
-              {
-                "objectType": "WriteToSymbol",
-                "active": true,
-                "symbolExpression": "%ctx%owner::Visibility%/ctx%",
-                "value": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:framework#/definitions/Visibility",
-                  "value": "Visible"
-                },
-                "asyncWait": true
-              }
-            ]
-          },
-          {
-            "else": [
-              {
-                "objectType": "WriteToSymbol",
-                "active": true,
-                "symbolExpression": "%ctx%owner::Visibility%/ctx%",
-                "value": {
-                  "objectType": "StaticValue",
-                  "valueType": "tchmi:framework#/definitions/Visibility",
-                  "value": "Collapsed"
-                },
-                "asyncWait": true
-              }
-            ]
-          }
-        ],
-        "asyncWait": true
-      }
-    ]
-  }
-]</script>
 </div>
 </div>

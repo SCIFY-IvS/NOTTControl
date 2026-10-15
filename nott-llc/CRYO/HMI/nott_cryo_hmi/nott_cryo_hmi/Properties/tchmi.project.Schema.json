@@ -537,18 +537,6 @@
       "type": "object",
       "id": "tchmi:project#/definitions/PdsHeaterUserControl"
     },
-    "PageIdentity": {
-      "type": "string",
-      "enum": [
-        "MainPage",
-        "Events",
-        "Settings",
-        "CryogenicController",
-        "EvacuateSequence",
-        "ContentTest"
-      ],
-      "id": "tchmi:project#/definitions/PageIdentity"
-    },
     "SectionA": {
       "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
       "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
@@ -676,6 +664,74 @@
       "frameworkUserControlConfig": "UserControls\\Faceplates\\METIS\\Heaters\\METISHeaterFaceplateOperateTab.usercontrol.json",
       "type": "object",
       "id": "tchmi:project#/definitions/METISHeaterFaceplateOperateTab"
+    },
+    "PageIdentity": {
+      "type": "string",
+      "enum": [
+        "MainPage",
+        "Events",
+        "Settings",
+        "CryogenicController",
+        "EvacuateSequence",
+        "ThermalBox",
+        "DetectorPower"
+      ],
+      "options": [
+        {
+          "value": "MainPage",
+          "label": null
+        },
+        {
+          "value": "Events",
+          "label": null
+        },
+        {
+          "value": "Settings",
+          "label": null
+        },
+        {
+          "value": "CryogenicController",
+          "label": null
+        },
+        {
+          "value": "EvacuateSequence",
+          "label": null
+        },
+        {
+          "value": "ThermalBox",
+          "label": null
+        },
+        {
+          "value": "DetectorPower",
+          "label": null
+        }
+      ],
+      "$id": "tchmi:project#/definitions/PageIdentity",
+      "id": "tchmi:project#/definitions/PageIdentity"
+    },
+    "METISControlValveUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\ControlValves\\METISControlValveUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISControlValveUserControl"
+    },
+    "METISControlValveFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\NOTT\\ControlValves\\METISControlValveFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISControlValveFaceplate"
+    },
+    "METISControlValveFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\NOTT\\ControlValves\\METISControlValveFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISControlValveFaceplateOperateTab"
     }
   }
 }

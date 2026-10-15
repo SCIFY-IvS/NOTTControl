@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <DUT Name="T_NOTT_THERMAL_BOX_CTRL" Id="{bb5c544d-0f49-4cca-8176-1eb3a2a33489}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.ShowRecursively'}
+TYPE T_NOTT_THERMAL_BOX_CTRL :
+STRUCT
+    bEnable: BOOL := FALSE;
+    bStop: BOOL := FALSE; // One-shot stop, including independently running devices
+    eCtrlMode: E_METIS_CTRL_MODE := E_METIS_CTRL_MODE.NONE; // Legacy, no longer controls device/loop modes
+    lrManualFanPct: LREAL := 0.0; // Legacy; use fan.ctrl.lrManualDutyPct
+    lrManualValvePct: LREAL := 0.0; // Legacy; use valve.ctrl.lrManualSetpoint
+    bConfirmAlarms: BOOL := FALSE;
+    bResetSafety: BOOL := FALSE; // One-shot; accepted only after sensor/config recovery
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
+

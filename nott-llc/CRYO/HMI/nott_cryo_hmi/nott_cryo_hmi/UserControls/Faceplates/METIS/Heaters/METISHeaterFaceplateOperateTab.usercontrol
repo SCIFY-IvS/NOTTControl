@@ -1547,8 +1547,7 @@
 
 </div>
 <div id="TemperatureFaceplateSimulated_TcHmiButton_SimulationOn_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="19" data-tchmi-left-unit="px" data-tchmi-text="%f%%l%L_Simulation%/l% +&quot;\n&quot; +%l%L_On%/l%%/f%" data-tchmi-top="422" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-zindex="3">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1645,8 +1644,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 
 <script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
 [
@@ -1659,8 +1657,7 @@
 </script>
 </div>
 <div id="TemperatureFaceplateSimulated_TcHmiButton_SimulationOff_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="156" data-tchmi-left-unit="px" data-tchmi-text="%f%%l%L_Simulation%/l% +&quot;\n&quot; +%l%L_Off%/l%%/f%" data-tchmi-top="422" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-zindex="3">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1757,8 +1754,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 
 <script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
 [

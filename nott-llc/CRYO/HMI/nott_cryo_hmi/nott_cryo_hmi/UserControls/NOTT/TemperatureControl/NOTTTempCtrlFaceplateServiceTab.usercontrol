@@ -580,8 +580,7 @@
 
 
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%TCtrlObject::cfg::lrMaxTrackingDifference%/pp%",
     "actions": [
@@ -686,8 +685,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTempCtrlFaceplateServiceTab_TcHmiTextblock_SenIpTimeout_Label_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-top="95" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Target Change Threshold" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="A target step larger than this restarts the ramp from the process value">
 </div>
@@ -716,8 +714,7 @@
 
 
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%TCtrlObject::cfg::lrTargetChangeThreshold%/pp%",
     "actions": []
@@ -810,8 +807,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 
 <script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">

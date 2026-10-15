@@ -5,7 +5,7 @@
       "displayName": "CryoAlarms",
       "allowSymbolExpressionsInObject": false,
       "visible": true,
-      "type": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.T_CRYO_ALARMS",
+      "type": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_LDC_Cryo_Library.T_CRYO_ALARMS-ShowRecursively",
       "category": "",
       "description": "",
       "requiredOnCompile": false,

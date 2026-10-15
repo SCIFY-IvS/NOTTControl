@@ -1,0 +1,76 @@
+{
+  "parameters": [
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": true,
+      "bindable": true,
+      "propertySetterName": "setFanObject",
+      "propertyGetterName": "getFanObject",
+      "refTo": "",
+      "name": "data-tchmi-fanobject",
+      "displayName": "FanObject",
+      "visible": true,
+      "type": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.FB_NOTT_FAN",
+      "category": "NOTT Fan",
+      "description": "Fan device status",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "FanObject"
+    },
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": true,
+      "bindable": true,
+      "propertySetterName": "setThermalStatus",
+      "propertyGetterName": "getThermalStatus",
+      "refTo": "",
+      "name": "data-tchmi-thermalstatus",
+      "displayName": "ThermalStatus",
+      "visible": true,
+      "type": "tchmi:server#/definitions/NOTT_FAN_BOX_STAT",
+      "category": "NOTT Fan",
+      "description": "Thermal box coordinator status",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "ThermalStatus"
+    },
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": true,
+      "bindable": true,
+      "propertySetterName": "setFanSymbol",
+      "propertyGetterName": "getFanSymbol",
+      "refTo": "",
+      "name": "data-tchmi-fansymbol",
+      "displayName": "FanSymbol",
+      "visible": true,
+      "type": "tchmi:general#/definitions/String",
+      "category": "NOTT Fan",
+      "description": "Server symbol name of the fan",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "FanSymbol"
+    },
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": true,
+      "bindable": true,
+      "propertySetterName": "setControlSymbol",
+      "propertyGetterName": "getControlSymbol",
+      "refTo": "",
+      "name": "data-tchmi-controlsymbol",
+      "displayName": "ControlSymbol",
+      "visible": true,
+      "type": "tchmi:general#/definitions/String",
+      "category": "NOTT Fan",
+      "description": "Server symbol name of the thermal box coordinator",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "ControlSymbol"
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "../../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.6.3/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": "NOTT fan and coordinated thermal-box operation."
+}
+

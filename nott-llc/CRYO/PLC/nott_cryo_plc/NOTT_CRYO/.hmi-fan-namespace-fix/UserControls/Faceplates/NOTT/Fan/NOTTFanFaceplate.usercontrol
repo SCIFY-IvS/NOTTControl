@@ -1,0 +1,54 @@
+<div id="NOTTFanFaceplate" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="640" data-tchmi-height="580" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="640" data-tchmi-creator-viewport-height="580">
+<div id="NOTTFan_Tabs" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTabNavigation" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="640" data-tchmi-height="580" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-tabs" type="application/json">[
+  {
+    "displayName": "Operate",
+    "name": "Operate",
+    "targetFile": {
+      "path": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateOperate.usercontrol",
+      "attributes": {
+        "data-tchmi-fanobject": "%pp%FanObject%/pp%",
+        "data-tchmi-thermalstatus": "%pp%ThermalStatus%/pp%",
+        "data-tchmi-fansymbol": "%pp%FanSymbol%/pp%",
+        "data-tchmi-controlsymbol": "%pp%ControlSymbol%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  },
+  {
+    "displayName": "Status",
+    "name": "Status",
+    "targetFile": {
+      "path": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateStatus.usercontrol",
+      "attributes": {
+        "data-tchmi-fanobject": "%pp%FanObject%/pp%",
+        "data-tchmi-thermalstatus": "%pp%ThermalStatus%/pp%",
+        "data-tchmi-fansymbol": "%pp%FanSymbol%/pp%",
+        "data-tchmi-controlsymbol": "%pp%ControlSymbol%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  },
+  {
+    "displayName": "Configuration",
+    "name": "Configuration",
+    "targetFile": {
+      "path": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateConfiguration.usercontrol",
+      "attributes": {
+        "data-tchmi-fanobject": "%pp%FanObject%/pp%",
+        "data-tchmi-thermalstatus": "%pp%ThermalStatus%/pp%",
+        "data-tchmi-fansymbol": "%pp%FanSymbol%/pp%",
+        "data-tchmi-controlsymbol": "%pp%ControlSymbol%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  }
+]</script>
+</div>
+</div>

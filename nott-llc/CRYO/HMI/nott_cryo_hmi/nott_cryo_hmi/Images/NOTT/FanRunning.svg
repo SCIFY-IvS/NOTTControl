@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Cooling fan">
+<circle cx="50" cy="50" r="44" fill="none" stroke="#586b76" stroke-width="4"/>
+<g fill="#327850">
+<animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1.8s" repeatCount="indefinite"/>
+<path d="M50 45 C20 40 16 18 35 13 C50 10 60 29 50 45Z"/>
+<path d="M55 50 C60 20 82 16 87 35 C90 50 71 60 55 50Z"/>
+<path d="M50 55 C80 60 84 82 65 87 C50 90 40 71 50 55Z"/>
+<path d="M45 50 C40 80 18 84 13 65 C10 50 29 40 45 50Z"/>
+</g><circle cx="50" cy="50" r="9" fill="#e8eef1" stroke="#586b76" stroke-width="3"/>
+</svg>
+

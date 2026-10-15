@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.22" TcProjectVariant="V1_HW">
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.26" TcProjectVariant="V1_HW">
 	<DataTypes>
 		<DataType>
 			<Name GUID="{3CC7D45D-5DD7-F7F9-FC53-EBFF19802130}" Namespace="ESO_Cryo_HMI_Library.ESO_LDC_Cryo_Library.Tc2_SerialCom" AutoDeleteType="true">KL6inData22B</Name>
@@ -225,7 +225,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{6EC822E6-0641-8431-3C93-0E1A1B0BDD62}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{897FAD58-3A43-5DD7-1B40-762ABC1DF9FD}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -1127,34 +1127,38 @@
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl.ramp.q_lrValue</Name>
 							<Comment><![CDATA[ outputs that can be used for linking]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_bToggle</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl.ramp.q_bToggle</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl.ramp.q_bValid</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl.ramp.q_lrValue</Name>
 							<Comment><![CDATA[ outputs that can be used for linking]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_bToggle</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl.ramp.q_bToggle</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl.ramp.q_bValid</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.q_nPwmCommand</Name>
 							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.q_bEnable</Name>
+							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_anti_fog_blower.q_bEnable</Name>
@@ -2718,6 +2722,7 @@
 							<CycleTime>10000000</CycleTime>
 						</Context>
 					</Contexts>
+					<JsonDynPous><![CDATA[null]]></JsonDynPous>
 					<TaskPouOids>
 						<TaskPouOid Prio="20" OTCID="#x08502001"/>
 					</TaskPouOids>
@@ -2794,7 +2799,7 @@
 								</Entry>
 							</Pdo>
 							<Pdo Name="AO Output Channel 3" Index="#x1602" InOut="1" Flags="#x0011" SyncMan="2">
-								<Entry Name="Analog output" Index="#x7020" Sub="#x11" Flags="#x00020000">
+								<Entry Name="Thermabox_tc_Valve_sp" Index="#x7020" Sub="#x11" Flags="#x00020000">
 									<Type>INT</Type>
 								</Entry>
 							</Pdo>
@@ -5932,7 +5937,7 @@
 								</Entry>
 							</Pdo>
 							<Pdo Name="DOS Outputs Channel 3" Index="#x1620" InOut="1" Flags="#x0011" SyncMan="2">
-								<Entry Name="Output" Index="#x7020" Sub="#x01">
+								<Entry Name="Thermabox_tc_Valve_bEnable" Index="#x7020" Sub="#x01">
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
@@ -5957,7 +5962,7 @@
 								</Entry>
 							</Pdo>
 							<Pdo Name="DOS Outputs Channel 8" Index="#x1670" InOut="1" Flags="#x0011" SyncMan="2">
-								<Entry Name="Output" Index="#x7070" Sub="#x01">
+								<Entry Name="CoolantFan_bEnable" Index="#x7070" Sub="#x01">
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
@@ -11612,15 +11617,20 @@ Revision: 1.0
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^A1-N12 (EL4104)">
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_cpau60.q_nSetVoltage" VarB="AO Output Channel 1^SetVoltage_BasePlate_HTR"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_cpau60.q_nSetVoltage" VarB="AO Output Channel 2^SetVoltage_Shield_HTR"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.q_nSetVoltage" VarB="AO Output Channel 3^Thermabox_tc_Valve_sp"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^A1-N5 (EL2068)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.i_bOverrange" VarB="DOS Inputs Channel 3^Overload"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.q_bCtrl" VarB="DOS Outputs Channel 4^PVV1_bCtrl"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.q_bPower_VAGC" VarB="DOS Outputs Channel 7^Output"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_cpau60.q_bEnable" VarB="DOS Outputs Channel 1^bEnable_BasePlate_HTR"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_cpau60.q_bEnable" VarB="DOS Outputs Channel 2^bEnable_Shield_HTR"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.q_bEnable" VarB="DOS Outputs Channel 8^CoolantFan_bEnable"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.q_bEnable" VarB="DOS Outputs Channel 3^Thermabox_tc_Valve_bEnable"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^A1-N6_DET_HTR (EL9501)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_el95x1.i_bError" VarB="AO Output Status^Status^Error"/>
@@ -11771,8 +11781,13 @@ Revision: 1.0
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_tmp.comm.COMout_EL60xx^D[8]" VarB="COM RxPDO-Map Outputs^Data Out 8"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_tmp.comm.COMout_EL60xx^D[9]" VarB="COM RxPDO-Map Outputs^Data Out 9"/>
 			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^Term 38 (EL2535)">
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.q_nPwmCommand" VarB="PWM Control Channel 1^PWM output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.q_bEnable" VarB="PWM Control Channel 1^Control^Enable"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^Term 39 (EL1084)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.bHMISwitch" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.i_bTach" VarB="Channel 1^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A1-N17_BasePlate_Current_Monitor (EL3681)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_cpau60.i_nActCurrent" VarB="SAI Inputs^Value"/>

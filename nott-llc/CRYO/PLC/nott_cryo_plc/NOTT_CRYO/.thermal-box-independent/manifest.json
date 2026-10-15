@@ -1,0 +1,34 @@
+[
+  {
+    "file": "JavaScript/NOTTFanAction.js",
+    "hash": "86c470a57c18e3e972ef784915e8ea74fc987b8807d857fc151f938229567807"
+  },
+  {
+    "file": "JavaScript/NOTTFanAction.function.json",
+    "hash": "614c7f734957c83f9b6b27224386792dec5a5f4fb1d9ba3e77bfb273d99c314a"
+  },
+  {
+    "file": "Pages/ThermalBox.content",
+    "hash": "1a458ddfde4bc585f6be876ed9f999173699e33bdcc0a64f95f3b3c313ac8640"
+  },
+  {
+    "file": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateOperate.usercontrol",
+    "hash": "720fa023e6dc52e55a97fbcf7d24f9497994aa7df896c78e46c5020d36353084"
+  },
+  {
+    "file": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateStatus.usercontrol",
+    "hash": "3d94fee264ad65d3173bc2d6be640b7c39dcbb7c61be0dfd71221c276ea61620"
+  },
+  {
+    "file": "Server/TcHmiSrv/TcHmiSrv.Config.default.json",
+    "hash": "90b7f254c1834b9d3d5a48419cc7d8b99befa0b936bd87e0e2cf3102e052c434"
+  },
+  {
+    "file": "tests/NOTTFanAction.test.cjs",
+    "hash": "59bf4ed6aff6ee03e8691f4e26a34d45b7b8a036cd50e9a668b7ffb054cbadd5"
+  },
+  {
+    "file": "UserControls/Faceplates/NOTT/Fan/README.md",
+    "hash": "bf3be9591c35b887399cbb35ddfee4e65fe519e4cf8c0553913a46bf7c00d0ab"
+  }
+]

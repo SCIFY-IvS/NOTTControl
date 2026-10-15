@@ -66,8 +66,7 @@
 <div id="TcHmiTextblock_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="30" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrActHeaterPower%/pp%.toFixed(1) + ' W'%/f%" data-tchmi-top="70" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-word-wrap="True" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="16">
 </div>
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%METISHeaterObject::stat::bSimulated%/pp%",
     "actions": [
@@ -126,6 +125,5 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>

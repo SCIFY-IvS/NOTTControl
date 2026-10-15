@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
   <POU Name="FB_NOTT_CRYO_CTRL" Id="{d6e60d4f-f8b6-4737-accb-80f00d84378d}" SpecialFunc="None">
     <Declaration><![CDATA[// NOTT Cryogenic Controller
 FUNCTION_BLOCK FB_NOTT_CRYO_CTRL
@@ -640,9 +640,7 @@ nott_tctrl(temperatures := nott_temp);
 nott_heaters(tctrl := nott_tctrl);
 
 thermal_box_ctrl(	nott_temps:= nott_temp, 
-	nott_heaters:= nott_heaters, 
-	nott_t_ctrls:= nott_tctrl, 
-	nott_t_votes:= nott_voters);
+	nott_t_ctrls:= nott_tctrl);
 
 
 // //
@@ -946,10 +944,11 @@ hmi_pump_pvp(
 	);
 
 hmi_valve_pvv1(
-	inout_sValveStatRef := evac.PVV1.stat,
+	inout_fbCryoValveCtrl := evac.PVV1, 
 	inout_sCmdOver := evac.ctrl.cor_PVV1,
 	inout_fbAlarmHandlerRef := evac.PVV1.fbAlarmHandler,
 	);
+	
 	
 hmi_cooler(inout_sCpaStatRef:= cool_down.cooler.stat, inout_sCmdOver:= cool_down.ctrl.cor_Cooler, out_stat=> );
 

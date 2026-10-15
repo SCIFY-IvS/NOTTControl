@@ -1,5 +1,5 @@
 {
-  "$schema": "./../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.3.431/runtimes/native1.12-tchmi/Schema/TchmiConfig.Schema.json",
+  "$schema": "./../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.6.3/runtimes/native1.12-tchmi/Schema/TchmiConfig.Schema.json",
   "basePath": "./Beckhoff.TwinCAT.HMI.Framework",
   "scaleMode": "ScaleToFit",
   "startupView": "ControlCabinet.view",
@@ -80,6 +80,11 @@
       "name": "JavaScript/PrintFilterOfEventGrid.js",
       "description": "",
       "type": "JavaScript"
+    },
+    {
+      "name": "JavaScript/NOTTFanAction.js",
+      "description": "",
+      "type": "JavaScript"
     }
   ],
   "userControls": [
@@ -94,6 +99,9 @@
     },
     {
       "url": "UserControls/Controls/LakeshoreControllerUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/NOTT/Fan/NOTTFanUserControl.usercontrol"
     },
     {
       "url": "UserControls/Controls/NOTT/Heater/NottHeater.usercontrol"
@@ -285,6 +293,24 @@
       "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateStatus.usercontrol"
     },
     {
+      "url": "UserControls/Faceplates/NOTT/ControlValves/METISControlValveFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/NOTT/ControlValves/METISControlValveFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateConfiguration.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateOperate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/NOTT/Fan/NOTTFanFaceplateStatus.usercontrol"
+    },
+    {
       "url": "UserControls/Faceplates/Pump/PumpFaceplate.usercontrol"
     },
     {
@@ -307,6 +333,9 @@
     },
     {
       "url": "UserControls/NavigationButton.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/ControlValves/METISControlValveUserControl.usercontrol"
     },
     {
       "url": "UserControls/NOTT/CryogenicController_usercontrol_FlatField.usercontrol"
@@ -370,6 +399,13 @@
       "preloadBindings": false
     },
     {
+      "url": "Pages/DetectorPower.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
       "url": "Pages/EvacuateSequence.content",
       "preload": true,
       "keepAlive": false,
@@ -410,6 +446,13 @@
       "keepAlive": false,
       "loadSync": false,
       "preloadBindings": false
+    },
+    {
+      "url": "Pages/ThermalBox.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
     }
   ],
   "views": [
@@ -429,6 +472,9 @@
   "userFunctions": [
     {
       "url": "JavaScript/GetCurrentUsername.js"
+    },
+    {
+      "url": "JavaScript/NOTTFanAction.js"
     },
     {
       "url": "JavaScript/PrintFilterOfEventGrid.js"

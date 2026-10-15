@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
   <POU Name="FB_NOTT_FAN" Id="{c59b5cbe-f688-41ea-92c5-c26080507162}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_FAN
 VAR_INPUT
@@ -21,6 +21,9 @@ VAR
 	i_bTach AT %I*:	BOOL;
 	{attribute 'TcHmiSymbol.Show'}
 	q_nPwmCommand AT %Q*:	INT;
+		{attribute 'TcHmiSymbol.Show'}
+	q_bEnable AT %Q*:	BOOL;
+	
 
 	rtrigTach:	R_TRIG;
 	rtrigEnable:	R_TRIG;
@@ -138,17 +141,22 @@ stat.bRunning := ctrl.bEnable AND (stat.lrSpeedRpm > 0.0) AND NOT stat.bStallAla
 // At maximum fan speed the pulse period is about 7 ms. A 10 ms task can miss
 // edges even before considering the ES1084 3 ms input filter.
 stat.bTachMeasurementLimited := in_tCycleTime > T#2MS;
-]]></ST>
+
+q_bEnable := ctrl.bEnable;]]></ST>
     </Implementation>
     <Method Name="M_SetDisable" Id="{40dc14dd-23e1-4d20-981b-5910fbfd5ac0}">
       <Declaration><![CDATA[METHOD M_SetDisable
 ]]></Declaration>
-      <Implementation><ST><![CDATA[ctrl.bEnable := FALSE;]]></ST></Implementation>
+      <Implementation>
+        <ST><![CDATA[ctrl.bEnable := FALSE;]]></ST>
+      </Implementation>
     </Method>
     <Method Name="M_SetEnable" Id="{72240d0d-23d6-46fb-a417-ab4506179780}">
       <Declaration><![CDATA[METHOD M_SetEnable
 ]]></Declaration>
-      <Implementation><ST><![CDATA[ctrl.bEnable := TRUE;]]></ST></Implementation>
+      <Implementation>
+        <ST><![CDATA[ctrl.bEnable := TRUE;]]></ST>
+      </Implementation>
     </Method>
   </POU>
 </TcPlcObject>

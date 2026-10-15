@@ -1,0 +1,149 @@
+<div id="NOTTFanConfig" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="640" data-tchmi-height="550" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="640" data-tchmi-creator-viewport-height="550">
+<div id="NOTTFanConfig_Title" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="12" data-tchmi-width="600" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Fan configuration" data-tchmi-text-font-size="18" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true" data-tchmi-text-font-weight="Bold">
+
+</div><div id="NOTTFanConfig_LabelMinDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="52" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Minimum running duty [%]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_MinDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="52" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="0" data-tchmi-max-value="100" data-tchmi-decimal-digits="1" data-tchmi-value="0" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelMaxDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="91" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Maximum duty [%]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_MaxDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="91" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="0" data-tchmi-max-value="100" data-tchmi-decimal-digits="1" data-tchmi-value="0" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelStartDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="130" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Startup boost duty [%]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_StartDuty" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="130" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="0" data-tchmi-max-value="100" data-tchmi-decimal-digits="1" data-tchmi-value="0" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelBoostTime" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="169" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Startup boost [ms]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_BoostTime" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="169" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="0" data-tchmi-max-value="60000" data-tchmi-decimal-digits="0" data-tchmi-value="0" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelRpmWindow" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="208" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="RPM measurement window [ms]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_RpmWindow" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="208" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="100" data-tchmi-max-value="60000" data-tchmi-decimal-digits="0" data-tchmi-value="100" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelStallDelay" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="247" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Stall delay [ms]" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_StallDelay" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="247" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="100" data-tchmi-max-value="600000" data-tchmi-decimal-digits="0" data-tchmi-value="100" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelPulses" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="286" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Pulses per revolution" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_Pulses" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="286" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="1" data-tchmi-max-value="100" data-tchmi-decimal-digits="0" data-tchmi-value="1" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_LabelFullScale" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="325" data-tchmi-width="330" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="PWM full scale" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><div id="NOTTFanConfig_FullScale" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="395" data-tchmi-top="325" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="1" data-tchmi-max-value="32767" data-tchmi-decimal-digits="0" data-tchmi-value="1" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_InvertPwm" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCheckbox" data-tchmi-left="20" data-tchmi-top="373" data-tchmi-width="260" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Invert PWM" data-tchmi-toggle-state="Normal" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_InvertTach" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCheckbox" data-tchmi-left="310" data-tchmi-top="373" data-tchmi-width="260" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Invert tach input" data-tchmi-toggle-state="Normal" data-tchmi-is-enabled="False">
+<script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_Apply" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="20" data-tchmi-top="425" data-tchmi-width="120" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Apply" data-tchmi-is-enabled="False" data-tchmi-tooltip="Apply">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%FanSymbol%/pp%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%ControlSymbol%/pp%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Apply"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_Cancel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="155" data-tchmi-top="425" data-tchmi-width="120" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Cancel" data-tchmi-is-enabled="True" data-tchmi-tooltip="Cancel">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%FanSymbol%/pp%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%ControlSymbol%/pp%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Load"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script>
+</div><div id="NOTTFanConfig_Feedback" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="476" data-tchmi-width="600" data-tchmi-height="65" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Loading configuration..." data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true">
+
+</div><script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onAttached",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%FanSymbol%/pp%"
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%pp%ControlSymbol%/pp%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Load"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

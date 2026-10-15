@@ -45,8 +45,7 @@
 
 
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%PermissionStart%/pp%",
     "actions": [
@@ -105,13 +104,11 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="SequenceControlFaceplate_TcHmiButton_Start" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-text="%l%L_Start%/l%" data-tchmi-top="67" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -197,8 +194,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 
 <script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
 [
@@ -212,8 +208,7 @@
 </div>
 <div id="SequenceControlFaceplate_LedBox_PermitStop" data-tchmi-type="TcHmi.Controls.CryoFramework.LedBox" data-tchmi-datalabel-data-valid="true" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-ledbox-blink="false" data-tchmi-left="145" data-tchmi-left-unit="px" data-tchmi-top="67" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text="P" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-weight="Bold">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%PermissionStop%/pp%",
     "actions": [
@@ -272,13 +267,11 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="SequenceControlFaceplate_TcHmiButton_Stop" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="168" data-tchmi-left-unit="px" data-tchmi-text="%l%L_Stop%/l%" data-tchmi-top="67" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -364,8 +357,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 
 <script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">
 [
@@ -624,8 +616,7 @@
 </div>
 </div>
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%pp%bActive%/pp%",
     "actions": [
@@ -804,6 +795,5 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>

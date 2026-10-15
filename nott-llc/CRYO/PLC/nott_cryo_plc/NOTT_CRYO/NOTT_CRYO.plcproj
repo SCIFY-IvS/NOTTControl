@@ -50,6 +50,15 @@
     <Compile Include="DUTs\Structures\CoolDown\T_NOTT_CRYO_COOLDOWN_STAT.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DUTs\Structures\ThermalBox\T_NOTT_THERMAL_BOX_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\ThermalBox\T_NOTT_THERMAL_BOX_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\ThermalBox\T_NOTT_THERMAL_BOX_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Structures\Fan\T_NOTT_FAN_CFG.TcDUT">
       <SubType>Code</SubType>
     </Compile>

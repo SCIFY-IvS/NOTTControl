@@ -1,0 +1,20 @@
+{
+  "hmiRoot": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi",
+  "files": [
+    {
+      "path": "Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+      "originalHash": "B7C23122900C1FC5BAE93151FE5FBA6AEFC7EB46B51893DED949AFAAABAFA02C",
+      "sourceHash": "F523A5792F04605541F8ED6ED107AE8A97A8A711BD8A598349C4636FE8EE5A2A"
+    },
+    {
+      "path": "UserControls\\Faceplates\\METIS\\ControlValves\\METISControlValveFaceplate.usercontrol.json",
+      "originalHash": "AD20AE2B774A3959A11EA5DC4D97886E62281E649C5B62FE0122896C8EB6FF71",
+      "sourceHash": "50E40E994F6F3869ED85CF017BFC6736B7456DBED853923A478EAD08BC73E5E3"
+    },
+    {
+      "path": "UserControls\\Faceplates\\METIS\\ControlValves\\METISControlValveFaceplateOperateTab.usercontrol.json",
+      "originalHash": "1B291197714323D31E7F95C79970C2E06191175E9734CF091FE2FEE8A731C9EC",
+      "sourceHash": "616BC89D3327D79BB64FC1522FE2C04A7E52131A3398D76829CC44DDE691ED84"
+    }
+  ]
+}

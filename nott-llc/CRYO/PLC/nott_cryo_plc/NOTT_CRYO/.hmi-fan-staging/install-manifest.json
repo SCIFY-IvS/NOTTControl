@@ -1,0 +1,105 @@
+{
+  "hmiRoot": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi",
+  "files": [
+    {
+      "path": "UserControls\\Controls\\NOTT\\Fan\\NOTTFanUserControl.usercontrol",
+      "sourceHash": "2DB884A3F852FF40456FA5CC5590815C1B0940B25D810B7320B6707C88454F22",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplate.usercontrol",
+      "sourceHash": "E34043C516BDC944348DACAB5D1E9375E332901A19116221F33C8F8F75B74FAD",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateOperate.usercontrol",
+      "sourceHash": "21C455400F128340A31B510FADAE9C428B26FF73E5F5EF2638C8C6C6D4F48571",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateStatus.usercontrol",
+      "sourceHash": "3D94FEE264AD65D3173BC2D6BE640B7C39DCBB7C61BE0DFD71221C276EA61620",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateConfiguration.usercontrol",
+      "sourceHash": "1E89C22D2B8BD1EBE7FA6FCAE3DA8FA4709DB2303AC8D4649BD3993D056B752D",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Controls\\NOTT\\Fan\\NOTTFanUserControl.usercontrol.json",
+      "sourceHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplate.usercontrol.json",
+      "sourceHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateOperate.usercontrol.json",
+      "sourceHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateStatus.usercontrol.json",
+      "sourceHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateConfiguration.usercontrol.json",
+      "sourceHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "originalHash": null
+    },
+    {
+      "path": "Images\\NOTT\\FanRunning.svg",
+      "sourceHash": "5274B031DF1F10735A336C8631B4BD689D3E83AEE370D2C99E65A071316A42D8",
+      "originalHash": null
+    },
+    {
+      "path": "Images\\NOTT\\FanStopped.svg",
+      "sourceHash": "498F76B2D62C56A31CF7212904AB9E04E31F6B77B2B53E114D59F7359D6F22AB",
+      "originalHash": null
+    },
+    {
+      "path": "Images\\NOTT\\HeatExchanger.svg",
+      "sourceHash": "EC2BD70A5EAE72FD4343A0D1E868141BE3EF1678EF252B9ED1C784DDAA4995E0",
+      "originalHash": null
+    },
+    {
+      "path": "JavaScript\\NOTTFanAction.js",
+      "sourceHash": "8B623FC643EB6C3EF343CF2284689039D95FD0D1BF58CE744F41F70BDAF0F3B7",
+      "originalHash": null
+    },
+    {
+      "path": "JavaScript\\NOTTFanAction.function.json",
+      "sourceHash": "E33C6B7F753835EFCBF7393FCBF8F795DAA7A347B4F324C1AF3C3FC2E829066F",
+      "originalHash": null
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\README.md",
+      "sourceHash": "BF3BE9591C35B887399CBB35DDFEE4E65FE519E4CF8C0553913A46BF7C00D0AB",
+      "originalHash": null
+    },
+    {
+      "path": "tests\\NOTTFanAction.test.cjs",
+      "sourceHash": "72A9BC038FE454410EC311B9943BE3ED43A2AC5275A98D43B525CCBD24662F6E",
+      "originalHash": null
+    },
+    {
+      "path": "Pages\\ThermalBox.content",
+      "sourceHash": "5E5FD2B53B459D2991E78BF6385498BE5A8B9B43A9F11D9704BEF039EACAFCE9",
+      "originalHash": "CB1FB532491711CE4F81D27127EDB111C63ED5C409667A83770BBC9CAD2912EE"
+    },
+    {
+      "path": "nott_cryo_hmi.hmiproj",
+      "sourceHash": "16DCD7E23C89CEBE9FB572E6C107508A6CDD1CB3C8BAB8B392146F906EC84DB8",
+      "originalHash": "F60303A208C653298E4C2B027BF2D01B5CBB4740ECB89F1890EA3284431A816E"
+    },
+    {
+      "path": "Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+      "sourceHash": "C34A7337FAEAF32B3916F28FDC45C4AE221958BD183DFEA0EB7262E658E7B89D",
+      "originalHash": "7610901D273BBE91AE1DDC53D5921BDA558540FA36A8D10979324312D34E401B"
+    }
+  ]
+}

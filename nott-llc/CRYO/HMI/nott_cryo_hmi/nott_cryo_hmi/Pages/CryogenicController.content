@@ -179,8 +179,7 @@
 </div>
 <div id="CryogenicController_PumpUserControl_TMP" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="15" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Turbomolecular" data-tchmi-target-user-control="UserControls/Controls/PumpUserControl.usercontrol" data-tchmi-top="423" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-pumphmiobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.hmi_pump_tmp%/s%" data-tchmi-zindex="1">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -256,8 +255,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="CryogenicController_AnalogSensorUserControl_TMP" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="0" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="95" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/AnalogSensorUserControl.usercontrol" data-tchmi-top="478" data-tchmi-top-unit="px" data-tchmi-unit="rpm" data-tchmi-unittextboxwidth="20" data-tchmi-width="166" data-tchmi-width-unit="px" data-tchmi-datavalid="true" data-tchmi-zindex="101" data-tchmi-value="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.hmi_pump_tmp.out_stat.pump_stat.nPumpSpeed%/s%">
 </div>
@@ -364,8 +362,7 @@
 ]</script>
 </div>
 <div id="CryogenicController_PressureUserControl_VAG1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="7" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="209" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="25" data-tchmi-width="166" data-tchmi-width-unit="px" data-tchmi-pressurehmiobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.hmi_pressure_vote_vag1%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -441,8 +438,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="CryogenicController_TcHmiLine_Type1_Connection2_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="71" data-tchmi-height-unit="px" data-tchmi-left="54" data-tchmi-left-unit="px" data-tchmi-top="490" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="1" data-tchmi-zindex="1">
 </div>
@@ -857,8 +853,7 @@
 ]</script>
 </div>
 <div id="NottHeater_5" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="717" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/Heater/NottHeater.usercontrol" data-tchmi-top="585" data-tchmi-top-unit="px" data-tchmi-width="200" data-tchmi-width-unit="px" data-tchmi-metisheaterobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -934,12 +929,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="NottHeater_6" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="711" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/Heater/NottHeater.usercontrol" data-tchmi-top="498" data-tchmi-top-unit="px" data-tchmi-width="200" data-tchmi-width-unit="px" data-tchmi-metisheaterobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_shield%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1015,8 +1008,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureVoterUserControl_DetectorVote" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="257" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol" data-tchmi-top="90" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="20" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_detector%/s%" data-tchmi-zindex="1">
 
@@ -1496,8 +1488,7 @@
 ]</script>
 </div>
 <div id="METISTemperatureVoterUserControl_7" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="470" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol" data-tchmi-top="584" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="20" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_base_plate%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1573,12 +1564,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureVoterUserControl_8" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="470" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol" data-tchmi-top="496" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="20" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_shield%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1654,13 +1643,11 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="HeliumCompressorUserControl_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="323" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-target-user-control="UserControls/Controls/HeliumCompressor.usercontrol" data-tchmi-top="496" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-compressorhmiobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.hmi_cooler%/s%" data-tchmi-zindex="1">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1736,13 +1723,11 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="444" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="54" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_detector%/s%" data-tchmi-zindex="1">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1818,12 +1803,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="444" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="111" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_detector_spare%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -1899,8 +1882,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="CryogenicController_TcHmiTextblock_VAGC_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="743" data-tchmi-left-unit="px" data-tchmi-text="Cabinet" data-tchmi-top="310" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24" data-tchmi-zindex="1">
 </div>
@@ -1974,8 +1956,7 @@
 </div>
 <div id="TcHmiButton_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="37" data-tchmi-height-unit="px" data-tchmi-left="407" data-tchmi-left-unit="px" data-tchmi-text="Flat Field" data-tchmi-top="373" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="True" data-tchmi-text-font-size="16" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-vertical-alignment="Center" data-tchmi-zindex="1">
 
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -2046,12 +2027,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_8" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="441" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="201" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_sidecar%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -2127,12 +2106,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_9" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="442" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="290" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_photonic_chip%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -2208,12 +2185,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_10" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="637" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="487" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_shields%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -2289,12 +2264,10 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="METISTemperatureController_11" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="644" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="575" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_base_plate%/s%" data-tchmi-zindex="1">
-<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
-[
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
   {
     "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
     "actions": [
@@ -2370,8 +2343,7 @@
       }
     ]
   }
-]
-</script>
+]</script>
 </div>
 <div id="SequenceControlFaceplate_Evacuation" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="130" data-tchmi-height-unit="px" data-tchmi-left="921" data-tchmi-left-unit="px" data-tchmi-showsequencebutton="True" data-tchmi-target-user-control="UserControls/NOTT/Sequence/MetisNottSequenceControlFaceplate.usercontrol" data-tchmi-top="201" data-tchmi-top-unit="px" data-tchmi-width="350" data-tchmi-width-unit="px" data-tchmi-permissionstart="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStart%/s%" data-tchmi-permissionstop="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStop%/s%" data-tchmi-title="%l%L_Evacuate%/l%" data-tchmi-sequencestatetext="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.stat.sStatus%/s%" data-tchmi-sequencepageidentity="CryogenicController" data-tchmi-startstopsequence="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_Evac%/s%" data-tchmi-zindex="1" data-tchmi-bactive="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEvacuationActive%/s%" data-tchmi-balarm="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEmergency%/s%">
 </div>

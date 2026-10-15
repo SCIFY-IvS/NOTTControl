@@ -12,7 +12,7 @@
     <HmiTitle>Cryo HMI template project</HmiTitle>
     <HmiVerboseLevel>2</HmiVerboseLevel>
     <HmiVersion>1.0.0.0</HmiVersion>
-    <HmiCommunicationServerPort>3005</HmiCommunicationServerPort>
+    <HmiCommunicationServerPort>3006</HmiCommunicationServerPort>
     <HmiLogTcHmiServerMessages>false</HmiLogTcHmiServerMessages>
     <HmiLogDesignerModeComMessages>false</HmiLogDesignerModeComMessages>
     <HmiDefaultLanguage>client</HmiDefaultLanguage>
@@ -28,7 +28,7 @@
     <HmiCommunicationRouterPort>10121</HmiCommunicationRouterPort>
     <HmiCommunicationServerAuthPort>13005</HmiCommunicationServerAuthPort>
     <HmiInitial>1.12.760.59</HmiInitial>
-    <HmiRecent>14.3.870.1</HmiRecent>
+    <HmiRecent>14.17.22.1</HmiRecent>
     <HmiServerNodeAdvancedView>False</HmiServerNodeAdvancedView>
     <PinVersion>True (Version 1.12.760.59)</PinVersion>
     <HmiCompanyName>European Southern Observatory</HmiCompanyName>
@@ -84,7 +84,7 @@
   <PropertyGroup>
     <PostBuildEventDependsOn />
   </PropertyGroup>
-  <Target Name="PostBuildEvent" Condition="'$(PostBuildEvent)' != '' and ('$(RunPostBuildEvent)'=='Always' or '$(RunPostBuildEvent)'=='OnOutputUpdated')" DependsOnTargets="$(PostBuildEventDependsOn)">
+  <Target Name="PostBuildEvent" Condition="'$(PostBuildEvent)' != '' and ('$(RunPostBuildEvent)'=='Always' or '$(RunPostBuildEvent)'=='OnBuildSuccess' or '$(RunPostBuildEvent)'=='OnOutputUpdated')" DependsOnTargets="$(PostBuildEventDependsOn)">
     <Exec WorkingDirectory="$(OutDir)" Command="$(PostBuildEvent)" />
   </Target>
   <Target Name="GetFrameworkPaths" />
@@ -127,6 +127,77 @@
   <Target Name="Clean" DependsOnTargets="$(CleanDependsOn)" />
   <Target Name="ReBuild" DependsOnTargets="Clean; Build" />
   <ItemGroup>
+    <Content Include="Server\ADS\ADS.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\ADS\ADS.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Fan\NOTTFanUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\ControlValves\METISControlValveFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateOperate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateConfiguration.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Fan\NOTTFanUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\NOTT\Fan\NOTTFanUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateOperate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateOperate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateConfiguration.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\NOTT\Fan\NOTTFanFaceplateConfiguration.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="Images\NOTT\FanRunning.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NOTT\FanStopped.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NOTT\HeatExchanger.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\NOTTFanAction.js">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\NOTTFanAction.function.json">
+      <SubType>Content</SubType>
+      <DependentUpon>JavaScript\NOTTFanAction.js</DependentUpon>
+    </Content>
     <Content Include="Fonts\inconsolata.bold.woff">
       <SubType>Content</SubType>
     </Content>
@@ -239,13 +310,10 @@
     <Content Include="Pages\LoginPage.html">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Server\RFIDAuth\RFIDAuth.Config.default.json">
+    <Content Include="Pages\DetectorPower.content">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Server\RFIDAuth\RFIDAuth.Config.remote.json">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Server\RFIDAuth\RFIDAuth.Storage.json">
+    <Content Include="Pages\ThermalBox.content">
       <SubType>Content</SubType>
     </Content>
     <Content Include="UserControls\Controls\NOTT\Heater\NottHeater.usercontrol">
@@ -779,6 +847,13 @@
       <SubType>Content</SubType>
       <DependentUpon>UserControls\NavigationButton.usercontrol</DependentUpon>
     </Content>
+    <Content Include="UserControls\NOTT\ControlValves\METISControlValveUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\ControlValves\METISControlValveUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\ControlValves\METISControlValveUserControl.usercontrol</DependentUpon>
+    </Content>
     <Content Include="UserControls\NOTT\CryogenicController_usercontrol_FlatField.usercontrol">
       <SubType>Content</SubType>
     </Content>
@@ -902,13 +977,13 @@
     <Folder Include="Images" />
     <Folder Include="Images\Manifest" />
     <Folder Include="Images\NavigationButtonIcons" />
+    <Folder Include="Images\NOTT\" />
     <Folder Include="Imports" />
     <Folder Include="Imports\Images" />
     <Folder Include="Imports\Videos" />
     <Folder Include="KeyboardLayouts\" />
     <Folder Include="Localization" />
     <Folder Include="JavaScript" />
-    <Folder Include="Server\RFIDAuth" />
     <Folder Include="UserControls" />
     <Folder Include="Pages" />
     <Folder Include="Server\TcHmiEventLogger" />
@@ -1183,6 +1258,7 @@
     </Content>
     <Folder Include="Themes\Base\Images\" />
     <Folder Include="UserControls\Controls\NOTT" />
+    <Folder Include="UserControls\Controls\NOTT\Fan\" />
     <Folder Include="UserControls\Controls\NOTT\Heater" />
     <Folder Include="UserControls\Controls\NOTT\TempController" />
     <Folder Include="UserControls\Controls\NOTT\Voter" />
@@ -1206,10 +1282,14 @@
     <Folder Include="UserControls\Faceplates\METIS\LN2_Level_Sensor" />
     <Folder Include="UserControls\Faceplates\METIS\TemperatureControl" />
     <Folder Include="UserControls\Faceplates\METIS\TemperatureVote" />
+    <Folder Include="UserControls\Faceplates\NOTT\" />
+    <Folder Include="UserControls\Faceplates\NOTT\ControlValves" />
+    <Folder Include="UserControls\Faceplates\NOTT\Fan\" />
     <Folder Include="UserControls\Faceplates\Sequence" />
     <Folder Include="UserControls\Faceplates\Valve" />
     <Folder Include="UserControls\Faceplates\Pump" />
     <Folder Include="UserControls\NOTT" />
+    <Folder Include="UserControls\NOTT\ControlValves" />
     <Folder Include="UserControls\NOTT\METISAnalogSensorUserControl" />
     <Folder Include="UserControls\NOTT\FaceplateVoter" />
     <Folder Include="UserControls\NOTT\Sequence" />

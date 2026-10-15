@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <DUT Name="T_NOTT_THERMAL_BOX_STAT" Id="{b8a90bf1-fb1e-4c76-8b94-cf4f065fd12c}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.ShowRecursively'}
+TYPE T_NOTT_THERMAL_BOX_STAT :
+STRUCT
+    bConfigured: BOOL;
+    eCtrlMode: E_METIS_CTRL_MODE := E_METIS_CTRL_MODE.AUTO;
+    bAuto: BOOL;
+    bManual: BOOL;
+    bActive: BOOL;
+    bClosingValve: BOOL;
+    bValveCloseTimeElapsed: BOOL; // Timer only; not physical closed feedback
+    bPermitStart: BOOL;
+    bPermitStop: BOOL;
+    bConfigValid: BOOL;
+    bAutoReady: BOOL;
+    bSafetyTrip: BOOL;
+    bFanManual: BOOL;
+    bValveManual: BOOL;
+    bFanLoopManual: BOOL;
+    bValveLoopManual: BOOL;
+    bMixedMode: BOOL;
+    sStartInhibitReason: STRING(255);
+    bControlSensorsValid: BOOL;
+    bOutsideValid: BOOL;
+    bInsideValid: BOOL;
+    bCoolantInValid: BOOL;
+    bCoolantOutValid: BOOL;
+    lrOutsideTempK: LREAL;
+    lrInsideTempK: LREAL;
+    lrCoolantInTempK: LREAL;
+    lrCoolantOutTempK: LREAL;
+    lrTargetTempK: LREAL;
+    lrTemperatureErrorK: LREAL; // Inside minus target
+    lrFanDemandPct: LREAL;
+    lrValveDemandPct: LREAL;
+    lrFanAppliedPct: LREAL;
+    lrValveCommandPct: LREAL; // Command, not measured valve position
+    lrFanSpeedRpm: LREAL;
+    bSensorFaultAlarm: BOOL;
+    bSensorFaultHold: BOOL;
+    bSensorFaultStopped: BOOL;
+    tSensorFaultElapsed: TIME;
+    bFanStallAlarm: BOOL;
+    bValveAlarm: BOOL;
+    bControllerAlarm: BOOL;
+    bHighTempAlarm: BOOL;
+    bTrackingWarning: BOOL;
+    bCoolantWarning: BOOL;
+    bTachMeasurementLimited: BOOL;
+    bAlarm: BOOL;
+    bWarning: BOOL;
+    sStatus: STRING(255);
+    stAlarms: T_CRYO_ALARMS;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
+

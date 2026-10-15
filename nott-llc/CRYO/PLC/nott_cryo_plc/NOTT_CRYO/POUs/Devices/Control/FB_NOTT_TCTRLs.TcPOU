@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
   <POU Name="FB_NOTT_TCTRLs" Id="{6bdb9dcd-3a61-4832-8d85-5f1079c76f24}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TCTRLs
 VAR_INPUT
@@ -26,6 +26,11 @@ VAR
 	tc_shields:      		FB_NOTT_CTRL_TEMPERATURE; // Shield
 	{attribute 'TcHmiSymbol.Show'}
 	tc_flatfield:      		FB_NOTT_CTRL_TEMPERATURE; // Flatfield
+	// Thermal Box
+	{attribute 'TcHmiSymbol.Show'}
+	tc_thermalbox_fan_ctrl: FB_NOTT_CTRL_TEMPERATURE; // Thermal Box fan Speed Control
+	{attribute 'TcHmiSymbol.Show'}
+	tc_thermalbox_valve_ctrl: FB_NOTT_CTRL_TEMPERATURE; // Thermal Box Valve control
 
 END_VAR
 VAR CONSTANT
@@ -42,6 +47,7 @@ tc_photonic_chip	(in_sName := 'tc_photonic_chip'  , in_tCycleTime := CYCLE_TIME,
 tc_shields			(in_sName := 'tc_shields'  		 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
 tc_flatfield		(in_sName := 'tc_flatfield'  	 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
 tc_base_plate		(in_sName := 'tc_base_plate'  	 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+// Thermal-box loops are executed once per scan by FB_NOTT_THERMAL_BOX_CONTROL.
 
 
 ]]></ST>

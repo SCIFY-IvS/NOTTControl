@@ -1,0 +1,40 @@
+{
+  "hmiRoot": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi",
+  "files": [
+    {
+      "path": "Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+      "originalHash": "C34A7337FAEAF32B3916F28FDC45C4AE221958BD183DFEA0EB7262E658E7B89D",
+      "sourceHash": "B7C23122900C1FC5BAE93151FE5FBA6AEFC7EB46B51893DED949AFAAABAFA02C"
+    },
+    {
+      "path": "UserControls\\Controls\\NOTT\\Fan\\NOTTFanUserControl.usercontrol.json",
+      "originalHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "sourceHash": "8D35665C9C563762D81EA680FEB69389209E83C39862EA76AF0D2A0436810077"
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplate.usercontrol.json",
+      "originalHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "sourceHash": "8D35665C9C563762D81EA680FEB69389209E83C39862EA76AF0D2A0436810077"
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateConfiguration.usercontrol.json",
+      "originalHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "sourceHash": "8D35665C9C563762D81EA680FEB69389209E83C39862EA76AF0D2A0436810077"
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateOperate.usercontrol.json",
+      "originalHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "sourceHash": "8D35665C9C563762D81EA680FEB69389209E83C39862EA76AF0D2A0436810077"
+    },
+    {
+      "path": "UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateStatus.usercontrol.json",
+      "originalHash": "3B21C4ECDF424B65BA9662D4DCA5D635D32EC5288FCC96AFDD7D51CA25702269",
+      "sourceHash": "8D35665C9C563762D81EA680FEB69389209E83C39862EA76AF0D2A0436810077"
+    },
+    {
+      "path": "tests\\NOTTFanAction.test.cjs",
+      "originalHash": "72A9BC038FE454410EC311B9943BE3ED43A2AC5275A98D43B525CCBD24662F6E",
+      "sourceHash": "68783CD5280DAB2669E33316DD94B7377692996ACE716F3B3D27D88AEDA73561"
+    }
+  ]
+}
