@@ -19,7 +19,7 @@ ZMQ_REQUEST_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "zmq_request_timeout_ms", fallback=120_000
 )
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
-    H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=300_000
+    H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=3_600_000
 )
 # Slice long acquire waits so cancel / live-stop can be noticed promptly.
 ACQUIRE_POLL_MS = 1_000
