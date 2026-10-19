@@ -4143,19 +4143,19 @@
                         "value": 21
                     },
                     {
-                        "label": "t_thermal_box_1",
+                        "label": "t_thermal_box_outside",
                         "value": 22
                     },
                     {
-                        "label": "t_thermal_box_2",
+                        "label": "t_thermal_box_inside",
                         "value": 23
                     },
                     {
-                        "label": "t_thermal_box_3",
+                        "label": "t_thermal_box_inlet",
                         "value": 24
                     },
                     {
-                        "label": "t_thermal_box_4",
+                        "label": "t_thermal_box_heatexchanger_inlet",
                         "value": 25
                     },
                     {
@@ -4194,7 +4194,7 @@
                                     "TcHmiSymbol.Show": ""
                                 },
                                 "comment": "array for setpoint selection, used by the HMI",
-                                "propertyOrder": 13
+                                "propertyOrder": 14
                             }
                         ]
                     },
@@ -4207,7 +4207,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 17
+                                "propertyOrder": 18
                             }
                         ]
                     },
@@ -4220,7 +4220,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 7
+                                "propertyOrder": 8
                             }
                         ]
                     },
@@ -4233,7 +4233,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 6
+                                "propertyOrder": 7
                             }
                         ]
                     },
@@ -4248,7 +4248,7 @@
                                     "TcHmiSymbol.Show": ""
                                 },
                                 "comment": "Beckhoff controller",
-                                "propertyOrder": 10
+                                "propertyOrder": 11
                             }
                         ]
                     },
@@ -4263,7 +4263,7 @@
                                     "TcHmiSymbol.Show": ""
                                 },
                                 "comment": "configuration",
-                                "propertyOrder": 4
+                                "propertyOrder": 5
                             }
                         ]
                     },
@@ -4277,7 +4277,7 @@
                                     "OPC.UA.DA": "0",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 8
+                                "propertyOrder": 9
                             }
                         ]
                     },
@@ -4291,7 +4291,7 @@
                                     "OPC.UA.DA": "0",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 9
+                                "propertyOrder": 10
                             }
                         ]
                     },
@@ -4304,7 +4304,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 18
+                                "propertyOrder": 19
                             }
                         ]
                     },
@@ -4317,7 +4317,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 16
+                                "propertyOrder": 17
                             }
                         ]
                     },
@@ -4331,7 +4331,7 @@
                                     "OPC.UA.DA": "0",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 11
+                                "propertyOrder": 12
                             }
                         ]
                     },
@@ -4345,7 +4345,7 @@
                                     "TcHmiSymbol.Show": ""
                                 },
                                 "comment": "standard objects",
-                                "propertyOrder": 5
+                                "propertyOrder": 6
                             }
                         ]
                     }
@@ -10175,6 +10175,1262 @@
                 },
                 "type": "object"
             },
+            "ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.E_FUSE_STATE-ReadOnly-ShowRecursively": {
+                "attributes": {
+                    "qualified_only": "",
+                    "strict": ""
+                },
+                "enum": [
+                    0,
+                    1,
+                    2
+                ],
+                "options": [
+                    {
+                        "label": "NONE",
+                        "value": 0
+                    },
+                    {
+                        "label": "NOTOP",
+                        "value": 1
+                    },
+                    {
+                        "label": "OP",
+                        "value": 2
+                    }
+                ],
+                "readOnly": true,
+                "type": "integer"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.E_FUSE_SUBSTATE-ReadOnly-ShowRecursively": {
+                "attributes": {
+                    "qualified_only": "",
+                    "strict": ""
+                },
+                "enum": [
+                    0,
+                    100,
+                    101,
+                    103,
+                    104,
+                    199,
+                    206,
+                    207,
+                    209,
+                    210,
+                    299
+                ],
+                "options": [
+                    {
+                        "label": "NONE",
+                        "value": 0
+                    },
+                    {
+                        "label": "NOTOP_NOTREADY",
+                        "value": 100
+                    },
+                    {
+                        "label": "NOTOP_INITIALIZING",
+                        "value": 101
+                    },
+                    {
+                        "label": "NOTOP_READY_OFF",
+                        "value": 103
+                    },
+                    {
+                        "label": "NOTOP_READY_ON",
+                        "value": 104
+                    },
+                    {
+                        "label": "NOTOP_ERROR",
+                        "value": 199
+                    },
+                    {
+                        "label": "OP_OFF",
+                        "value": 206
+                    },
+                    {
+                        "label": "OP_SWITCHING_OFF",
+                        "value": 207
+                    },
+                    {
+                        "label": "OP_ON",
+                        "value": 209
+                    },
+                    {
+                        "label": "OP_SWITCHING_ON",
+                        "value": 210
+                    },
+                    {
+                        "label": "OP_ERROR",
+                        "value": 299
+                    }
+                ],
+                "readOnly": true,
+                "type": "integer"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_CFG-ReadOnly-ShowRecursively": {
+                "additionalProperties": false,
+                "properties": {
+                    "bAutoOp": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "If TRUE, go automatically to OPERATIONAL state",
+                                "propertyOrder": 2,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDebug": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "If TRUE, show event logs of Debug type. Default FALSE.",
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bLog": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "If TRUE, log events. Default TRUE.",
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bLogExtTime": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "If TRUE, use external time in event logs. Default FALSE.",
+                                "propertyOrder": 5,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bMuteStatusToggling": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "comment": "Mute the toggling bits of the 'Input cycle counter' of the fuse status",
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeout": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "comment": "timeout for state transitions [msec]. Must be larger than cool down lock!",
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sName": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "comment": "Instance name",
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                },
+                "readOnly": true,
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_STAT-ReadOnly-ShowRecursively": {
+                "additionalProperties": false,
+                "properties": {
+                    "bLocal": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "if TRUE, device operated from PLC GUI",
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nCycleCounter": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "propertyOrder": 19,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nCycleTime": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "comment": "Cycle time in us (microsec)",
+                                "propertyOrder": 20,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nErrorCode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Error code",
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nFuseStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Fuse status as 32-bit number",
+                                "propertyOrder": 28,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nHwStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Unknown, error, on, of. See E_FUSE_HW_STATUS",
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nLastCommand": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "comment": "Last command sent to the device",
+                                "propertyOrder": 2,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nRpcErrorCode": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "RPC Error code",
+                                "propertyOrder": 5,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nState": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.E_FUSE_STATE-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 15
+                            }
+                        ]
+                    },
+                    "nStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Device status",
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nSubstate": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.E_FUSE_SUBSTATE-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 16
+                            }
+                        ]
+                    },
+                    "nTimeOff": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Time power has been OFF [sec]",
+                                "propertyOrder": 25,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeOffStart": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Time power has been OFF [sec]",
+                                "propertyOrder": 26,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeOn": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Time power has been ON since last ON command [sec]",
+                                "propertyOrder": 21,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeOnStart": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Absolute start time of last power ON command [sec]",
+                                "propertyOrder": 22,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeOnTotal": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Total time power has been ON [sec]",
+                                "propertyOrder": 23,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nTimeOnTotalStart": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UDINT"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Absolute start time of power ON [sec]",
+                                "propertyOrder": 24,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "rCurrent": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/REAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "current in A",
+                                "propertyOrder": 30,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "rLoad": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/REAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "load as fraction [0..1] of Inominal",
+                                "propertyOrder": 29,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "rVoltageIn": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/REAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "input voltage in V",
+                                "propertyOrder": 31,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "rVoltageOut": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/REAL"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "output voltage in V",
+                                "propertyOrder": 32,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sActionDesc": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 17,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sErrorText": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Error text",
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sEventDesc": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 18,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sHwStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "HW Status in textual form: 'UNKNOWN', 'ERROR', 'OPEN' or 'CLOSED'",
+                                "propertyOrder": 8,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sLastCommand": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Last command, as string, sent to the device",
+                                "propertyOrder": 9,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sLibVersion": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Library version as string, e.g. '1.2.0.0'",
+                                "propertyOrder": 10,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sRPCErrorText": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "RPC Error text",
+                                "propertyOrder": 11,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sState": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 13,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "comment": "Status in textual form, e.g. 'OFF'",
+                                "propertyOrder": 12,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sSubstate": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.Show": ""
+                                },
+                                "propertyOrder": 14,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "stFuseStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_STATUS-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "attributes": {
+                                    "TcHmiSymbol.ShowRecursively": ""
+                                },
+                                "comment": "Fuse status as struct",
+                                "propertyOrder": 27
+                            }
+                        ]
+                    }
+                },
+                "readOnly": true,
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_STATUS-ReadOnly-ShowRecursively": {
+                "additionalProperties": false,
+                "properties": {
+                    "_padding": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BYTE"
+                            },
+                            {
+                                "comment": "we add a padding byte to make sure that the struct is\r\n always represented as 4 bytes (and not 3 bytes), so it \r\n can more easily be casted from/to the corresponding 4-byte int",
+                                "propertyOrder": 22,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bCoolDownLock": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 8",
+                                "propertyOrder": 9,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bCurrentLevelWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 7",
+                                "propertyOrder": 8,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDiag": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 12",
+                                "propertyOrder": 13,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDisabledByDI": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 10",
+                                "propertyOrder": 11,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDisabledByOutput": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 11",
+                                "propertyOrder": 12,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDisabledBySwitch": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 9",
+                                "propertyOrder": 10,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bEnabled": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 0",
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 18",
+                                "propertyOrder": 19,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bHardwareProtection": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 4",
+                                "propertyOrder": 5,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bInputCycleCounterBit0": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 14",
+                                "propertyOrder": 15,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bInputCycleCounterBit1": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 15",
+                                "propertyOrder": 16,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOverload": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 3",
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOvervoltage": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 5",
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bShortCircuit": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 2",
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bStateDeviceSwitch": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 16",
+                                "propertyOrder": 17,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bStateDigitalInput": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 17",
+                                "propertyOrder": 18,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bStateReset": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 19",
+                                "propertyOrder": 20,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bStateSwitch": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 20",
+                                "propertyOrder": 21,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bTripped": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 1",
+                                "propertyOrder": 2,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bTxPDOState": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 13",
+                                "propertyOrder": 14,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bUndervoltage": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BIT"
+                            },
+                            {
+                                "comment": "1 << 6",
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                },
+                "readOnly": true,
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTDPowerCfg": {
+                "additionalProperties": false,
+                "properties": {
+                    "lrCurrentTrip_A": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "tMeasurementTimeout": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTDPowerCtrl": {
+                "additionalProperties": false,
+                "properties": {
+                    "bExecute": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bResetOvercurrent": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "nCommand": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTDPowerStat": {
+                "additionalProperties": false,
+                "properties": {
+                    "bAlarm": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bAutorangeDisabled": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bCalibrating": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bConfigValid": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bConversionError": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bCurrentValid": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDataInvalid": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bExtendedRange": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bFuseOperational": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bMeasurementStale": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bMeterOperational": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bOvercurrentTrip": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bOverrange": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bPdoInvalid": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bPdoToggle": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bPermitOn": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bPermitTripReset": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bPowerOn": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bRangeInvalid": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bShutdownUnconfirmed": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bUnderrange": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bWarning": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "lrCurrent_A": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "lrTripCurrent_A": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "nLastCommand": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nMeterStatus": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "sCommandResult": {
+                        "maxLength": 255,
+                        "type": "string"
+                    },
+                    "sMeasurementStatus": {
+                        "maxLength": 255,
+                        "type": "string"
+                    },
+                    "sStatus": {
+                        "maxLength": 255,
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTFuseBits": {
+                "additionalProperties": false,
+                "properties": {
+                    "bCoolDownLock": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bCurrentLevelWarning": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDiag": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDisabledByDI": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDisabledByOutput": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDisabledBySwitch": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bEnabled": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bError": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bHardwareProtection": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bInputCycleCounterBit0": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bInputCycleCounterBit1": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bOverload": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bOvervoltage": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bShortCircuit": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bStateDeviceSwitch": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bStateDigitalInput": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bStateReset": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bStateSwitch": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bTripped": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bTxPDOState": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bUndervoltage": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTFuseCfg": {
+                "additionalProperties": false,
+                "properties": {
+                    "bAutoOp": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bDebug": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bLog": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bLogExtTime": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "bMuteStatusToggling": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "nTimeout": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "sName": {
+                        "maxLength": 80,
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.NOTTFuseStat": {
+                "additionalProperties": false,
+                "properties": {
+                    "bLocal": {
+                        "$ref": "tchmi:general#/definitions/Boolean"
+                    },
+                    "nCycleCounter": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nCycleTime": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nErrorCode": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nFuseStatus": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nHwStatus": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nLastCommand": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nRpcErrorCode": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nState": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nStatus": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nSubstate": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOff": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOffStart": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOn": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOnStart": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOnTotal": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "nTimeOnTotalStart": {
+                        "$ref": "tchmi:general#/definitions/Integer"
+                    },
+                    "rCurrent": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "rLoad": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "rVoltageIn": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "rVoltageOut": {
+                        "$ref": "tchmi:general#/definitions/Number"
+                    },
+                    "sActionDesc": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sErrorText": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sEventDesc": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sHwStatus": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sLastCommand": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sLibVersion": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sRPCErrorText": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sState": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sStatus": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "sSubstate": {
+                        "maxLength": 80,
+                        "type": "string"
+                    },
+                    "stFuseStatus": {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.NOTTFuseBits"
+                    }
+                },
+                "type": "object"
+            },
             "ADS-NOTT_CRYO_PLC.NOTT_FAN_BOX_CTRL": {
                 "additionalProperties": false,
                 "properties": {
@@ -10877,6 +12133,401 @@
                         ]
                     }
                 },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_CFG-ShowRecursively": {
+                "additionalProperties": false,
+                "attributes": {
+                    "TcHmiSymbol.ShowRecursively": ""
+                },
+                "properties": {
+                    "lrCurrentTrip_A": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 1
+                            }
+                        ]
+                    },
+                    "tMeasurementTimeout": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/TIME"
+                            },
+                            {
+                                "propertyOrder": 2
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_CTRL-ShowRecursively": {
+                "additionalProperties": false,
+                "attributes": {
+                    "TcHmiSymbol.ShowRecursively": ""
+                },
+                "properties": {
+                    "bExecute": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 2
+                            }
+                        ]
+                    },
+                    "bResetOvercurrent": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 3
+                            }
+                        ]
+                    },
+                    "nCommand": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "comment": "E_FUSE_COMMAND, consumed with bExecute",
+                                "propertyOrder": 1
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_STAT-ReadOnly-ShowRecursively": {
+                "additionalProperties": false,
+                "attributes": {
+                    "TcHmiSymbol.ShowRecursively": ""
+                },
+                "properties": {
+                    "bAlarm": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 21,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bAutorangeDisabled": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 9,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bCalibrating": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 11,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bConfigValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 16,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bConversionError": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 10,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bCurrentValid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 2,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bDataInvalid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 7,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bExtendedRange": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 6,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bFuseOperational": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 15,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bMeasurementStale": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 3,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bMeterOperational": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 14,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOvercurrentTrip": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 17,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bOverrange": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 5,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bPdoInvalid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 12,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bPdoToggle": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 13,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bPermitOn": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 19,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bPermitTripReset": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 20,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bPowerOn": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 1,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bRangeInvalid": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 8,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bShutdownUnconfirmed": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 18,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bUnderrange": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 4,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "bWarning": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/BOOL"
+                            },
+                            {
+                                "propertyOrder": 22,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrCurrent_A": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 23,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "lrTripCurrent_A": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "propertyOrder": 24,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nLastCommand": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/DINT"
+                            },
+                            {
+                                "propertyOrder": 26,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "nMeterStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/UINT"
+                            },
+                            {
+                                "propertyOrder": 25,
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    "sCommandResult": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 28
+                            }
+                        ]
+                    },
+                    "sMeasurementStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 29
+                            }
+                        ]
+                    },
+                    "sStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-255-ReadOnly-ShowRecursively"
+                            },
+                            {
+                                "propertyOrder": 27
+                            }
+                        ]
+                    }
+                },
+                "readOnly": true,
                 "type": "object"
             },
             "ADS-NOTT_CRYO_PLC.T_NOTT_FAN_CFG": {
@@ -26715,6 +28366,27 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_base_plate_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 20
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_1": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -26753,6 +28425,27 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "propertyOrder": 39
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_cabinet_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 40
                     }
                 ]
             },
@@ -26801,6 +28494,27 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_detector_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_detector_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 26
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_1": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -26839,6 +28553,91 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "propertyOrder": 31
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_flat_field_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 32
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_master",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "System temperatures   (* 3 *)\r\n Legacy system-temperature channels; not used for cryostat state estimation.",
+                        "propertyOrder": 27
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master_vot_1": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_master_vot_1",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 28
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master_vot_2": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_master_vot_2",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 29
                     }
                 ]
             },
@@ -26887,6 +28686,27 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_photonic_chip_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_photonic_chip_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 17
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_shield_1": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -26925,6 +28745,27 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "propertyOrder": 22
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_shield_vote": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_shield_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 23
                     }
                 ]
             },
@@ -26973,11 +28814,95 @@
             },
             "USEMAPPING": true
         },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1": {
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_sidecar_vote": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
             "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_1",
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_sidecar_vote",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 14
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_heatexchanger_inlet",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 36
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_inlet",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 35
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_inside",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 34
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_outside",
             "SCHEMA": {
                 "allOf": [
                     {
@@ -26995,11 +28920,11 @@
             },
             "USEMAPPING": true
         },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2": {
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_vote": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
             "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_2",
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_vote",
             "SCHEMA": {
                 "allOf": [
                     {
@@ -27010,49 +28935,7 @@
                             "OPC.UA.DA": "1",
                             "TcHmiSymbol.Show": ""
                         },
-                        "propertyOrder": 34
-                    }
-                ]
-            },
-            "USEMAPPING": true
-        },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3": {
-            "ACCESS": 3,
-            "DOMAIN": "ADS",
-            "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_3",
-            "SCHEMA": {
-                "allOf": [
-                    {
-                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
-                    },
-                    {
-                        "attributes": {
-                            "OPC.UA.DA": "1",
-                            "TcHmiSymbol.Show": ""
-                        },
-                        "propertyOrder": 35
-                    }
-                ]
-            },
-            "USEMAPPING": true
-        },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4": {
-            "ACCESS": 3,
-            "DOMAIN": "ADS",
-            "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_temp::t_thermal_box_4",
-            "SCHEMA": {
-                "allOf": [
-                    {
-                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_TEMPERATURE"
-                    },
-                    {
-                        "attributes": {
-                            "OPC.UA.DA": "1",
-                            "TcHmiSymbol.Show": ""
-                        },
-                        "propertyOrder": 36
+                        "propertyOrder": 37
                     }
                 ]
             },
@@ -27473,7 +29356,7 @@
                         "$ref": "tchmi:general#/definitions/BOOL"
                     },
                     {
-                        "comment": "Set only after both cooling loops are tuned",
+                        "comment": "Legacy commissioning record; not an enable interlock",
                         "propertyOrder": 4
                     }
                 ]
@@ -27695,6 +29578,153 @@
                         },
                         "comment": "Status as text",
                         "propertyOrder": 14
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::cfg",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_CFG-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.ShowRecursively": ""
+                        },
+                        "propertyOrder": 2
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::ctrl",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_CTRL-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.ShowRecursively": ""
+                        },
+                        "propertyOrder": 3
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::fuseDetectorPower::cfg",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_CFG-ReadOnly-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "TcHmiSymbol.ShowRecursively": ""
+                        },
+                        "propertyOrder": 4
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::fuseDetectorPower::i_stStatus",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_STATUS-ReadOnly-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "0",
+                            "TcDataArea": "Input"
+                        },
+                        "propertyOrder": 19
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::fuseDetectorPower::stat",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Fuse_Library.T_FUSE_STAT-ReadOnly-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "OPC.UA.DA": "1",
+                            "OPC.UA.DA.Access": "1",
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "ReadOnly",
+                        "propertyOrder": 7
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::fuseDetectorPower::stat::bLocal",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "if TRUE, device operated from PLC GUI",
+                        "propertyOrder": 1,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_detector_power::stat",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.T_NOTT_DETECTOR_POWER_STAT-ReadOnly-ShowRecursively"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.ShowRecursively": ""
+                        },
+                        "propertyOrder": 4
                     }
                 ]
             },
@@ -30910,6 +32940,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -30931,6 +32968,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 1,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 1,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -30952,6 +32996,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.cfg": 1,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.ctrl": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1,
                 "AddOrChangeUser": 0,
                 "ChangeUserSettings": 0,
                 "RemoveUser": 0,
@@ -30967,7 +33018,15 @@
             "FILEACCESS": 3,
             "FILES": {},
             "SYMBOLACCESS": 3,
-            "SYMBOLS": {}
+            "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1
+            }
         },
         "__SystemGuests": {
             "ENABLED": true,
@@ -30980,6 +33039,13 @@
             },
             "SYMBOLACCESS": 0,
             "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1,
                 "DefaultAuthExtension": 1,
                 "DefaultUserGroup": 1,
                 "GetCurrentUser": 3,
@@ -31000,7 +33066,15 @@
             "FILEACCESS": 3,
             "FILES": {},
             "SYMBOLACCESS": 0,
-            "SYMBOLS": {}
+            "SYMBOLS": {
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1
+            }
         },
         "__SystemUsers": {
             "ENABLED": true,
@@ -31057,22 +33131,35 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.empty_temp": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_detector": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_detector_spare": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_detector_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_vote": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master_vot_1": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_master_vot_2": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_photonic_chip_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_photonic_chip_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_photonic_chip_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_shield_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_shield_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_shield_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_sidecar_1": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_sidecar_2": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_sidecar_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1": 3,
-                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3": 3,
-                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_vote": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_base_plate": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_cabinet": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_detector": 3,
@@ -31103,6 +33190,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStop": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.bActive": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.sStatus": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.ctrl": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.cfg": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.i_stStatus": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat.bLocal": 1,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat": 1,
                 "ChangeUserSettings": 3,
                 "Config.ENABLE_READ_BEFORE_WRITE": 3,
                 "ConfirmAlarm": 3,

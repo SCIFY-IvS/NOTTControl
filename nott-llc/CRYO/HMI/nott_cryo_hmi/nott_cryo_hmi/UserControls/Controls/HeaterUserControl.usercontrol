@@ -91,7 +91,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -102,7 +102,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -122,7 +122,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -133,7 +133,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -153,7 +153,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -164,7 +164,7 @@
                 "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -180,7 +180,7 @@
               "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
               "value": {
                 "objectType": "StaticValue",
-                "valueType": "tchmi:general#/definitions/Boolean",
+                "valueType": "tchmi:general#/definitions/BOOL",
                 "value": false
               },
               "asyncWait": true
@@ -191,7 +191,7 @@
               "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
               "value": {
                 "objectType": "StaticValue",
-                "valueType": "tchmi:general#/definitions/Boolean",
+                "valueType": "tchmi:general#/definitions/BOOL",
                 "value": false
               },
               "asyncWait": true

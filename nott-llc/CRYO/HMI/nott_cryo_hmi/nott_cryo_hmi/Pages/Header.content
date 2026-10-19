@@ -1,4 +1,53 @@
 <div id="Header" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="1280" data-tchmi-height="110" data-tchmi-width-unit="px">
+<script type="application/json" data-tchmi-target-attribute="data-tchmi-trigger">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onAttached",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTHeaderStatus",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Attach"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onDetached",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTHeaderStatus",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Detach"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+
 
 <script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
 {
@@ -114,9 +163,9 @@
 </div>
 <div id="Header_NavigationButton_Events" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%EventsIcon%/tr%" data-tchmi-label="%l%L_Events%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="Events" data-tchmi-grid-column-index="3" data-tchmi-grid-row-index="0">
 </div>
-<div id="Header_NavigationButton_ContentTest" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%ThermalBoxIcon%/tr%" data-tchmi-label="Thermal Box" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="ThermalBox" data-tchmi-grid-column-index="2" data-tchmi-grid-row-index="0">
+<div id="Header_NavigationButton_ThermalBox" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%ThermalBoxIcon%/tr%" data-tchmi-label="Thermal Box" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="ThermalBox" data-tchmi-grid-column-index="2" data-tchmi-grid-row-index="0">
 </div>
-<div id="Header_NavigationButton_ContentTest_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-label="Detector Power" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="DetectorPower" data-tchmi-grid-column-index="5" data-tchmi-grid-row-index="0">
+<div id="Header_NavigationButton_DetectorPower" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-label="Detector Power" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="DetectorPower" data-tchmi-grid-column-index="5" data-tchmi-grid-row-index="0">
 </div>
 </div>
 </div>

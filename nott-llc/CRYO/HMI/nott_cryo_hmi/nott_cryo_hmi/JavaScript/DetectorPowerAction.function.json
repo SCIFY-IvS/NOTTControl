@@ -1,0 +1,32 @@
+{
+  "function": {
+    "name": "DetectorPowerAction",
+    "namespace": "TcHmi.Functions.NOTT",
+    "displayName": "Detector Power Action",
+    "description": "Guarded detector power commands and configuration.",
+    "waitMode": "Synchronous",
+    "category": "NOTT",
+    "returnValue": null,
+    "visible": true,
+    "injectContextObject": false,
+    "arguments": [
+      {
+        "name": "ownerId",
+        "displayName": "ownerId",
+        "type": "tchmi:general#/definitions/String",
+        "description": "ownerId",
+        "defaultValue": ""
+      },
+      {
+        "name": "action",
+        "displayName": "action",
+        "type": "tchmi:general#/definitions/String",
+        "description": "action",
+        "defaultValue": ""
+      }
+    ]
+  },
+  "$schema": "../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.6.3/runtimes/native1.12-tchmi/Schema/FunctionDescription.Schema.json",
+  "apiVersion": 1,
+  "dependencyFiles": []
+}

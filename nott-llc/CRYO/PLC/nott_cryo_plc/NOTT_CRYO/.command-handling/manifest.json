@@ -1,0 +1,22 @@
+[
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\JavaScript\\NOTTFanAction.js",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.command-handling\\files\\JavaScript\\NOTTFanAction.js",
+    "hash": "566c47f65ef978e438b4d4bfbc242e563407d27526b86916efe38a9d08a18924"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\JavaScript\\DetectorPowerAction.js",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.command-handling\\files\\JavaScript\\DetectorPowerAction.js",
+    "hash": "c79315e61ad4b54bee9746df9384f42bf7743beb9794e0572548521d10a44b66"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\ThermalBox.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.command-handling\\files\\Pages\\ThermalBox.content",
+    "hash": "3a1e3e899a309222a06f0be50c0e52b8d350442bcea5e5c01a1e25617178cf9c"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\tests\\NOTTFanAction.test.cjs",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.command-handling\\files\\tests\\NOTTFanAction.test.cjs",
+    "hash": "855f1a26ffa07e11889f12e03fbd2847535a97a51a8dbf772b1763061bda6735"
+  }
+]

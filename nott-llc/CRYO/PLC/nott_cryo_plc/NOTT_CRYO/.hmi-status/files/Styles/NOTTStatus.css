@@ -1,0 +1,13 @@
+/* Scope status colors to the three monitored navigation controls only. */
+.nott-status-active .tchmi-button {
+    background: #287a3d !important;
+    color: #ffffff !important;
+}
+.nott-status-alarm .tchmi-button {
+    background: #b3272d !important;
+    color: #ffffff !important;
+}
+.nott-status-active .tchmi-button-template-content-text,
+.nott-status-alarm .tchmi-button-template-content-text {
+    color: #ffffff !important;
+}

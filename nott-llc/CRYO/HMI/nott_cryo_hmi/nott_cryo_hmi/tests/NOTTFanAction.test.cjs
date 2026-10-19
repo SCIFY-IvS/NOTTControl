@@ -13,7 +13,7 @@ const defaults = {lrMinRunningDutyPct:20,lrMaxDutyPct:100,lrStartDutyPct:100,tSt
 const names = {MinDuty:'lrMinRunningDutyPct',MaxDuty:'lrMaxDutyPct',StartDuty:'lrStartDutyPct',BoostTime:'tStartBoost',RpmWindow:'tRpmWindow',StallDelay:'tStallDelay',Pulses:'nPulsesPerRevolution',FullScale:'nPwmFullScale'};
 function setup(overrides={}) {
     let action;
-    const values=Object.assign({[box+'.stat']:{bActive:false,bPermitStart:true,bSafetyTrip:false},
+    const values=Object.assign({[box+'.ctrl']:{bEnable:false,bStop:false},[box+'.stat']:{bActive:false,bPermitStart:true,bSafetyTrip:false},
         [fan+'.ctrl']:{bAuto:false,bEnable:false,lrManualDutyPct:15},[fan+'.stat']:{bActive:false,lrDutyPct:37},
         [fan+'::stat::bActive']:false,[fan+'.cfg']:{...defaults}},overrides);
     const writes=[],controls={};
@@ -28,7 +28,18 @@ function setup(overrides={}) {
         assert.equal(name,'NOTTFanAction');assert.equal(namespace,'TcHmi.Functions.NOTT');action=fn;
     }},Symbol:{readEx2(expr,cb){const key=expr.slice(3,-4);queueMicrotask(()=>cb(key in values?{error:0,value:structuredClone(values[key])}:{error:1}));},
         writeEx(expr,value,cb){const key=expr.slice(3,-4);writes.push({key,value:structuredClone(value)});
-            if(!api.denyWrites)values[key]=structuredClone(value);
+            if(!api.denyWrites){
+                values[key]=structuredClone(value);
+                if(key===box+'.ctrl::bStop'){
+                    values[box+'.ctrl']={bEnable:false,bStop:false};
+                    if(values[box+'.stat'])values[box+'.stat'].bActive=false;
+                }
+                if(key===box+'.ctrl::bEnable'){
+                    const enabled=value===true&&values[box+'.stat']?.bSafetyTrip!==true;
+                    values[box+'.ctrl']={bEnable:enabled,bStop:false};
+                    if(values[box+'.stat'])values[box+'.stat'].bActive=enabled;
+                }
+            }
             queueMicrotask(()=>cb(api.denyWrites?{error:0,response:{commands:[{error:1001}]}}:{error:0}));}}};
     vm.runInNewContext(source,{TcHmi:api,WeakMap,WeakSet,Promise,setTimeout,clearTimeout,Number,Object,Error});
     return {values,writes,controls,api,fire(name){action('test',fan,box,name);},async run(name){action('test',fan,box,name);for(let i=0;i<15;i++)await new Promise(r=>setImmediate(r));}};
@@ -38,7 +49,9 @@ function setup(overrides={}) {
     t=setup({[box+'.stat']:{bPermitStart:false,bSafetyTrip:false}});await t.run('ThermalEnable');assert.equal(t.writes[0].key,box+'.ctrl::bEnable');
     t=setup();delete t.values[box+'.stat'];await t.run('ThermalEnable');assert.equal(t.writes[0].key,box+'.ctrl::bEnable');
     t=setup({[box+'.stat']:{bSafetyTrip:true}});await t.run('ThermalEnable');assert.equal(t.writes[0].key,box+'.ctrl::bEnable');
-    t=setup();delete t.values[box+'.stat'];await t.run('ThermalDisable');assert.equal(t.writes[0].key,box+'.ctrl::bEnable');assert.equal(t.writes[0].value,false);assert.equal(t.writes[1].key,box+'.ctrl::bStop');
+    t=setup();delete t.values[box+'.stat'];await t.run('ThermalDisable');assert.equal(t.writes.length,1);assert.equal(t.writes[0].key,box+'.ctrl::bStop');assert.equal(t.writes[0].value,true);
+    t=setup();delete t.controls.Test_Feedback;await t.run('ThermalDisable');assert.equal(t.writes[0].key,box+'.ctrl::bStop');
+    t=setup();await t.run('ThermalEnable');assert.match(t.controls.Test_Feedback.text,/PLC confirmed/);await t.run('ThermalDisable');assert.match(t.controls.Test_Feedback.text,/disabled \(PLC confirmed\)/);
     t=setup();delete t.values[box+'.stat'];await t.run('Disable');assert.equal(t.writes[0].key,fan+'.ctrl');assert.equal(t.writes[0].value.bEnable,false);
     t=setup();let release;const reader=t.api.Symbol.readEx2;t.api.Symbol.readEx2=(expr,cb)=>{release=()=>reader(expr,cb);};
     t.fire('Enable');await t.run('Disable');release();await new Promise(r=>setImmediate(r));assert.equal(t.writes.length,1);assert.equal(t.writes[0].key,fan+'.ctrl');

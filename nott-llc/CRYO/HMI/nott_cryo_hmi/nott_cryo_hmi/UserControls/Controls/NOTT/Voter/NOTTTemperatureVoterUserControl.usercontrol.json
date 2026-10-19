@@ -65,7 +65,7 @@
       "name": "data-tchmi-signed",
       "displayName": "Signed",
       "visible": true,
-      "type": "tchmi:general#/definitions/Boolean",
+      "type": "tchmi:general#/definitions/BOOL",
       "category": "",
       "description": "",
       "readOnly": false,

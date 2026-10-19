@@ -1,0 +1,118 @@
+<div id="DetectorPowerConfiguration" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-left="0" data-tchmi-top="0" data-tchmi-width="1280" data-tchmi-height="490" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px"><div id="DetectorPowerConfiguration_Title" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="8" data-tchmi-width="1200" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Detector Power Configuration" data-tchmi-text-font-size="18" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_NameLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="58" data-tchmi-width="200" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Fuse name" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Name" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-left="235" data-tchmi-top="58" data-tchmi-width="355" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text=""><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_FuseTimeoutLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="112" data-tchmi-width="200" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Fuse timeout [ms]" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_FuseTimeout" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="235" data-tchmi-top="112" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="100" data-tchmi-max-value="600000" data-tchmi-value="100" data-tchmi-decimal-digits="0"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_Log" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCheckbox" data-tchmi-left="20" data-tchmi-top="170" data-tchmi-width="250" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Fuse event logging"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_AutoOp" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCheckbox" data-tchmi-left="300" data-tchmi-top="170" data-tchmi-width="290" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Automatic software OP"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_Local" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiCheckbox" data-tchmi-left="20" data-tchmi-top="228" data-tchmi-width="250" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Local PLC GUI control"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_ApplyLocal" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="300" data-tchmi-top="228" data-tchmi-width="210" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Apply ownership" data-tchmi-tooltip="Apply ownership" data-tchmi-is-enabled="true"><script type="application/json" data-tchmi-target-attribute="data-tchmi-trigger">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.DetectorPowerAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ApplyLocal"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_LimitLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="670" data-tchmi-top="58" data-tchmi-width="270" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Immediate trip limit [A]" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Limit" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="960" data-tchmi-top="58" data-tchmi-width="220" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="0.001" data-tchmi-max-value="10" data-tchmi-value="0.001" data-tchmi-decimal-digits="3"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_StaleTimeLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="670" data-tchmi-top="112" data-tchmi-width="270" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Measurement timeout [ms]" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_StaleTime" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiNumericInput" data-tchmi-left="960" data-tchmi-top="112" data-tchmi-width="220" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-min-value="100" data-tchmi-max-value="600000" data-tchmi-value="100" data-tchmi-decimal-digits="0"><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_Save" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="670" data-tchmi-top="228" data-tchmi-width="220" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Apply configuration" data-tchmi-tooltip="Apply configuration" data-tchmi-is-enabled="true"><script type="application/json" data-tchmi-target-attribute="data-tchmi-trigger">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.DetectorPowerAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "SaveConfig"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"},{"accessright":"operate","group":"Operation","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_Reload" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="920" data-tchmi-top="228" data-tchmi-width="180" data-tchmi-height="32" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Reload" data-tchmi-tooltip="Reload" data-tchmi-is-enabled="true"><script type="application/json" data-tchmi-target-attribute="data-tchmi-trigger">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.DetectorPowerAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "LoadConfig"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script type="application/json" data-tchmi-target-attribute="data-tchmi-access-config">[{"accessright":"operate","group":"Monitoring","permission":"Deny"}]</script></div>
+<div id="DetectorPowerConfiguration_TripStatus_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="670" data-tchmi-top="302" data-tchmi-width="175" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Trip latched" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_TripStatus_Value" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="855" data-tchmi-top="302" data-tchmi-width="395" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat::bOvercurrentTrip%/s%" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Remote_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="302" data-tchmi-width="175" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Local control" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Remote_Value" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="205" data-tchmi-top="302" data-tchmi-width="395" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.fuseDetectorPower.stat::bLocal%/s%" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Result" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="362" data-tchmi-width="1240" data-tchmi-height="60" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_detector_power.stat::sCommandResult%/s%" data-tchmi-text-font-size="14" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="DetectorPowerConfiguration_Feedback" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="455" data-tchmi-width="1240" data-tchmi-height="30" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="" data-tchmi-text-font-size="12" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center"></div>
+<script type="application/json" data-tchmi-target-attribute="data-tchmi-trigger">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onAttached",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.DetectorPowerAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "LoadConfig"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script></div>

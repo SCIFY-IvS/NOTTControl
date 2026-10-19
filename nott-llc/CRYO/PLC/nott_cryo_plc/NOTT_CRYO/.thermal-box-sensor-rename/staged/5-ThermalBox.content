@@ -1,0 +1,513 @@
+<div id="ThermalBox" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="1280" data-tchmi-height="680"><div id="CryogenicControllert_METISAnalogSensorUserControl_19" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="2" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="19" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol" data-tchmi-top="233" data-tchmi-top-unit="px" data-tchmi-unit="K" data-tchmi-unittextboxwidth="20" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-mettempobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside%/s%">
+</div>
+<div id="CryogenicControllert_METISAnalogSensorUserControl_20" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="2" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="244" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol" data-tchmi-top="457" data-tchmi-top-unit="px" data-tchmi-unit="K" data-tchmi-unittextboxwidth="20" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-mettempobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet%/s%">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAG1_Label_11" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="41" data-tchmi-left-unit="px" data-tchmi-text="Thermal Box" data-tchmi-top="40" data-tchmi-top-unit="px" data-tchmi-width="300" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="18" data-tchmi-text-font-weight="Normal" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="25">
+</div>
+<div id="CryogenicControllert_METISAnalogSensorUserControl_21" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="2" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="722" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol" data-tchmi-top="544" data-tchmi-top-unit="px" data-tchmi-unit="K" data-tchmi-unittextboxwidth="20" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-mettempobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside%/s%">
+</div>
+<div id="CryogenicControllert_METISAnalogSensorUserControl_22" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="2" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="208" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol" data-tchmi-top="559" data-tchmi-top-unit="px" data-tchmi-unit="K" data-tchmi-unittextboxwidth="20" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-mettempobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet%/s%">
+</div>
+<div id="METISTemperatureVoterUserControl_10" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="249" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol" data-tchmi-top="257" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="20" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-zindex="1" data-tchmi-tempvoteobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_thermal_box%/s%">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ThermalBoxVotePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-tempvoteobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_thermal_box%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Base Plate Temp Vote"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": []
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": true
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_thermal_box%/s%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 600.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 600.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGC_Label_18" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="249" data-tchmi-left-unit="px" data-tchmi-text="Outside Vote" data-tchmi-top="233" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24" data-tchmi-zindex="1">
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_20" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="515" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="198" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="103">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_113" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="500" data-tchmi-top="201" data-tchmi-width="36" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="2" data-tchmi-x1="1">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_114" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="584" data-tchmi-top="198" data-tchmi-width="405" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="2" data-tchmi-x1="1">
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_21" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="599" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="198" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="103">
+</div>
+<div id="METISTemperatureController_12" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="537" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="178" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl%/s%" data-tchmi-zindex="1">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "tTBoxFanPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-tctrlobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "TCtrl Thermal Box Fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": []
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": true
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "symbolExpression": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_fan_ctrl%/s%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 960.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 640.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_22" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="517" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="317" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="103">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_115" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="502" data-tchmi-top="320" data-tchmi-width="36" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="2" data-tchmi-x1="1">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_116" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="588" data-tchmi-top="320" data-tchmi-width="43" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="2" data-tchmi-x1="1">
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_23" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="601" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="317" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="103">
+</div>
+<div id="METISTemperatureController_13" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="539" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="297" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-zindex="1" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl%/s%">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "tTboxValveCtrlPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-tctrlobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "TCtrl Thermal Box Valve"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": []
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": true
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_thermalbox_valve_ctrl%/s%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 960.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 640.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="METISControlValveUserControl_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="75" data-tchmi-height-unit="px" data-tchmi-left="612" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NOTT/ControlValves/METISControlValveUserControl.usercontrol" data-tchmi-top="411" data-tchmi-top-unit="px" data-tchmi-width="75" data-tchmi-width-unit="px" data-tchmi-ctrlvalveobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve%/s%">
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "CtrlValveCoolantPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/NOTT/ControlValves/METISControlValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-ctrlvalveobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Thermal Box Coolant Flow Control"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": []
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/BOOL",
+            "value": true
+          },
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve%/s%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 550.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 650.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="ThermalBox_TcHmiLine_Type2_Connection4_7" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="187" data-tchmi-left-unit="px" data-tchmi-top="438" data-tchmi-top-unit="px" data-tchmi-width="436" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="5" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ThermalBox_TcHmiLine_Type2_Connection4_8" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="676" data-tchmi-left-unit="px" data-tchmi-top="436" data-tchmi-top-unit="px" data-tchmi-width="214" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="5" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ThermalBox_HeatExchanger" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-left="889" data-tchmi-top="405" data-tchmi-width="160" data-tchmi-height="130" data-tchmi-src="Images/NOTT/HeatExchanger.svg" data-tchmi-tooltip="Chilled-water / air heat exchanger"></div>
+<div id="ThermalBox_NOTTFan" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-left="1097" data-tchmi-top="395" data-tchmi-width="155" data-tchmi-height="150" data-tchmi-target-user-control="UserControls/Controls/NOTT/Fan/NOTTFanUserControl.usercontrol" data-tchmi-fanobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan%/s%" data-tchmi-thermalstatus="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat%/s%" data-tchmi-fansymbol="ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan" data-tchmi-controlsymbol="ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl"></div>
+<div id="ThermalBox_HeatExchangerLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="882" data-tchmi-top="370" data-tchmi-width="250" data-tchmi-height="25" data-tchmi-text="Water / air heat exchanger" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="ThermalBox_OutsideLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="19" data-tchmi-top="203" data-tchmi-width="220" data-tchmi-height="25" data-tchmi-text="Outside / setpoint" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="ThermalBox_InsideLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="722" data-tchmi-top="516" data-tchmi-width="150" data-tchmi-height="25" data-tchmi-text="Inside / process value" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="ThermalBox_CoolantInLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="244" data-tchmi-top="405" data-tchmi-width="210" data-tchmi-height="25" data-tchmi-text="Thermal box inlet" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="ThermalBox_CoolantOutLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="208" data-tchmi-top="532" data-tchmi-width="210" data-tchmi-height="25" data-tchmi-text="Heat exchanger inlet" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center"></div>
+<div id="ThermalBox_ReturnDrop" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-left="1047" data-tchmi-top="505" data-tchmi-width="24" data-tchmi-height="103" data-tchmi-x1="0" data-tchmi-x2="0" data-tchmi-y1="0" data-tchmi-y2="1" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="5" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%"></div>
+<div id="ThermalBox_ReturnPipe" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-left="188" data-tchmi-top="606" data-tchmi-width="864" data-tchmi-height="20" data-tchmi-x1="0" data-tchmi-x2="1" data-tchmi-y1="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="5" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%"></div>
+<div id="ThermalBox_Enable" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="350" data-tchmi-top="35" data-tchmi-width="180" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Enable thermal box" data-tchmi-tooltip="Enable thermal box" data-tchmi-is-enabled="true"><script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ThermalEnable"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"}]</script></div>
+<div id="ThermalBox_Disable" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="550" data-tchmi-top="35" data-tchmi-width="180" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Disable thermal box" data-tchmi-tooltip="Disable thermal box" data-tchmi-is-enabled="true"><script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ThermalDisable"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"}]</script></div>
+<div id="ThermalBox_ResetSafety" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="750" data-tchmi-top="35" data-tchmi-width="170" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Reset safety" data-tchmi-tooltip="Reset safety" data-tchmi-is-enabled="%f%%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bSafetyTrip%/s% === true%/f%"><script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ResetSafety"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"}]</script></div>
+<div id="ThermalBox_ConfirmAlarms" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-left="940" data-tchmi-top="35" data-tchmi-width="180" data-tchmi-height="34" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="Confirm alarms" data-tchmi-tooltip="Confirm alarms" data-tchmi-is-enabled="true"><script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.NOTT.NOTTFanAction",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%ctx%owner::Id%/ctx%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ConfirmAlarms"
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script><script data-tchmi-target-attribute="data-tchmi-access-config" type="application/json">[{"accessright":"operate","group":"Monitoring","permission":"Deny"}]</script></div>
+<div id="ThermalBox_RoutineStatus" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="78" data-tchmi-width="1240" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::sStatus%/s%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_TargetStatus" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="110" data-tchmi-width="440" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Target: ' + Number(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::lrTargetTempK%/s%).toFixed(2) + ' K | Inside: ' + Number(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::lrInsideTempK%/s%).toFixed(2) + ' K'%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_StartInhibit" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="480" data-tchmi-top="110" data-tchmi-width="780" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::sStartInhibitReason%/s%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Mode0" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="142" data-tchmi-width="300" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Fan device: ' + (%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bFanManual%/s% === true ? 'MANUAL' : 'AUTO')%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Mode1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="330" data-tchmi-top="142" data-tchmi-width="300" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Valve device: ' + (%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bValveManual%/s% === true ? 'MANUAL' : 'AUTO')%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Mode2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="640" data-tchmi-top="142" data-tchmi-width="300" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Fan PID: ' + (%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bFanLoopManual%/s% === true ? 'MANUAL' : 'AUTO')%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Mode3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="950" data-tchmi-top="142" data-tchmi-width="300" data-tchmi-height="28" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Valve PID: ' + (%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bValveLoopManual%/s% === true ? 'MANUAL' : 'AUTO')%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Diagnostic0" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="210" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Control sensors valid: ' + String(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bControlSensorsValid%/s%)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Diagnostic1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="235" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Sensor hold active: ' + String(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bSensorFaultHold%/s%)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Diagnostic2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="260" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Safety stop latched: ' + String(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bSafetyTrip%/s%)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Diagnostic3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="285" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Routine alarm: ' + String(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bAlarm%/s%)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Diagnostic4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="310" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Routine warning: ' + String(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::bWarning%/s%)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_SensorHoldTime" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="935" data-tchmi-top="335" data-tchmi-width="330" data-tchmi-height="24" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="%f%'Sensor hold [min]: ' + (Number(%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.thermal_box_ctrl.stat::tSensorFaultElapsed%/s%) / 60000).toFixed(1)%/f%" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+<div id="ThermalBox_Feedback" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="20" data-tchmi-top="637" data-tchmi-width="1240" data-tchmi-height="36" data-tchmi-left-unit="px" data-tchmi-top-unit="px" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-text="" data-tchmi-text-font-size="14" data-tchmi-text-vertical-alignment="Center" data-tchmi-word-wrap="true"></div>
+</div>

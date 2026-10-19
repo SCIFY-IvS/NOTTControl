@@ -26,8 +26,14 @@
     }
     function scope(owner) {
         var control = TcHmi.Controls.get(owner);
-        while (control && !find(control, '_Feedback')) {
-            control = control.getParent ? control.getParent() : null;
+        while (control) {
+            if (find(control, '_Feedback')) return control;
+            var type = control.getType ? control.getType() : '';
+            if (type === 'TcHmi.Controls.System.TcHmiContent' ||
+                type === 'TcHmi.Controls.System.TcHmiUserControl') return control;
+            var parent = control.getParent ? control.getParent() : null;
+            if (!parent) return control;
+            control = parent;
         }
         return control;
     }
@@ -75,10 +81,10 @@
             if (typeof n !== 'number' || !Number.isFinite(n) || n < field[2] || n > field[3] ||
                 (field[4] && !Number.isInteger(n))) throw new Error('Invalid value: ' + field[1]);
         });
-        if (cfg.lrMinRunningDutyPct <= 0 || cfg.lrMinRunningDutyPct > cfg.lrMaxDutyPct)
-            throw new Error('Minimum running duty must be above zero and no greater than maximum duty.');
-        if (cfg.lrStartDutyPct < cfg.lrMinRunningDutyPct || cfg.lrStartDutyPct > cfg.lrMaxDutyPct)
-            throw new Error('Startup duty must lie between minimum and maximum duty.');
+        if (cfg.lrMinRunningDutyPct <= 0)
+            throw new Error('Tach monitoring threshold must be above zero and at most 100%.');
+        if (cfg.lrStartDutyPct <= 0 || cfg.lrStartDutyPct > cfg.lrMaxDutyPct)
+            throw new Error('Startup duty must be above zero and no greater than maximum duty.');
         if (cfg.tStallDelay < cfg.tStartBoost)
             throw new Error('Stall delay must be at least the startup boost duration.');
         if (typeof cfg.bInvertPwmOutput !== 'boolean' || typeof cfg.bInvertTachInput !== 'boolean')
@@ -108,14 +114,31 @@
             return write(symbol, value);
         }
         function report(message) { if (isCurrent()) feedback(root, message); }
+        async function confirmRoutine(enabled) {
+            for (var attempt = 0; attempt < 20; attempt++) {
+                if (!isCurrent()) return;
+                var actual = await read(box + '.ctrl');
+                var state = await read(box + '.stat');
+                if (actual.bEnable === enabled && state.bActive === enabled &&
+                    (enabled || actual.bStop === false)) {
+                    report(enabled ? 'Thermal box enabled (PLC confirmed).' : 'Thermal box disabled (PLC confirmed).');
+                    return;
+                }
+                if (enabled && state.bSafetyTrip === true) {
+                    report('Enable refused by PLC: safety stop latched.');
+                    return;
+                }
+                await new Promise(function (resolve) { setTimeout(resolve, 100); });
+            }
+            throw new Error('Request sent, but PLC routine state was not confirmed. Check connection and PLC status.');
+        }
         if (typeof fan !== 'string' || typeof box !== 'string' || fan !== box + '.fan' ||
             !box.startsWith('ADS.')) throw new Error('Invalid fan/coordinator symbol parameters.');
         // Routine stop and device stop are deliberately separate commands.
         if (action === 'ThermalDisable') {
-            // Preserve the existing stop path while PLC/HMI versions are being aligned.
-            await send(box + '.ctrl::bEnable', false);
+            // Stop is unconditional; the PLC clears enable and stops both devices.
             await send(box + '.ctrl::bStop', true);
-            report('Stop requested; verify fan and valve status.');
+            await confirmRoutine(false);
             return;
         }
         if (action === 'Disable') {
@@ -125,7 +148,7 @@
         }
         if (action === 'ThermalEnable') {
             await send(box + '.ctrl::bEnable', true);
-            report('Enable requested. PLC status reports automatic availability or a safety stop.');
+            await confirmRoutine(true);
             return;
         }
         var status = await read(box + '.stat');

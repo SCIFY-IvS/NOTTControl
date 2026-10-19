@@ -142,7 +142,7 @@
                 "symbolExpression": "%ctrl%PumpOperateTab_EngineeringMode_2::IsInEngineeringMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -157,7 +157,7 @@
                 "symbolExpression": "%ctrl%PumpOperateTab_EngineeringMode_2::IsInEngineeringMode%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true

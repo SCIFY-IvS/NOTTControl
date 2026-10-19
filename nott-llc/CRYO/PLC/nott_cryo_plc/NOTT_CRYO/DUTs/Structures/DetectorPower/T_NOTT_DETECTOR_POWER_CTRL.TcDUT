@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <DUT Name="T_NOTT_DETECTOR_POWER_CTRL" Id="{92fc8f41-e179-4b6b-b7bc-dbfda2b5b558}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.ShowRecursively'}
+TYPE T_NOTT_DETECTOR_POWER_CTRL :
+STRUCT
+    nCommand: DINT; // E_FUSE_COMMAND, consumed with bExecute
+    bExecute: BOOL;
+    bResetOvercurrent: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

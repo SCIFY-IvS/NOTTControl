@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <DUT Name="T_NOTT_DETECTOR_POWER_CFG" Id="{21f63f47-dd54-4609-82e5-2b8672d15d52}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.ShowRecursively'}
+TYPE T_NOTT_DETECTOR_POWER_CFG :
+STRUCT
+    lrCurrentTrip_A: LREAL := 2.5;
+    tMeasurementTimeout: TIME := T#5S;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

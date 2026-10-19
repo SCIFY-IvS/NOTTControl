@@ -27,6 +27,166 @@
 			</SubItem>
 		</DataType>
 		<DataType>
+			<Name GUID="{E61E2ECB-A23A-0A33-7018-4AA04496E443}" Namespace="METIS_Fuse_Library" AutoDeleteType="true">T_FUSE_STATUS</Name>
+			<BitSize>32</BitSize>
+			<SubItem>
+				<Name>bEnabled</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 0]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bTripped</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 1]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>1</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bShortCircuit</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 2]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>2</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bOverload</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 3]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>3</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bHardwareProtection</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 4]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>4</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bOvervoltage</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 5]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>5</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUndervoltage</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 6]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>6</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bCurrentLevelWarning</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 7]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>7</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bCoolDownLock</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 8]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>8</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bDisabledBySwitch</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 9]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>9</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bDisabledByDI</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 10]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>10</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bDisabledByOutput</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 11]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>11</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bDiag</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 12]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>12</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bTxPDOState</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 13]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>13</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bInputCycleCounterBit0</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 14]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>14</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bInputCycleCounterBit1</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 15]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>15</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bStateDeviceSwitch</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 16]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>16</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bStateDigitalInput</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 17]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>17</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bError</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 18]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>18</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bStateReset</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 19]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>19</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bStateSwitch</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000010}">BIT</Type>
+				<Comment><![CDATA[ 1 << 20]]></Comment>
+				<BitSize>1</BitSize>
+				<BitOffs>20</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>_padding</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000001}">BYTE</Type>
+				<Comment><![CDATA[ we add a padding byte to make sure that the struct is
+ always represented as 4 bytes (and not 3 bytes), so it 
+ can more easily be casted from/to the corresponding 4-byte int]]></Comment>
+				<BitSize>8</BitSize>
+				<BitOffs>24</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
 			<Name GUID="{79129C14-7549-7C51-1EF4-288B9700CED8}" Namespace="ESO_Cryo_HMI_Library.ESO_LDC_Cryo_Library.Tc2_SerialCom" AutoDeleteType="true">KL6outData22B</Name>
 			<Comment><![CDATA[ This data type is corresponding to the
    KL-6xxx data structure used in the
@@ -225,9 +385,17 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{897FAD58-3A43-5DD7-1B40-762ABC1DF9FD}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{3C3B3F49-AB3B-F2E8-808D-249A3DD361E9}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="8" AreaNo="4">
+						<Name>PlcTask Retains</Name>
+						<Var>
+							<Name>MAIN.nott_detector_power.bOvercurrentLatched</Name>
+							<Type>BOOL</Type>
+							<InOut>7</InOut>
+						</Var>
+					</Vars>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
 						<Var>
@@ -1210,6 +1378,16 @@
 							<Comment><![CDATA[ HMI power output;]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.q_bSwitch</Name>
+							<Comment><![CDATA[// Physical signals - to be mapped!!! /////]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.q_bReset</Name>
+							<Comment><![CDATA[ reset trip]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
@@ -1820,94 +1998,94 @@
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_nStatus</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_nStatus</Name>
 							<Type>UINT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_nValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_nValue</Name>
 							<Type>INT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_fValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_fValue</Name>
 							<Comment><![CDATA[ lower precision, used e.g. by LS240]]></Comment>
 							<Type>REAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_lrValue</Name>
 							<Comment><![CDATA[ higher precision, used by other sources]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_bValid</Name>
 							<Comment><![CDATA[ valid status, used e.g. by ramp and voters]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_nStatus</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_nStatus</Name>
 							<Type>UINT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_nValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_nValue</Name>
 							<Type>INT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_fValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_fValue</Name>
 							<Comment><![CDATA[ lower precision, used e.g. by LS240]]></Comment>
 							<Type>REAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_lrValue</Name>
 							<Comment><![CDATA[ higher precision, used by other sources]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_bValid</Name>
 							<Comment><![CDATA[ valid status, used e.g. by ramp and voters]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_nStatus</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_nStatus</Name>
 							<Type>UINT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_nValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_nValue</Name>
 							<Type>INT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_fValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_fValue</Name>
 							<Comment><![CDATA[ lower precision, used e.g. by LS240]]></Comment>
 							<Type>REAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_lrValue</Name>
 							<Comment><![CDATA[ higher precision, used by other sources]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_bValid</Name>
 							<Comment><![CDATA[ valid status, used e.g. by ramp and voters]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nStatus</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_nStatus</Name>
 							<Type>UINT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_nValue</Name>
 							<Type>INT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_fValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_fValue</Name>
 							<Comment><![CDATA[ lower precision, used e.g. by LS240]]></Comment>
 							<Type>REAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_lrValue</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_lrValue</Name>
 							<Comment><![CDATA[ higher precision, used by other sources]]></Comment>
 							<Type>LREAL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_bValid</Name>
+							<Name>MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_bValid</Name>
 							<Comment><![CDATA[ valid status, used e.g. by ramp and voters]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
@@ -2709,6 +2887,49 @@
 / HMI Screen /// 
 ///////////////]]></Comment>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_stStatus</Name>
+							<Type GUID="{E61E2ECB-A23A-0A33-7018-4AA04496E443}" Namespace="METIS_Fuse_Library">T_FUSE_STATUS</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_nLoad</Name>
+							<Comment><![CDATA[ load in % of I_Nominal]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_nCurrent</Name>
+							<Comment><![CDATA[ current in 0.01 A]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_nVoltageIn</Name>
+							<Comment><![CDATA[ input voltage in 0.1 V]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.fuseDetectorPower.i_nVoltageOut</Name>
+							<Comment><![CDATA[ output voltage in 0.1 V]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.i_nActCurrent</Name>
+							<Comment><![CDATA[ Scaled PDO: 1 digit = 1 microampere]]></Comment>
+							<Type>DINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.i_nStatus</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_detector_power.i_nMeterState</Name>
+							<Comment><![CDATA[ Link DetectorPowerMeasurement InfoData.State]]></Comment>
+							<Type>UINT</Type>
 						</Var>
 					</Vars>
 					<Contexts>
@@ -8240,7 +8461,7 @@ or supply voltage is to low.]]></Comment>
 					<EtherCAT SlaveType="1" PdiType="#x0d04" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x044d2c52" RevisionNo="#x00120000" PortPhys="305" IdentificationAdo="4096" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1101 EtherCAT Coupler (2A E-Bus, ID switch)" Desc="EK1101" PortABoxInfo="#xffffffff">
 						<SyncMan>001002000000010004000000000000000000001000000000</SyncMan>
 						<Fmmu>0000000000000000001000010100000002000000000000000000000000000000</Fmmu>
-						<HcData>13000000080000000200000000000000030000000000000000000000000000002d413200</HcData>
+						<HcData>14000000080000000200000000000000030000000000000000000000000000002d413200</HcData>
 						<Pdo Name="ID" Index="#x1a00" Flags="#x0010" SyncMan="0">
 							<Entry Name="ID" Index="#x6000" Sub="#x01">
 								<Type>UINT</Type>
@@ -9311,7 +9532,7 @@ Bit1: Value smaller than Limit2]]></Comment>
 						</EtherCAT>
 					</Box>
 					<Box Id="26" BoxType="9099" BoxFlags="#x00000020">
-						<Name>A2-N12_Fuse (EL9227-5500)</Name>
+						<Name>A2-N12_Det_Pwr_Fuse (EL9227-5500)</Name>
 						<ImageId>1010</ImageId>
 						<EtherCAT SlaveType="2" PdiType="#x0005" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x240b3052" RevisionNo="#x0012157c" InfoDataAddr="true" RepeatSupport="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL9227-5500 Overcurrent protection 24V DC, 2Ch., max. 10A (sum), adjustable, extended functionalities" Desc="EL9227-5500" PortABoxInfo="#x01000019">
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
@@ -11448,10 +11669,108 @@ Bit1: Value smaller than Limit2]]></Comment>
 							<CoeProfile ProfileNo="23597961"/>
 						</EtherCAT>
 					</Box>
+					<Box Id="71" BoxType="9099" BoxFlags="#x00000020">
+						<Name>DetectorPowerMeasurement (EL3681)</Name>
+						<ImageId>1013</ImageId>
+						<EtherCAT SlaveType="2" PdiType="#x0005" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="7" FoeType="1" VendorId="#x00000002" ProductCode="#x0e613052" RevisionNo="#x00150000" BIC="1P085395SBTN999bn3ax1KES3681                        Q1    2P242306180021" InfoDataAddr="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL3681 Digital multimeter terminal" Desc="EL3681" PortABoxInfo="#x01000045">
+							<SyncMan>001080002600010001000000800080008000001026010000</SyncMan>
+							<SyncMan>801080002200010002000000800080008000801022010000</SyncMan>
+							<SyncMan>001100002400000003000000000000000200001124010000</SyncMan>
+							<SyncMan>801106002000010004000000000000000800801120010000</SyncMan>
+							<Fmmu>0000000000000000000000020000000001000000000000000000000000000000</Fmmu>
+							<Fmmu>0000000000000000801100010100000002000000000000000000000000000000</Fmmu>
+							<Fmmu>00000000000000000d0800010100000003000000000000000000000000000000</Fmmu>
+							<BootStrapData>0010f400f410f400</BootStrapData>
+							<MBoxUserCmdData>02000300090000000400000003000000000000000000000000000000000000002000800d01000000024d6f646500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000900000005000000030000000000000000000000000000000000000020008011010000000152616e676500</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000000c00000003000000000000000000000000000000000000002000801d010000000250726573656e746174696f6e00</MBoxUserCmdData>
+							<Pdo Name="SAI Inputs" Index="#x1a00" Flags="#x0010" SyncMan="3">
+								<Entry Name="Status__Underrange" Index="#x6000" Sub="#x01">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Over- or underrange event active]]></Comment>
+								</Entry>
+								<Entry Name="Status__Overrange" Index="#x6000" Sub="#x02">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Overrange event active]]></Comment>
+								</Entry>
+								<Entry Name="Status__Extended range" Index="#x6000" Sub="#x03">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Extended Range is used]]></Comment>
+								</Entry>
+								<Entry Name="Status__Data invalid" Index="#x6000" Sub="#x04">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Don't use the current value]]></Comment>
+								</Entry>
+								<Entry Name="Status__Range invalid" Index="#x6000" Sub="#x05">
+									<Type>BIT</Type>
+									<Comment><![CDATA[The selected range isn't available]]></Comment>
+								</Entry>
+								<Entry Name="Status__Autorange disabled" Index="#x6000" Sub="#x06">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Autorange is in not used]]></Comment>
+								</Entry>
+								<Entry Name="Status__Error" Index="#x6000" Sub="#x07">
+									<Type>BIT</Type>
+									<Comment><![CDATA[An error has occurred during Conversion]]></Comment>
+								</Entry>
+								<Entry Name="Status__Calibration in progress" Index="#x6000" Sub="#x08">
+									<Type>BIT</Type>
+									<Comment><![CDATA[TRUE while calibration]]></Comment>
+								</Entry>
+								<Entry Name="Status__">
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+								<Entry Name="Status__TxPDO State" Index="#x6000" Sub="#x0f">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Status__TxPDO Toggle" Index="#x6000" Sub="#x10">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Value" Index="#x6000" Sub="#x11">
+									<Type>DINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="SAI Feedback" Index="#x1a01" Flags="#x0010">
+								<Entry Name="Settings__">
+									<Type GUID="{18071995-0000-0000-0000-002000000004}">ARRAY [0..3] OF BIT</Type>
+								</Entry>
+								<Entry Name="Settings__Mode" Index="#x6001" Sub="#x05">
+									<Type>BIT4</Type>
+									<Comment><![CDATA[Select mode (e.g. DC Voltage)]]></Comment>
+								</Entry>
+								<Entry Name="Settings__Range" Index="#x6001" Sub="#x09">
+									<Type>SINT</Type>
+									<Comment><![CDATA[Selected range (e.g. 10^2)]]></Comment>
+								</Entry>
+							</Pdo>
+							<Pdo Name="SAI Range" Index="#x1600" InOut="1" Flags="#x0010">
+								<Entry Name="Control__Disable autorange" Index="#x7000" Sub="#x01">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Disable autorange in selected mode (e.g. DC Voltage)]]></Comment>
+								</Entry>
+								<Entry Name="Control__Start calibration" Index="#x7000" Sub="#x02">
+									<Type>BIT</Type>
+									<Comment><![CDATA[Request read zero after current conversion]]></Comment>
+								</Entry>
+								<Entry Name="Control__">
+									<Type GUID="{18071995-0000-0000-0000-002000000002}">ARRAY [0..1] OF BIT</Type>
+								</Entry>
+								<Entry Name="Control__Mode" Index="#x7000" Sub="#x05">
+									<Type>BIT4</Type>
+									<Comment><![CDATA[Select mode (e.g. DC Voltage)]]></Comment>
+								</Entry>
+								<Entry Name="Control__Range" Index="#x7000" Sub="#x09">
+									<Type>SINT</Type>
+									<Comment><![CDATA[Select range (e.g. 10^2)]]></Comment>
+								</Entry>
+							</Pdo>
+							<CoeProfile ProfileNo="23597961"/>
+						</EtherCAT>
+					</Box>
 					<Box Id="35" BoxType="9099">
 						<Name>Term 35 (EL9011)</Name>
 						<ImageId>1014</ImageId>
-						<EtherCAT CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x23333050" InfoDataState="false" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL9011 End Terminal" Desc="EL9011" PortABoxInfo="#x01000045"/>
+						<EtherCAT CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x23333050" InfoDataState="false" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL9011 End Terminal" Desc="EL9011" PortABoxInfo="#x01000047"/>
 					</Box>
 				</Box>
 				<EtherCAT DcSyncMode="3">
@@ -11805,6 +12124,16 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.sensor_VAGC.i_nStatus" VarB="AI Standard Channel 1^Status"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.sensor_VAGC.i_nValue" VarB="AI Standard Channel 1^Value"/>
 			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N12_Det_Pwr_Fuse (EL9227-5500)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_nCurrent" VarB="OCP Inputs Channel 1^Current"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_nLoad" VarB="OCP Inputs Channel 1^Load"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_nVoltageIn" VarB="OCP Inputs Channel 1^Voltage In"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_nVoltageOut" VarB="OCP Inputs Channel 1^Voltage Out"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.fuseDetectorPower.i_stStatus" VarB="OCP Inputs Channel 1^Status"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_detector_power.fuseDetectorPower.q_bReset" VarB="OCP Outputs Channel 1^Control^Reset"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_detector_power.fuseDetectorPower.q_bSwitch" VarB="OCP Outputs Channel 1^Control^Switch"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N16 (EL1008)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.pump_pvp.i_bError" VarB="Channel 5^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.pump_tmp.i_bError" VarB="Channel 8^Input"/>
@@ -11902,14 +12231,14 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_1.i_nValue" VarB="RTD Inputs Channel 5^Value"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_2.i_nStatus" VarB="RTD Inputs Channel 6^Status"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_2.i_nValue" VarB="RTD Inputs Channel 6^Value"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_nStatus" VarB="RTD Inputs Channel 1^Status"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_1.i_nValue" VarB="RTD Inputs Channel 1^Value"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_nStatus" VarB="RTD Inputs Channel 2^Status"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_2.i_nValue" VarB="RTD Inputs Channel 2^Value"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_nStatus" VarB="RTD Inputs Channel 3^Status"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_nValue" VarB="RTD Inputs Channel 3^Value"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nStatus" VarB="RTD Inputs Channel 4^Status"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nValue" VarB="RTD Inputs Channel 4^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_nStatus" VarB="RTD Inputs Channel 4^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_heatexchanger_inlet.i_nValue" VarB="RTD Inputs Channel 4^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_nStatus" VarB="RTD Inputs Channel 3^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inlet.i_nValue" VarB="RTD Inputs Channel 3^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_nStatus" VarB="RTD Inputs Channel 2^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_inside.i_nValue" VarB="RTD Inputs Channel 2^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_nStatus" VarB="RTD Inputs Channel 1^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_outside.i_nValue" VarB="RTD Inputs Channel 1^Value"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N9_FF_Current (EL4014)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.i_nCouplerState" VarB="InfoData^State"/>
@@ -11917,6 +12246,11 @@ Revision: 1.0
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh2" VarB="AO Outputs Channel 2^Analog output"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh3" VarB="AO Outputs Channel 3^Analog output"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh4" VarB="AO Outputs Channel 4^Analog output"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^DetectorPowerMeasurement (EL3681)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.i_nActCurrent" VarB="SAI Inputs^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.i_nMeterState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_detector_power.i_nStatus" VarB="SAI Inputs^Status"/>
 			</OwnerB>
 			<OwnerB Name="TIID^LS240_Det_Temp_Sensors (EL6731)^Box 3 (GSD Box) (Model 240 Series)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_detector.i_fValue" VarB="T_DET (Sensor Reading)^Inputs^Sensor Reading_0_0"/>

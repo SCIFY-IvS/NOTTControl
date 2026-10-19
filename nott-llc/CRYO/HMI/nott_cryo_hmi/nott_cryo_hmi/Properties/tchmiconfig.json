@@ -85,6 +85,21 @@
       "name": "JavaScript/NOTTFanAction.js",
       "description": "",
       "type": "JavaScript"
+    },
+    {
+      "name": "JavaScript/DetectorPowerAction.js",
+      "description": "",
+      "type": "JavaScript"
+    },
+    {
+      "name": "Styles/NOTTStatus.css",
+      "description": "",
+      "type": "Stylesheet"
+    },
+    {
+      "name": "JavaScript/NOTTHeaderStatus.js",
+      "description": "",
+      "type": "JavaScript"
     }
   ],
   "userControls": [
@@ -406,6 +421,27 @@
       "preloadBindings": false
     },
     {
+      "url": "Pages/DetectorPowerConfiguration.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/DetectorPowerDiagnostics.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/DetectorPowerOverview.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
       "url": "Pages/EvacuateSequence.content",
       "preload": true,
       "keepAlive": false,
@@ -471,10 +507,16 @@
   ],
   "userFunctions": [
     {
+      "url": "JavaScript/DetectorPowerAction.js"
+    },
+    {
       "url": "JavaScript/GetCurrentUsername.js"
     },
     {
       "url": "JavaScript/NOTTFanAction.js"
+    },
+    {
+      "url": "JavaScript/NOTTHeaderStatus.js"
     },
     {
       "url": "JavaScript/PrintFilterOfEventGrid.js"

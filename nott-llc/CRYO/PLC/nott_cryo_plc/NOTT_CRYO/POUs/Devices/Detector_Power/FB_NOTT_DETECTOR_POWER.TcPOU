@@ -1,0 +1,309 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <POU Name="FB_NOTT_DETECTOR_POWER" Id="{6c826888-c138-419d-8bac-e4ff12f4e28b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_DETECTOR_POWER
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+    {attribute 'TcHmiSymbol.ShowRecursively'}
+    {attribute 'TcHmiSymbol.ReadOnly'}
+    fuseDetectorPower: FB_FUSE;
+    {attribute 'TcHmiSymbol.ShowRecursively'}
+    cfg: T_NOTT_DETECTOR_POWER_CFG;
+    {attribute 'TcHmiSymbol.ShowRecursively'}
+    ctrl: T_NOTT_DETECTOR_POWER_CTRL;
+    {attribute 'TcHmiSymbol.ShowRecursively'}
+    {attribute 'TcHmiSymbol.ReadOnly'}
+    stat: T_NOTT_DETECTOR_POWER_STAT;
+    bDetectorPowerSwitch: BOOL; // Legacy rising-edge toggle
+    trigDetectorPower: R_TRIG;
+    {attribute 'TcHmiSymbol.Show'}
+    {attribute 'TcHmiSymbol.ReadOnly'}
+    bHMI_Enabled: BOOL;
+    i_nActCurrent AT %I*: DINT; // Scaled PDO: 1 digit = 1 microampere
+    i_nStatus AT %I*: UINT;
+    i_nMeterState AT %I*: UINT; // Link DetectorPowerMeasurement InfoData.State
+    {attribute 'TcHmiSymbol.Show'}
+    {attribute 'TcHmiSymbol.ReadOnly'}
+    lrActCurrent: LREAL;
+    pFuseCtrl: POINTER TO T_FUSE_CTRL;
+    pFuseCfg: POINTER TO T_FUSE_CFG;
+    pFuseStat: POINTER TO T_FUSE_STAT;
+    bHaveMeasurement: BOOL;
+    bLastToggle: BOOL;
+    bNewMeasurement: BOOL;
+    nRpcResult: INT;
+    bResetAccepted: BOOL;
+    tonStale: TON;
+    tonShutdown: TON;
+    fbTripAlarm: FB_TcAlarm;
+    fbMeterAlarm: FB_TcAlarm;
+    fbShutdownAlarm: FB_TcAlarm;
+    bEventsReady: BOOL;
+    hrTrip: HRESULT;
+    hrMeter: HRESULT;
+    hrShutdown: HRESULT;
+    bTripRaised: BOOL;
+    bMeterRaised: BOOL;
+    bShutdownRaised: BOOL;
+    sPreviousMeterStatus: STRING(255);
+END_VAR
+VAR RETAIN
+    bOvercurrentLatched: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[pFuseCtrl := ADR(fuseDetectorPower.ctrl);
+pFuseCfg := ADR(fuseDetectorPower.cfg);
+pFuseStat := ADR(fuseDetectorPower.stat);
+M_ReadInputs();
+M_CheckProtection();
+M_CheckCommands();
+
+// The library alone owns its state machine and physical switch/reset outputs.
+IF bOvercurrentLatched THEN
+    M_RequestSafeOff();
+END_IF
+fuseDetectorPower(in_sName := pFuseCfg^.sName,
+    in_bAutoOp := pFuseCfg^.bAutoOp, in_nTimeout := pFuseCfg^.nTimeout);
+
+tonShutdown(IN := bOvercurrentLatched AND stat.bPowerOn, PT := T#10S);
+stat.bShutdownUnconfirmed := bOvercurrentLatched
+    AND (NOT stat.bFuseOperational OR tonShutdown.Q);
+bHMI_Enabled := stat.bPowerOn;
+stat.bOvercurrentTrip := bOvercurrentLatched;
+stat.bPermitOn := NOT bOvercurrentLatched AND NOT bResetAccepted;
+stat.bPermitTripReset := bOvercurrentLatched AND stat.bCurrentValid
+    AND stat.bConfigValid AND (ABS(lrActCurrent) < cfg.lrCurrentTrip_A)
+    AND stat.bFuseOperational AND NOT stat.bPowerOn
+    AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.NOTOP_INITIALIZING)
+    AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.OP_SWITCHING_ON)
+    AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.OP_SWITCHING_OFF);
+stat.bAlarm := bOvercurrentLatched OR stat.bShutdownUnconfirmed;
+stat.bWarning := NOT stat.bCurrentValid OR NOT stat.bConfigValid
+    OR stat.bUnderrange OR stat.bOverrange;
+IF bOvercurrentLatched THEN
+    stat.sStatus := 'Overcurrent trip latched. Power OFF requested; reset and ON are separate actions.';
+ELSIF NOT stat.bConfigValid THEN
+    stat.sStatus := 'Invalid protection configuration. Current protection unavailable.';
+ELSIF NOT stat.bCurrentValid THEN
+    stat.sStatus := 'Current measurement unavailable. Notification only; current protection unavailable.';
+ELSIF stat.bPowerOn THEN
+    stat.sStatus := 'Detector power ON.';
+ELSE
+    stat.sStatus := 'Detector power OFF.';
+END_IF
+IF NOT stat.bConfigValid THEN
+    stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, ' Invalid protection configuration.');
+END_IF
+M_UpdateEvents();
+]]></ST>
+    </Implementation>
+    <Method Name="M_CheckCommands" Id="{35710d83-e552-48a3-b50c-3e03508f3c25}">
+      <Declaration><![CDATA[METHOD M_CheckCommands
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[trigDetectorPower(CLK := bDetectorPowerSwitch);
+IF trigDetectorPower.Q AND NOT ctrl.bExecute THEN
+    IF stat.bPowerOn THEN ctrl.nCommand := E_FUSE_COMMAND.OFF;
+    ELSE ctrl.nCommand := E_FUSE_COMMAND.ON; END_IF
+    ctrl.bExecute := TRUE;
+END_IF
+IF ctrl.bExecute THEN
+    ctrl.bExecute := FALSE;
+    stat.nLastCommand := ctrl.nCommand;
+    ctrl.nCommand := E_FUSE_COMMAND.NONE;
+    IF bOvercurrentLatched AND (stat.nLastCommand <> E_FUSE_COMMAND.OFF) THEN
+        stat.sCommandResult := 'Command refused: overcurrent trip latched.';
+    ELSIF bResetAccepted AND (stat.nLastCommand = E_FUSE_COMMAND.ON) THEN
+        stat.sCommandResult := 'ON refused: reset and ON must be separate actions.';
+    ELSIF (stat.nLastCommand < 1) OR (stat.nLastCommand > 7) THEN
+        stat.sCommandResult := 'Unknown fuse command.';
+    ELSE
+        CASE stat.nLastCommand OF
+            E_FUSE_COMMAND.INIT:    nRpcResult := fuseDetectorPower.RPC_Init();
+            E_FUSE_COMMAND.RESET:   nRpcResult := fuseDetectorPower.RPC_Reset();
+            E_FUSE_COMMAND.STOP:    nRpcResult := fuseDetectorPower.RPC_Stop();
+            E_FUSE_COMMAND.ENABLE:  nRpcResult := fuseDetectorPower.RPC_Enable();
+            E_FUSE_COMMAND.DISABLE: nRpcResult := fuseDetectorPower.RPC_Disable();
+            E_FUSE_COMMAND.ON:      nRpcResult := fuseDetectorPower.RPC_On();
+            E_FUSE_COMMAND.OFF:     nRpcResult := fuseDetectorPower.RPC_Off();
+        END_CASE
+        IF nRpcResult = 0 THEN
+            stat.sCommandResult := 'Fuse accepted request. Actual state is reported by the fuse.';
+        ELSE
+            stat.sCommandResult := CONCAT('Fuse rejected request: ', pFuseStat^.sRPCErrorText);
+        END_IF
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckProtection" Id="{862acec5-a679-42d1-801e-0ad4ebee8f18}">
+      <Declaration><![CDATA[METHOD M_CheckProtection
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bResetAccepted := FALSE;
+stat.bConfigValid := (cfg.lrCurrentTrip_A > 0.0) AND (cfg.lrCurrentTrip_A <= 10.0)
+    AND (cfg.tMeasurementTimeout > T#0MS);
+IF stat.bConfigValid AND stat.bCurrentValid AND (ABS(lrActCurrent) > cfg.lrCurrentTrip_A) THEN
+    IF NOT bOvercurrentLatched THEN stat.lrTripCurrent_A := lrActCurrent; END_IF
+    bOvercurrentLatched := TRUE;
+END_IF
+IF ctrl.bResetOvercurrent THEN
+    ctrl.bResetOvercurrent := FALSE;
+    IF bOvercurrentLatched AND stat.bConfigValid AND stat.bCurrentValid
+        AND (ABS(lrActCurrent) < cfg.lrCurrentTrip_A) AND stat.bFuseOperational
+        AND NOT stat.bPowerOn
+        AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.NOTOP_INITIALIZING)
+        AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.OP_SWITCHING_ON)
+        AND (pFuseStat^.nSubstate <> E_FUSE_SUBSTATE.OP_SWITCHING_OFF) THEN
+        bOvercurrentLatched := FALSE;
+        bResetAccepted := TRUE;
+        pFuseCtrl^.bExecute := FALSE;
+        stat.sCommandResult := 'Overcurrent reset accepted. Detector remains OFF.';
+    ELSE
+        stat.sCommandResult := 'Reset refused: valid below-limit current and confirmed power OFF required.';
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RequestSafeOff" Id="{0f1ea0e6-79dd-4a3e-b22c-cfbb1890a1a4}">
+      <Declaration><![CDATA[METHOD M_RequestSafeOff
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Safety uses the library mailbox, including in local mode. Never reset a
+// hardware trip, restart INIT, or synthesize a physical toggle pulse.
+IF pFuseCtrl^.bExecute THEN
+    IF (pFuseCtrl^.nCommand <> E_FUSE_COMMAND.OFF)
+        AND (pFuseCtrl^.nCommand <> E_FUSE_COMMAND.ENABLE) THEN
+        pFuseCtrl^.bExecute := FALSE;
+        pFuseCtrl^.nCommand := E_FUSE_COMMAND.NONE;
+    END_IF
+END_IF
+IF NOT stat.bFuseOperational OR pFuseCtrl^.bExecute THEN RETURN; END_IF
+IF pFuseStat^.nSubstate = E_FUSE_SUBSTATE.OP_ON THEN
+    pFuseCtrl^.nCommand := E_FUSE_COMMAND.OFF;
+    pFuseCtrl^.bExecute := TRUE;
+ELSIF pFuseStat^.nSubstate = E_FUSE_SUBSTATE.NOTOP_READY_ON THEN
+    // ENABLE enters OP without switching the already-ON channel.
+    // The next scan requests OFF through the same library mailbox.
+    pFuseCtrl^.nCommand := E_FUSE_COMMAND.ENABLE;
+    pFuseCtrl^.bExecute := TRUE;
+END_IF
+// During INIT/switching, let the library finish, then request OFF. Failure to
+// reach a state accepting OFF is reported by the shutdown-unconfirmed alarm.
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadInputs" Id="{8c15ac5d-9dd3-4437-af08-2c8fa7e54785}">
+      <Declaration><![CDATA[METHOD M_ReadInputs
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_ScaleInput(m_nActCurrent := i_nActCurrent);
+stat.lrCurrent_A := lrActCurrent;
+stat.nMeterStatus := i_nStatus;
+stat.bUnderrange := (i_nStatus AND UINT#16#0001) <> 0;
+stat.bOverrange := (i_nStatus AND UINT#16#0002) <> 0;
+stat.bExtendedRange := (i_nStatus AND UINT#16#0004) <> 0;
+stat.bDataInvalid := (i_nStatus AND UINT#16#0008) <> 0;
+stat.bRangeInvalid := (i_nStatus AND UINT#16#0010) <> 0;
+stat.bAutorangeDisabled := (i_nStatus AND UINT#16#0020) <> 0;
+stat.bConversionError := (i_nStatus AND UINT#16#0040) <> 0;
+stat.bCalibrating := (i_nStatus AND UINT#16#0080) <> 0;
+stat.bPdoInvalid := (i_nStatus AND UINT#16#4000) <> 0;
+stat.bPdoToggle := (i_nStatus AND UINT#16#8000) <> 0;
+stat.bMeterOperational := i_nMeterState = 8;
+bNewMeasurement := stat.bMeterOperational AND (stat.bPdoToggle <> bLastToggle);
+IF bNewMeasurement THEN
+    bHaveMeasurement := TRUE;
+END_IF
+IF NOT stat.bMeterOperational THEN
+    bHaveMeasurement := FALSE;
+END_IF
+bLastToggle := stat.bPdoToggle;
+tonStale(IN := NOT bNewMeasurement, PT := cfg.tMeasurementTimeout);
+stat.bMeasurementStale := NOT bHaveMeasurement OR tonStale.Q;
+stat.bCurrentValid := stat.bMeterOperational AND NOT stat.bMeasurementStale
+    AND ((i_nStatus AND UINT#16#40DB) = 0);
+stat.bFuseOperational := (fuseDetectorPower.i_nCouplerState = 8)
+    AND NOT fuseDetectorPower.i_stStatus.bTxPDOState;
+stat.bPowerOn := fuseDetectorPower.i_stStatus.bEnabled;
+stat.sMeasurementStatus := '';
+IF NOT stat.bMeterOperational THEN stat.sMeasurementStatus := 'Meter not in EtherCAT OP. '; END_IF
+IF stat.bMeasurementStale THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'No fresh sample. '); END_IF
+IF stat.bUnderrange THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Underrange. '); END_IF
+IF stat.bOverrange THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Overrange. '); END_IF
+IF stat.bDataInvalid THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Data invalid. '); END_IF
+IF stat.bRangeInvalid THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Range invalid. '); END_IF
+IF stat.bConversionError THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Conversion error. '); END_IF
+IF stat.bCalibrating THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'Calibration in progress. '); END_IF
+IF stat.bPdoInvalid THEN stat.sMeasurementStatus := CONCAT(stat.sMeasurementStatus, 'PDO invalid. '); END_IF
+IF stat.bCurrentValid THEN stat.sMeasurementStatus := 'Current measurement valid.'; END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ScaleInput" Id="{aa166321-9661-4d06-aeb6-fe0c135dbfcd}">
+      <Declaration><![CDATA[METHOD M_ScaleInput : BOOL
+VAR_INPUT
+    m_nActCurrent: DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrActCurrent := DINT_TO_LREAL(m_nActCurrent) / 1000000.0;
+M_ScaleInput := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateEvents" Id="{b2c2e819-299d-4203-b22e-7d50f2711911}">
+      <Declaration><![CDATA[METHOD M_UpdateEvents
+VAR
+    sEventMessage: STRING(255);
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bEventsReady THEN
+    hrTrip := fbTripAlarm.CreateEx(TC_EVENTS.NottCryoSysEventClass.Critical, FALSE, 0);
+    hrMeter := fbMeterAlarm.CreateEx(TC_EVENTS.NottCryoSysEventClass.Warning, FALSE, 0);
+    hrShutdown := fbShutdownAlarm.CreateEx(TC_EVENTS.NottCryoSysEventClass.Error, FALSE, 0);
+    bEventsReady := (hrTrip = 0) AND (hrMeter = 0) AND (hrShutdown = 0);
+END_IF
+IF bEventsReady THEN
+    IF bOvercurrentLatched AND NOT bTripRaised THEN
+        fbTripAlarm.ipArguments.Clear();
+        sEventMessage := CONCAT('Detector overcurrent. Power OFF requested. Trip current [A]: ', LREAL_TO_STRING(stat.lrTripCurrent_A));
+        fbTripAlarm.ipArguments.AddString(sEventMessage);
+        fbTripAlarm.Raise(0);
+        bTripRaised := TRUE;
+    ELSIF NOT bOvercurrentLatched AND bTripRaised THEN
+        fbTripAlarm.Clear(0, TRUE);
+        bTripRaised := FALSE;
+    END_IF
+    IF stat.bWarning AND ((NOT bMeterRaised) OR (sPreviousMeterStatus <> stat.sMeasurementStatus)) THEN
+        IF bMeterRaised THEN fbMeterAlarm.Clear(0, TRUE); END_IF
+        fbMeterAlarm.ipArguments.Clear();
+        sEventMessage := CONCAT('Detector current monitor: ', stat.sMeasurementStatus);
+        fbMeterAlarm.ipArguments.AddString(sEventMessage);
+        fbMeterAlarm.Raise(0);
+        bMeterRaised := TRUE;
+    ELSIF NOT stat.bWarning AND bMeterRaised THEN
+        fbMeterAlarm.Clear(0, TRUE);
+        bMeterRaised := FALSE;
+    END_IF
+    sPreviousMeterStatus := stat.sMeasurementStatus;
+    IF stat.bShutdownUnconfirmed AND NOT bShutdownRaised THEN
+        fbShutdownAlarm.ipArguments.Clear();
+        sEventMessage := 'Detector overcurrent shutdown is not confirmed. Check fuse communication and output power.';
+        fbShutdownAlarm.ipArguments.AddString(sEventMessage);
+        fbShutdownAlarm.Raise(0);
+        bShutdownRaised := TRUE;
+    ELSIF NOT stat.bShutdownUnconfirmed AND bShutdownRaised THEN
+        fbShutdownAlarm.Clear(0, TRUE);
+        bShutdownRaised := FALSE;
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

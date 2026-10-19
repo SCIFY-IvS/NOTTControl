@@ -124,16 +124,16 @@ empty_temp					: FB_METIS_TEMPERATURE;
 	// Thermal Box   (* 5 *)
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
-	t_thermal_box_1:			FB_METIS_TEMPERATURE;
+	t_thermal_box_outside:			FB_METIS_TEMPERATURE;
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
-	t_thermal_box_2:			FB_METIS_TEMPERATURE;
+	t_thermal_box_inside:			FB_METIS_TEMPERATURE;
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
-	t_thermal_box_3:			FB_METIS_TEMPERATURE;
+	t_thermal_box_inlet:			FB_METIS_TEMPERATURE;
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
-	t_thermal_box_4:			FB_METIS_TEMPERATURE;
+	t_thermal_box_heatexchanger_inlet:			FB_METIS_TEMPERATURE;
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
 	t_thermal_box_vote:			FB_METIS_TEMPERATURE;
@@ -261,10 +261,10 @@ END_VAR
 VAR
 
     IgnoreList: 		ARRAY[1..11] OF STRING := [
-	   't_thermal_box_1', 	
-	   't_thermal_box_2', 	
-	   't_thermal_box_3', 	
-	   't_thermal_box_4', 	
+	   't_thermal_box_outside', 	
+	   't_thermal_box_inside', 	
+	   't_thermal_box_inlet', 	
+	   't_thermal_box_heatexchanger_inlet', 	
 	   't_thermal_box_vote',  
 	   't_master',
 	   't_master_vot_1',
@@ -423,10 +423,10 @@ t_flat_field_2           (in_sName:='t_flat_field_2', 	in_eType := E_METIS_SENSO
 t_flat_field_vote        (in_sName:='t_flat_field_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
 
 // Thermal Box   (* 5 *)
-t_thermal_box_1           (in_sName:='t_thermal_box_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
-t_thermal_box_2           (in_sName:='t_thermal_box_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
-t_thermal_box_3           (in_sName:='t_thermal_box_3', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
-t_thermal_box_4           (in_sName:='t_thermal_box_4', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_outside           (in_sName:='t_thermal_box_outside', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_inside           (in_sName:='t_thermal_box_inside', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_inlet           (in_sName:='t_thermal_box_inlet', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_heatexchanger_inlet           (in_sName:='t_thermal_box_heatexchanger_inlet', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
 t_thermal_box_vote        (in_sName:='t_thermal_box_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
 
 // Cabinet   (* 3 *)
@@ -511,10 +511,10 @@ M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_1));
 M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_2));
 M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_vote));
 // Thermal Box
-M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_1));
-M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_2));
-M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_3));
-M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_4));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_outside));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_inside));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_inlet));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_heatexchanger_inlet));
 M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_vote));
 // Cabinet
 M_UpdatePointer(i := i, pSensor := ADR(t_cabinet_1));

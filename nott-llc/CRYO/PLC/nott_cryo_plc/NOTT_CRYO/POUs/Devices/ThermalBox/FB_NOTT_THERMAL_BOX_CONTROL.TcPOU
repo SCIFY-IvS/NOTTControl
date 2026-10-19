@@ -97,26 +97,26 @@ M_UpdateStatus();
 END_IF
 
 // These loops belong to this coordinator, but retain their existing tuning/config reader.
-pFanLoopCfg^.sInputTempName := 't_thermal_box_2';
-pFanLoopCfg^.sSetpointTempName := 't_thermal_box_1';
+pFanLoopCfg^.sInputTempName := 't_thermal_box_inside';
+pFanLoopCfg^.sSetpointTempName := 't_thermal_box_outside';
 pFanLoopCfg^.eSetpointSwitch := E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE;
 pFanLoopCfg^.lrSetpointOffset := cfg.lrSetpointOffset;
 pFanLoopCfg^.bSyncManualOut := TRUE;
-pFanLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_2');
-pFanLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_1');
-pFanLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_2;
-pFanLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_1;
+pFanLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_inside');
+pFanLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_outside');
+pFanLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_inside;
+pFanLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_outside;
 pFanLoopCtrl^.lrSetpointOffset := cfg.lrSetpointOffset;
 
-pValveLoopCfg^.sInputTempName := 't_thermal_box_2';
-pValveLoopCfg^.sSetpointTempName := 't_thermal_box_1';
+pValveLoopCfg^.sInputTempName := 't_thermal_box_inside';
+pValveLoopCfg^.sSetpointTempName := 't_thermal_box_outside';
 pValveLoopCfg^.eSetpointSwitch := E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE;
 pValveLoopCfg^.lrSetpointOffset := cfg.lrSetpointOffset;
 pValveLoopCfg^.bSyncManualOut := TRUE;
-pValveLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_2');
-pValveLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_1');
-pValveLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_2;
-pValveLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_1;
+pValveLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_inside');
+pValveLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_outside');
+pValveLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_inside;
+pValveLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_outside;
 pValveLoopCtrl^.lrSetpointOffset := cfg.lrSetpointOffset;
 
 bLoopsReady := nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bConfigured
@@ -129,14 +129,14 @@ stat.bConfigured := bLoopsReady;
     <Method Name="M_CheckCommands" Id="{668c94ef-2766-43e0-a2cb-7ccf09ac811c}">
       <Declaration><![CDATA[METHOD M_CheckCommands
 ]]></Declaration>
-      <Implementation><ST><![CDATA[stat.bOutsideValid := nott_temps.t_thermal_box_1.stat.bValid;
-stat.bInsideValid := nott_temps.t_thermal_box_2.stat.bValid;
-stat.bCoolantInValid := nott_temps.t_thermal_box_3.stat.bValid;
-stat.bCoolantOutValid := nott_temps.t_thermal_box_4.stat.bValid;
-stat.lrOutsideTempK := nott_temps.t_thermal_box_1.stat.lrTempK;
-stat.lrInsideTempK := nott_temps.t_thermal_box_2.stat.lrTempK;
-stat.lrCoolantInTempK := nott_temps.t_thermal_box_3.stat.lrTempK;
-stat.lrCoolantOutTempK := nott_temps.t_thermal_box_4.stat.lrTempK;
+      <Implementation><ST><![CDATA[stat.bOutsideValid := nott_temps.t_thermal_box_outside.stat.bValid;
+stat.bInsideValid := nott_temps.t_thermal_box_inside.stat.bValid;
+stat.bCoolantInValid := nott_temps.t_thermal_box_inlet.stat.bValid;
+stat.bCoolantOutValid := nott_temps.t_thermal_box_heatexchanger_inlet.stat.bValid;
+stat.lrOutsideTempK := nott_temps.t_thermal_box_outside.stat.lrTempK;
+stat.lrInsideTempK := nott_temps.t_thermal_box_inside.stat.lrTempK;
+stat.lrCoolantInTempK := nott_temps.t_thermal_box_inlet.stat.lrTempK;
+stat.lrCoolantOutTempK := nott_temps.t_thermal_box_heatexchanger_inlet.stat.lrTempK;
 stat.bControlSensorsValid := stat.bOutsideValid AND stat.bInsideValid;
 IF stat.bOutsideValid THEN
     stat.lrTargetTempK := stat.lrOutsideTempK + cfg.lrSetpointOffset;
@@ -163,7 +163,7 @@ IF ctrl.bResetSafety THEN
     END_IF
 END_IF
 stat.bAutoReady := bLoopsReady AND stat.bControlSensorsValid
-    AND (pFanLoopCfg^.lrKp < 0.0) AND (pValveLoopCfg^.lrKp < 0.0);
+    AND (pFanLoopCfg^.lrKp > 0.0) AND (pValveLoopCfg^.lrKp > 0.0);
 // Operator demand is independent of automatic branch availability.
 stat.bPermitStart := NOT stat.bSafetyTrip;
 IF stat.bSafetyTrip THEN
@@ -175,7 +175,7 @@ ELSIF NOT bLoopsReady THEN
 ELSIF NOT stat.bControlSensorsValid THEN
     stat.sStartInhibitReason := 'Outside or inside temperature invalid.';
 ELSIF NOT stat.bAutoReady THEN
-    stat.sStartInhibitReason := 'Automatic branch held: cooling PID gains must be negative.';
+    stat.sStartInhibitReason := 'Automatic branch held: cooling PID gains must be positive.';
 ELSIF valve.i_bOverCurrent THEN
     stat.sStartInhibitReason := 'Valve supply overload.';
 ELSE
@@ -321,14 +321,14 @@ END_IF
 IF ctrl.bEnable AND pFanCtrl^.bAuto AND NOT bFanLoopManualOverride
     AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
     AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.sLastForcedManualCause <> '')
-    AND stat.bControlSensorsValid AND (pFanLoopCfg^.lrKp < 0.0)
+    AND stat.bControlSensorsValid AND (pFanLoopCfg^.lrKp > 0.0)
     AND NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError THEN
     bFanStartPending := TRUE;
 END_IF
 IF ctrl.bEnable AND valve.stat.bAuto AND NOT bValveLoopManualOverride
     AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
     AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.sLastForcedManualCause <> '')
-    AND stat.bControlSensorsValid AND (pValveLoopCfg^.lrKp < 0.0)
+    AND stat.bControlSensorsValid AND (pValveLoopCfg^.lrKp > 0.0)
     AND NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError THEN
     bValveStartPending := TRUE;
 END_IF
@@ -348,13 +348,13 @@ bFanAutoUnavailable := bFanStartPending
     OR NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bConfigured
     OR NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bStarted
     OR (NOT bFanLoopManualOverride
-        AND (NOT stat.bControlSensorsValid OR NOT (pFanLoopCfg^.lrKp < 0.0)
+        AND (NOT stat.bControlSensorsValid OR NOT (pFanLoopCfg^.lrKp > 0.0)
             OR nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError));
 bValveAutoUnavailable := bValveStartPending
     OR NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bConfigured
     OR NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bStarted
     OR (NOT bValveLoopManualOverride
-        AND (NOT stat.bControlSensorsValid OR NOT (pValveLoopCfg^.lrKp < 0.0)
+        AND (NOT stat.bControlSensorsValid OR NOT (pValveLoopCfg^.lrKp > 0.0)
             OR nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError));
 // Hold automatic paths only. Explicit manual intervention remains available
 // until the sensor-fault timeout becomes a latched safety stop.
@@ -400,16 +400,16 @@ END_IF
 
 // Sole cyclic calls for these two instances. Other cryostat loops remain in FB_NOTT_TCTRLs.
 nott_t_ctrls.tc_thermalbox_fan_ctrl(in_sName := 'tc_thermalbox_fan_ctrl',
-    in_tCycleTime := in_tCycleTime, temperatures := nott_temps);
+    in_tCycleTime := in_tCycleTime, in_bCoolingAction := TRUE, temperatures := nott_temps);
 nott_t_ctrls.tc_thermalbox_valve_ctrl(in_sName := 'tc_thermalbox_valve_ctrl',
-    in_tCycleTime := in_tCycleTime, temperatures := nott_temps);
+    in_tCycleTime := in_tCycleTime, in_bCoolingAction := TRUE, temperatures := nott_temps);
 
 pFanLoopCtrl^.bHold := bSavedFanHold;
 pValveLoopCtrl^.bHold := bSavedValveHold;
 stat.bControllerAlarm := (pFanLoopCfg^.bEnabled AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError)
     OR (pValveLoopCfg^.bEnabled AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError)
-    OR (pFanLoopCfg^.bEnabled AND bFanAutoUnavailable AND NOT (pFanLoopCfg^.lrKp < 0.0))
-    OR (pValveLoopCfg^.bEnabled AND bValveAutoUnavailable AND NOT (pValveLoopCfg^.lrKp < 0.0));
+    OR (pFanLoopCfg^.bEnabled AND bFanAutoUnavailable AND NOT (pFanLoopCfg^.lrKp > 0.0))
+    OR (pValveLoopCfg^.bEnabled AND bValveAutoUnavailable AND NOT (pValveLoopCfg^.lrKp > 0.0));
 lrFanCommandPct := LIMIT(0.0, nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.lrControllerOut, 100.0);
 lrValveCommandPct := LIMIT(0.0, nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.lrControllerOut, 100.0);
 IF bFanHold THEN

@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.20">
+  <POU Name="FB_NOTT_THERMAL_BOX_CONTROL" Id="{3777aa94-f14d-45c1-aecc-afbaee8bf065}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_THERMAL_BOX_CONTROL
+VAR_INPUT
+    in_tCycleTime: TIME := T#10MS;
+END_VAR
+VAR_IN_OUT
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_temps: FB_NOTT_TEMPERATURES;
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_t_ctrls: FB_NOTT_TCTRLs;
+END_VAR
+VAR
+    {attribute 'TcHmiSymbol.Show'}
+    cfg: T_NOTT_THERMAL_BOX_CFG;
+    {attribute 'TcHmiSymbol.Show'}
+    ctrl: T_NOTT_THERMAL_BOX_CTRL;
+    {attribute 'TcHmiSymbol.Show'}
+    stat: T_NOTT_THERMAL_BOX_STAT;
+    {attribute 'TcHmiSymbol.Show'}
+    fan: FB_NOTT_FAN;
+    {attribute 'TcHmiSymbol.Show'}
+    valve: FB_METIS_CONTROL_VALVE;
+
+    bInitialized: BOOL;
+    bWasActive: BOOL;
+    bWasHolding: BOOL;
+    bClosingValve: BOOL := TRUE;
+    bLoopsReady: BOOL;
+    bStartRequested: BOOL;
+    bStopRequested: BOOL;
+    bWasSafetyTrip: BOOL;
+    bFanHold: BOOL;
+    bValveHold: BOOL;
+    bFanWasHeld: BOOL;
+    bValveWasHeld: BOOL;
+    bFanStartPending: BOOL;
+    bValveStartPending: BOOL;
+    bFanAutoUnavailable: BOOL;
+    bValveAutoUnavailable: BOOL;
+    bFanLoopManualOverride: BOOL;
+    bValveLoopManualOverride: BOOL;
+    lrHeldFanPct: LREAL;
+    lrHeldValvePct: LREAL;
+    nHeldValveRaw: INT;
+    lrHeldValveCommandPct: LREAL;
+    lrFanCommandPct: LREAL;
+    lrValveCommandPct: LREAL;
+    tonSensorFault: TON;
+    tonValveClose: TON;
+    tonHighTemp: TON;
+    tonTracking: TON;
+    arrEventEntry: ARRAY[0..2] OF TcEventEntry;
+    fbAlarmHandler: FB_AlarmHandler;
+    logs: FB_CRYO_FUNCTION_LOG;
+    bPreviousAlarm: BOOL;
+    // Refresh addresses each scan, including after online changes.
+    pFanLoopCfg: POINTER TO T_METIS_CTRL_LOOP_CFG;
+    pFanLoopCtrl: POINTER TO T_NOTT_CTRL_LOOP_CTRL;
+    pValveLoopCfg: POINTER TO T_METIS_CTRL_LOOP_CFG;
+    pValveLoopCtrl: POINTER TO T_NOTT_CTRL_LOOP_CTRL;
+    pFanCtrl: POINTER TO T_NOTT_FAN_CTRL;
+    pValveCtrl: POINTER TO T_METIS_CTRL_VALVE_CTRL;
+    pValveStat: POINTER TO T_METIS_CTRL_VALVE_STAT;
+    pValveIO: POINTER TO T_METIS_CTRL_VALVE_IO_TA_SLIDER_160;
+    sAlarmContext: STRING := 'Thermal box control';
+END_VAR
+]]></Declaration>
+    <Implementation><ST><![CDATA[pFanLoopCfg := ADR(nott_t_ctrls.tc_thermalbox_fan_ctrl.cfg);
+pFanLoopCtrl := ADR(nott_t_ctrls.tc_thermalbox_fan_ctrl.ctrl);
+pValveLoopCfg := ADR(nott_t_ctrls.tc_thermalbox_valve_ctrl.cfg);
+pValveLoopCtrl := ADR(nott_t_ctrls.tc_thermalbox_valve_ctrl.ctrl);
+pFanCtrl := ADR(fan.ctrl);
+pValveCtrl := ADR(valve.ctrl);
+pValveStat := ADR(valve.stat);
+pValveIO := ADR(valve.io_chiller_water_cooling);
+
+M_Configure();
+M_CheckCommands();
+M_CheckSafety();
+M_ExecuteControllers();
+M_UpdateStatus();
+]]></ST></Implementation>
+    <Method Name="M_Configure" Id="{326df474-a116-4c60-b6de-948cbb139a98}">
+      <Declaration><![CDATA[METHOD M_Configure
+]]></Declaration>
+      <Implementation><ST><![CDATA[IF NOT bInitialized THEN
+    // Operator must enable after a PLC restart; closing power does not enable cooling.
+    ctrl.bEnable := FALSE;
+    ctrl.eCtrlMode := E_METIS_CTRL_MODE.NONE;
+    bStopRequested := TRUE;
+    arrEventEntry[0] := Tc_Events.METISCryoPIDCtrlEventClass.InputTemperatureInvalid;
+    arrEventEntry[1] := Tc_Events.METISCryoPIDCtrlEventClass.VariableSetpointInvalid;
+    arrEventEntry[2] := Tc_Events.METISCryoPIDCtrlEventClass.PidBlockError;
+    bInitialized := TRUE;
+END_IF
+
+// These loops belong to this coordinator, but retain their existing tuning/config reader.
+pFanLoopCfg^.sInputTempName := 't_thermal_box_inside';
+pFanLoopCfg^.sSetpointTempName := 't_thermal_box_outside';
+pFanLoopCfg^.eSetpointSwitch := E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE;
+pFanLoopCfg^.lrSetpointOffset := cfg.lrSetpointOffset;
+pFanLoopCfg^.bSyncManualOut := TRUE;
+pFanLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_inside');
+pFanLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_outside');
+pFanLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_inside;
+pFanLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_outside;
+pFanLoopCtrl^.lrSetpointOffset := cfg.lrSetpointOffset;
+
+pValveLoopCfg^.sInputTempName := 't_thermal_box_inside';
+pValveLoopCfg^.sSetpointTempName := 't_thermal_box_outside';
+pValveLoopCfg^.eSetpointSwitch := E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE;
+pValveLoopCfg^.lrSetpointOffset := cfg.lrSetpointOffset;
+pValveLoopCfg^.bSyncManualOut := TRUE;
+pValveLoopCtrl^.nInputTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_inside');
+pValveLoopCtrl^.nSetpointTempIndex := nott_temps.M_GetTempSensorIndex('t_thermal_box_outside');
+pValveLoopCtrl^.eInputTempIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_inside;
+pValveLoopCtrl^.eVariableSetpointIndex := E_ALL_NOTT_TEMPERATURES.t_thermal_box_outside;
+pValveLoopCtrl^.lrSetpointOffset := cfg.lrSetpointOffset;
+
+bLoopsReady := nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bConfigured
+    AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bConfigured
+    AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bStarted
+    AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bStarted;
+stat.bConfigured := bLoopsReady;
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_CheckCommands" Id="{668c94ef-2766-43e0-a2cb-7ccf09ac811c}">
+      <Declaration><![CDATA[METHOD M_CheckCommands
+]]></Declaration>
+      <Implementation><ST><![CDATA[stat.bOutsideValid := nott_temps.t_thermal_box_outside.stat.bValid;
+stat.bInsideValid := nott_temps.t_thermal_box_inside.stat.bValid;
+stat.bCoolantInValid := nott_temps.t_thermal_box_inlet.stat.bValid;
+stat.bCoolantOutValid := nott_temps.t_thermal_box_heatexchanger_inlet.stat.bValid;
+stat.lrOutsideTempK := nott_temps.t_thermal_box_outside.stat.lrTempK;
+stat.lrInsideTempK := nott_temps.t_thermal_box_inside.stat.lrTempK;
+stat.lrCoolantInTempK := nott_temps.t_thermal_box_inlet.stat.lrTempK;
+stat.lrCoolantOutTempK := nott_temps.t_thermal_box_heatexchanger_inlet.stat.lrTempK;
+stat.bControlSensorsValid := stat.bOutsideValid AND stat.bInsideValid;
+IF stat.bOutsideValid THEN
+    stat.lrTargetTempK := stat.lrOutsideTempK + cfg.lrSetpointOffset;
+END_IF
+IF stat.bControlSensorsValid THEN
+    stat.lrTemperatureErrorK := stat.lrInsideTempK - stat.lrTargetTempK;
+END_IF
+
+// Retain legacy fields for symbol compatibility; modes belong to each loop/device.
+ctrl.eCtrlMode := E_METIS_CTRL_MODE.NONE;
+stat.bConfigValid := (in_tCycleTime > T#0MS)
+    AND (cfg.tSensorFaultHold >= T#0MS) AND (cfg.tValveClose > T#0MS)
+    AND (cfg.lrHighTempHysteresis >= 0.0) AND (cfg.lrTrackingHysteresis >= 0.0)
+    AND (cfg.lrTrackingWarning > cfg.lrTrackingHysteresis)
+    AND (cfg.tHighTempDelay >= T#0MS) AND (cfg.tTrackingDelay >= T#0MS);
+
+IF ctrl.bResetSafety THEN
+    ctrl.bResetSafety := FALSE;
+    IF stat.bSafetyTrip AND stat.bControlSensorsValid AND stat.bConfigValid AND NOT valve.i_bOverCurrent THEN
+        stat.bSafetyTrip := FALSE;
+        stat.bSensorFaultStopped := FALSE;
+        ctrl.bEnable := FALSE;
+        bStopRequested := TRUE;
+    END_IF
+END_IF
+stat.bAutoReady := bLoopsReady AND stat.bControlSensorsValid
+    AND (pFanLoopCfg^.lrKp > 0.0) AND (pValveLoopCfg^.lrKp > 0.0);
+// Operator demand is independent of automatic branch availability.
+stat.bPermitStart := NOT stat.bSafetyTrip;
+IF stat.bSafetyTrip THEN
+    stat.sStartInhibitReason := 'Safety stop latched. Recover conditions and reset safety.';
+ELSIF NOT stat.bConfigValid THEN
+    stat.sStartInhibitReason := 'Invalid thermal box safety configuration.';
+ELSIF NOT bLoopsReady THEN
+    stat.sStartInhibitReason := 'Temperature loops are initializing.';
+ELSIF NOT stat.bControlSensorsValid THEN
+    stat.sStartInhibitReason := 'Outside or inside temperature invalid.';
+ELSIF NOT stat.bAutoReady THEN
+    stat.sStartInhibitReason := 'Automatic branch held: cooling PID gains must be positive.';
+ELSIF valve.i_bOverCurrent THEN
+    stat.sStartInhibitReason := 'Valve supply overload.';
+ELSE
+    stat.sStartInhibitReason := '';
+END_IF
+bStartRequested := FALSE;
+IF ctrl.bStop THEN
+    ctrl.bStop := FALSE;
+    ctrl.bEnable := FALSE;
+    bStopRequested := TRUE;
+END_IF
+IF ctrl.bEnable AND NOT bWasActive THEN
+    IF NOT stat.bPermitStart THEN
+        ctrl.bEnable := FALSE;
+    ELSE
+        bStartRequested := TRUE;
+    END_IF
+END_IF
+IF bWasActive AND NOT ctrl.bEnable THEN
+    bStopRequested := TRUE;
+END_IF
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_CheckSafety" Id="{4a3ec7f4-f224-4504-a8f0-d592d1621d94}">
+      <Declaration><![CDATA[METHOD M_CheckSafety
+]]></Declaration>
+      <Implementation><ST><![CDATA[stat.bSensorFaultAlarm := NOT stat.bControlSensorsValid;
+stat.bSensorFaultHold := ctrl.bEnable AND stat.bSensorFaultAlarm;
+IF stat.bSensorFaultHold AND NOT bWasHolding THEN
+    lrHeldFanPct := stat.lrFanAppliedPct;
+    lrHeldValvePct := stat.lrValveDemandPct;
+    nHeldValveRaw := valve.io_chiller_water_cooling.q_nSetVoltage;
+    lrHeldValveCommandPct := stat.lrValveCommandPct;
+END_IF
+tonSensorFault(IN := stat.bSensorFaultHold, PT := cfg.tSensorFaultHold);
+stat.tSensorFaultElapsed := tonSensorFault.ET;
+IF tonSensorFault.Q THEN
+    ctrl.bEnable := FALSE;
+    stat.bSensorFaultStopped := TRUE;
+    stat.bSafetyTrip := TRUE;
+    stat.bSensorFaultHold := FALSE;
+END_IF
+IF ctrl.bEnable AND NOT stat.bConfigValid THEN
+    stat.bSafetyTrip := TRUE;
+END_IF
+IF stat.bSafetyTrip THEN
+    ctrl.bEnable := FALSE;
+    bStartRequested := FALSE;
+    stat.bSensorFaultHold := FALSE;
+    IF NOT bWasSafetyTrip THEN
+        bStopRequested := TRUE;
+    END_IF
+END_IF
+IF bWasActive AND NOT ctrl.bEnable THEN
+    bStopRequested := TRUE;
+END_IF
+
+// Coolant temperatures are monitoring only; they never inhibit cooling.
+stat.bCoolantWarning := NOT stat.bCoolantInValid OR NOT stat.bCoolantOutValid
+    OR (stat.bOutsideValid AND stat.bCoolantInValid
+        AND (stat.lrCoolantInTempK >= stat.lrTargetTempK - cfg.lrCoolantMargin));
+
+tonHighTemp(IN := cfg.bHighTempAlarmEnabled AND stat.bInsideValid
+    AND (stat.lrInsideTempK >= cfg.lrHighTempAlarm), PT := cfg.tHighTempDelay);
+IF NOT cfg.bHighTempAlarmEnabled THEN
+    stat.bHighTempAlarm := FALSE;
+ELSIF tonHighTemp.Q THEN
+    stat.bHighTempAlarm := TRUE;
+ELSIF stat.bInsideValid AND (stat.lrInsideTempK <= cfg.lrHighTempAlarm - cfg.lrHighTempHysteresis) THEN
+    stat.bHighTempAlarm := FALSE;
+END_IF
+tonTracking(IN := cfg.bTrackingWarningEnabled AND ctrl.bEnable
+    AND stat.bControlSensorsValid AND (stat.lrTemperatureErrorK >= cfg.lrTrackingWarning),
+    PT := cfg.tTrackingDelay);
+IF NOT cfg.bTrackingWarningEnabled OR NOT ctrl.bEnable THEN
+    stat.bTrackingWarning := FALSE;
+ELSIF tonTracking.Q THEN
+    stat.bTrackingWarning := TRUE;
+ELSIF stat.bControlSensorsValid
+    AND (stat.lrTemperatureErrorK <= cfg.lrTrackingWarning - cfg.lrTrackingHysteresis) THEN
+    stat.bTrackingWarning := FALSE;
+END_IF
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{cd06e722-3aee-44a3-9216-a721c2b27d39}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR
+    bValvePower: BOOL;
+    bSavedFanHold: BOOL;
+    bSavedValveHold: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation><ST><![CDATA[IF bStartRequested THEN
+    // Preserve the request while either loop completes its initialization.
+    bFanStartPending := TRUE;
+    bValveStartPending := TRUE;
+    bFanLoopManualOverride := FALSE;
+    bValveLoopManualOverride := FALSE;
+    pFanLoopCtrl^.eCtrlMode := E_METIS_CTRL_MODE.NONE;
+    pValveLoopCtrl^.eCtrlMode := E_METIS_CTRL_MODE.NONE;
+    pFanCtrl^.bAuto := TRUE;
+    pValveCtrl^.eCtrlMode := E_METIS_CTRL_MODE.AUTO;
+    pValveCtrl^.bManualEnable := FALSE;
+    bClosingValve := FALSE;
+END_IF
+IF bStopRequested THEN
+    bFanStartPending := FALSE;
+    bValveStartPending := FALSE;
+    nott_t_ctrls.tc_thermalbox_fan_ctrl.M_SetDisable();
+    nott_t_ctrls.tc_thermalbox_valve_ctrl.M_SetDisable();
+    pFanLoopCtrl^.lrManualOut := 0.0;
+    pValveLoopCtrl^.lrManualOut := 0.0;
+    pFanCtrl^.bAuto := FALSE;
+    pFanCtrl^.bEnable := FALSE;
+    pFanCtrl^.lrManualDutyPct := 0.0;
+    pValveCtrl^.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+    pValveCtrl^.bManualEnable := FALSE;
+    pValveCtrl^.lrManualSetpoint := 0.0;
+    bClosingValve := TRUE;
+    tonValveClose(IN := FALSE, PT := cfg.tValveClose);
+END_IF
+// Distinguish an operator manual request from the PID's sensor-fault fallback.
+IF pFanLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL THEN
+    bFanLoopManualOverride := TRUE;
+ELSIF pFanLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.AUTO THEN
+    bFanLoopManualOverride := FALSE;
+END_IF
+IF pValveLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL THEN
+    bValveLoopManualOverride := TRUE;
+ELSIF pValveLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.AUTO THEN
+    bValveLoopManualOverride := FALSE;
+END_IF
+IF bFanStartPending AND NOT bStartRequested
+    AND (NOT pFanCtrl^.bAuto OR (pFanLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)) THEN
+    bFanStartPending := FALSE;
+END_IF
+IF bValveStartPending AND NOT bStartRequested
+    AND ((pValveCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
+        OR (pValveLoopCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)) THEN
+    bValveStartPending := FALSE;
+END_IF
+// Recover a PID's automatic sensor-fault fallback without undoing an operator override.
+IF ctrl.bEnable AND pFanCtrl^.bAuto AND NOT bFanLoopManualOverride
+    AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
+    AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.sLastForcedManualCause <> '')
+    AND stat.bControlSensorsValid AND (pFanLoopCfg^.lrKp > 0.0)
+    AND NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError THEN
+    bFanStartPending := TRUE;
+END_IF
+IF ctrl.bEnable AND valve.stat.bAuto AND NOT bValveLoopManualOverride
+    AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
+    AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.sLastForcedManualCause <> '')
+    AND stat.bControlSensorsValid AND (pValveLoopCfg^.lrKp > 0.0)
+    AND NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError THEN
+    bValveStartPending := TRUE;
+END_IF
+IF ctrl.bEnable AND bFanStartPending
+    AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bConfigured
+    AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bStarted THEN
+    nott_t_ctrls.tc_thermalbox_fan_ctrl.M_SetEnable();
+    bFanStartPending := FALSE;
+END_IF
+IF ctrl.bEnable AND bValveStartPending
+    AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bConfigured
+    AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bStarted THEN
+    nott_t_ctrls.tc_thermalbox_valve_ctrl.M_SetEnable();
+    bValveStartPending := FALSE;
+END_IF
+bFanAutoUnavailable := bFanStartPending
+    OR NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bConfigured
+    OR NOT nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bStarted
+    OR (NOT bFanLoopManualOverride
+        AND (NOT stat.bControlSensorsValid OR NOT (pFanLoopCfg^.lrKp > 0.0)
+            OR nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError));
+bValveAutoUnavailable := bValveStartPending
+    OR NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bConfigured
+    OR NOT nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bStarted
+    OR (NOT bValveLoopManualOverride
+        AND (NOT stat.bControlSensorsValid OR NOT (pValveLoopCfg^.lrKp > 0.0)
+            OR nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError));
+// Hold automatic paths only. Explicit manual intervention remains available
+// until the sensor-fault timeout becomes a latched safety stop.
+bFanHold := ctrl.bEnable AND pFanCtrl^.bAuto AND bFanAutoUnavailable;
+bValveHold := ctrl.bEnable AND ((pValveStat^.eCtrlMode = E_METIS_CTRL_MODE.AUTO)
+    OR (pValveCtrl^.eCtrlMode = E_METIS_CTRL_MODE.AUTO))
+    AND (pValveCtrl^.eCtrlMode <> E_METIS_CTRL_MODE.MANUAL)
+    AND bValveAutoUnavailable;
+IF bFanHold AND (NOT bFanWasHeld OR bStartRequested) THEN
+    lrHeldFanPct := stat.lrFanAppliedPct;
+END_IF
+IF bValveHold AND (NOT bValveWasHeld OR bStartRequested) THEN
+    lrHeldValvePct := stat.lrValveDemandPct;
+    nHeldValveRaw := pValveIO^.q_nSetVoltage;
+    lrHeldValveCommandPct := stat.lrValveCommandPct;
+END_IF
+IF bFanHold AND NOT bFanLoopManualOverride THEN
+    pFanLoopCtrl^.lrManualOut := lrHeldFanPct;
+END_IF
+IF bValveHold AND NOT bValveLoopManualOverride THEN
+    pValveLoopCtrl^.lrManualOut := lrHeldValvePct;
+END_IF
+bSavedFanHold := pFanLoopCtrl^.bHold;
+bSavedValveHold := pValveLoopCtrl^.bHold;
+// Freeze the upstream controller while its automatic output is not being used.
+pFanLoopCtrl^.bHold := bSavedFanHold OR NOT pFanCtrl^.bAuto OR NOT ctrl.bEnable OR bFanHold;
+pValveLoopCtrl^.bHold := bSavedValveHold OR (pValveStat^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
+    OR (pValveCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL) OR NOT ctrl.bEnable OR bValveHold;
+IF nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError
+    AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO)
+    AND (pFanLoopCtrl^.eCtrlMode <> E_METIS_CTRL_MODE.MANUAL) THEN
+    pFanLoopCtrl^.bHold := TRUE;
+END_IF
+IF nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError
+    AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO)
+    AND (pValveLoopCtrl^.eCtrlMode <> E_METIS_CTRL_MODE.MANUAL) THEN
+    pValveLoopCtrl^.bHold := TRUE;
+END_IF
+IF stat.bSafetyTrip THEN
+    pFanLoopCfg^.bEnabled := FALSE;
+    pValveLoopCfg^.bEnabled := FALSE;
+END_IF
+
+// Sole cyclic calls for these two instances. Other cryostat loops remain in FB_NOTT_TCTRLs.
+nott_t_ctrls.tc_thermalbox_fan_ctrl(in_sName := 'tc_thermalbox_fan_ctrl',
+    in_tCycleTime := in_tCycleTime, in_bCoolingAction := TRUE, temperatures := nott_temps);
+nott_t_ctrls.tc_thermalbox_valve_ctrl(in_sName := 'tc_thermalbox_valve_ctrl',
+    in_tCycleTime := in_tCycleTime, in_bCoolingAction := TRUE, temperatures := nott_temps);
+
+pFanLoopCtrl^.bHold := bSavedFanHold;
+pValveLoopCtrl^.bHold := bSavedValveHold;
+stat.bControllerAlarm := (pFanLoopCfg^.bEnabled AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError)
+    OR (pValveLoopCfg^.bEnabled AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError)
+    OR (pFanLoopCfg^.bEnabled AND bFanAutoUnavailable AND NOT (pFanLoopCfg^.lrKp > 0.0))
+    OR (pValveLoopCfg^.bEnabled AND bValveAutoUnavailable AND NOT (pValveLoopCfg^.lrKp > 0.0));
+lrFanCommandPct := LIMIT(0.0, nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.lrControllerOut, 100.0);
+lrValveCommandPct := LIMIT(0.0, nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.lrControllerOut, 100.0);
+IF bFanHold THEN
+    lrFanCommandPct := lrHeldFanPct;
+END_IF
+IF bValveHold THEN
+    lrValveCommandPct := lrHeldValvePct;
+END_IF
+// Catch a PID error first reported by this scan's controller call.
+IF NOT bFanHold AND pFanLoopCfg^.bEnabled
+    AND nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bError
+    AND (nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO) THEN
+    lrFanCommandPct := stat.lrFanDemandPct;
+END_IF
+IF NOT bValveHold AND pValveLoopCfg^.bEnabled
+    AND nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bError
+    AND (nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO) THEN
+    lrValveCommandPct := stat.lrValveDemandPct;
+END_IF
+// An explicit manual start after Stop takes ownership from timed valve closure.
+IF NOT stat.bSafetyTrip AND NOT bStopRequested AND pValveCtrl^.bManualEnable
+    AND ((pValveStat^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)
+        OR (pValveCtrl^.eCtrlMode = E_METIS_CTRL_MODE.MANUAL)) THEN
+    bClosingValve := FALSE;
+END_IF
+tonValveClose(IN := bClosingValve, PT := cfg.tValveClose);
+IF tonValveClose.Q THEN
+    bClosingValve := FALSE;
+END_IF
+bValvePower := ctrl.bEnable AND pValveLoopCfg^.bEnabled AND NOT stat.bSafetyTrip;
+
+IF pFanCtrl^.bAuto THEN
+    pFanCtrl^.bEnable := ctrl.bEnable AND pFanLoopCfg^.bEnabled;
+END_IF
+IF stat.bSafetyTrip THEN
+    pFanCtrl^.bEnable := FALSE;
+    pValveCtrl^.bManualEnable := FALSE;
+    lrFanCommandPct := 0.0;
+    lrValveCommandPct := 0.0;
+END_IF
+fan(in_sName := 'Thermal box fan', in_sAutoSetpointSource := 'Thermal box control',
+    in_lrAutoSetpointValue := lrFanCommandPct, in_tCycleTime := in_tCycleTime);
+valve(in_sName := 'Thermal box water valve',
+    in_eValveType := E_METIS_CRYO_CTRL_VALVE_TYPE.CHILLER_WATER_COOLING,
+    in_sAutoSetpointSource := 'Thermal box control',
+    in_bEnable := bValvePower, in_lrAutoSetpointValue := lrValveCommandPct);
+
+IF bClosingValve OR stat.bSafetyTrip THEN
+    pValveIO^.q_nSetVoltage := 0;
+ELSIF bValveHold AND valve.stat.bAuto THEN
+    // Retain the exact ES4104 command even if valve scaling is edited during the fault.
+    pValveIO^.q_nSetVoltage := nHeldValveRaw;
+    pValveStat^.lrActSetpoint := lrHeldValveCommandPct;
+END_IF
+// Timed closing power must never override the valve supply overload diagnostic.
+pValveIO^.q_bEnable := (valve.stat.bActive OR bClosingValve)
+    AND NOT valve.i_bOverCurrent AND NOT valve.stat.bError
+    AND (NOT stat.bSafetyTrip OR bClosingValve);
+
+stat.lrFanDemandPct := lrFanCommandPct;
+stat.lrValveDemandPct := lrValveCommandPct;
+stat.lrFanAppliedPct := fan.stat.lrDutyPct;
+stat.lrValveCommandPct := valve.stat.lrActSetpoint;
+stat.lrFanSpeedRpm := fan.stat.lrSpeedRpm;
+stat.bTachMeasurementLimited := fan.stat.bTachMeasurementLimited;
+stat.bFanStallAlarm := fan.stat.bStallAlarm;
+stat.bValveAlarm := valve.stat.bError OR valve.i_bOverCurrent;
+stat.bActive := ctrl.bEnable;
+stat.bClosingValve := bClosingValve;
+stat.bValveCloseTimeElapsed := NOT bClosingValve AND NOT ctrl.bEnable;
+stat.bPermitStop := TRUE;
+stat.bFanManual := NOT pFanCtrl^.bAuto;
+stat.bValveManual := valve.stat.bManual;
+stat.bFanLoopManual := nott_t_ctrls.tc_thermalbox_fan_ctrl.stat.bCtrlModeIsManual;
+stat.bValveLoopManual := nott_t_ctrls.tc_thermalbox_valve_ctrl.stat.bCtrlModeIsManual;
+stat.bAuto := NOT stat.bFanManual AND NOT stat.bValveManual
+    AND NOT stat.bFanLoopManual AND NOT stat.bValveLoopManual;
+stat.bManual := stat.bFanManual AND stat.bValveManual;
+stat.bMixedMode := NOT stat.bAuto AND NOT stat.bManual;
+IF stat.bAuto THEN
+    stat.eCtrlMode := E_METIS_CTRL_MODE.AUTO;
+ELSIF stat.bManual THEN
+    stat.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+ELSE
+    stat.eCtrlMode := E_METIS_CTRL_MODE.NONE;
+END_IF
+bWasActive := stat.bActive;
+bWasHolding := stat.bSensorFaultHold;
+bFanWasHeld := bFanHold;
+bValveWasHeld := bValveHold;
+bWasSafetyTrip := stat.bSafetyTrip;
+bStartRequested := FALSE;
+bStopRequested := FALSE;
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{97dcfc51-c9b9-4e6a-bb52-16b9d7ddaf8f}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+]]></Declaration>
+      <Implementation><ST><![CDATA[stat.bAlarm := stat.bSafetyTrip OR stat.bSensorFaultAlarm OR stat.bSensorFaultStopped OR stat.bFanStallAlarm
+    OR stat.bValveAlarm OR stat.bControllerAlarm OR stat.bHighTempAlarm;
+stat.bWarning := stat.bCoolantWarning OR stat.bTrackingWarning OR stat.bTachMeasurementLimited;
+IF stat.bSafetyTrip THEN
+    stat.sStatus := 'Safety stop latched. Recover conditions, reset safety, then start explicitly.';
+ELSIF ctrl.bEnable AND bFanHold AND bValveHold THEN
+    stat.sStatus := 'Enabled. Both automatic branches held; manual overrides remain available until a safety trip.';
+ELSIF ctrl.bEnable AND bFanHold THEN
+    stat.sStatus := 'Enabled. Fan automatic branch held. Other available cooling continues.';
+ELSIF ctrl.bEnable AND bValveHold THEN
+    stat.sStatus := 'Enabled. Valve automatic branch held. Other available cooling continues.';
+ELSIF stat.bControllerAlarm THEN
+    stat.sStatus := 'Control loop alarm. Check individual loop; other available cooling remains enabled.';
+ELSIF stat.bSensorFaultHold THEN
+    stat.sStatus := 'Control sensor invalid. Automatic paths held; manual overrides remain available until timeout.';
+ELSIF stat.bClosingValve THEN
+    stat.sStatus := 'Valve commanded closed with actuator powered. Independent manual fan control available.';
+ELSIF NOT ctrl.bEnable THEN
+    IF NOT stat.bConfigured THEN
+        stat.sStatus := 'Initializing temperature loops. Cooling disabled.';
+    ELSIF NOT stat.bConfigValid THEN
+        stat.sStatus := 'Invalid thermal box configuration. Cooling disabled.';
+    ELSE
+        stat.sStatus := 'Routine disabled. Independent manual device operation available.';
+    END_IF
+ELSIF stat.bFanStallAlarm THEN
+    stat.sStatus := 'Fan stall alarm. Water circulation remains enabled.';
+ELSIF stat.bValveAlarm THEN
+    stat.sStatus := 'Valve hardware alarm. Check actuator power and analog command.';
+ELSIF stat.bHighTempAlarm THEN
+    stat.sStatus := 'Inside temperature high alarm. Cooling remains enabled.';
+ELSIF stat.bManual THEN
+    stat.sStatus := 'Enabled. Fan and valve manually overridden.';
+ELSIF stat.bMixedMode THEN
+    stat.sStatus := 'Enabled. Mixed device/PID modes; see individual faceplates.';
+ELSE
+    stat.sStatus := 'AUTO. Inside temperature follows outside temperature plus offset.';
+END_IF
+
+fbAlarmHandler.M_UpdateAlarm(in_bCondition := NOT stat.bInsideValid,
+    in_nIndex := 0, in_strEventEntry := arrEventEntry[0]);
+fbAlarmHandler.M_UpdateAlarm(in_bCondition := NOT stat.bOutsideValid,
+    in_nIndex := 1, in_strEventEntry := arrEventEntry[1]);
+fbAlarmHandler.M_UpdateAlarm(in_bCondition := stat.bControllerAlarm,
+    in_nIndex := 2, in_strEventEntry := arrEventEntry[2]);
+IF ctrl.bConfirmAlarms THEN
+    ctrl.bConfirmAlarms := FALSE;
+    fbAlarmHandler.M_ConfirmAllAlarms();
+END_IF
+fbAlarmHandler(stAlarms := stat.stAlarms);
+fbAlarmHandler.M_ProcessAlarms(arrEventEntry := arrEventEntry, sEventString := sAlarmContext);
+IF stat.bAlarm AND NOT bPreviousAlarm THEN
+    logs.M_LogInfo(CONCAT('Thermal box alarm: ', stat.sStatus));
+END_IF
+bPreviousAlarm := stat.bAlarm;
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_SetEnable" Id="{7063c3f4-c379-4445-abcb-c47129f6e047}">
+      <Declaration><![CDATA[METHOD M_SetEnable
+]]></Declaration>
+      <Implementation><ST><![CDATA[ctrl.bEnable := TRUE;
+]]></ST></Implementation>
+    </Method>
+    <Method Name="M_SetDisable" Id="{adfd4f3f-642b-49c9-9a93-89eb05e18a20}">
+      <Declaration><![CDATA[METHOD M_SetDisable
+]]></Declaration>
+      <Implementation><ST><![CDATA[ctrl.bEnable := FALSE;
+ctrl.bStop := TRUE;
+]]></ST></Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

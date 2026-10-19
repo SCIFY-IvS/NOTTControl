@@ -6,10 +6,6 @@
         "name": "ADS"
       },
       {
-        "publishServerExtension": false,
-        "name": "RFIDAuth"
-      },
-      {
         "publishServerExtension": true,
         "name": "TcHmiEventLogger"
       },
@@ -35,10 +31,9 @@
     "targetDirectory": "",
     "deleteAllFilesBeforePublish": false,
     "deleteExtensionDataBeforePublish": false,
-    "alwaysPublishLocalServerConfiguration": true,
-    "temporaryPublishWithoutServerConfiguration": false,
     "abortOnErrors": true,
     "createPublishLog": false,
+    "createPackageInformation": false,
     "salt": "123d3802730b402a9ebdd65165cbc449",
     "encryptedTcHmiServerPassword": "J/jGHzIgMUJqI5mNN1QPCA==",
     "tcHmiServerHost": "10.33.179.184",
@@ -62,10 +57,6 @@
       {
         "publishServerExtension": true,
         "name": "ADS"
-      },
-      {
-        "publishServerExtension": true,
-        "name": "RFIDAuth"
       },
       {
         "publishServerExtension": true,
@@ -93,10 +84,9 @@
     "targetDirectory": "",
     "deleteAllFilesBeforePublish": true,
     "deleteExtensionDataBeforePublish": true,
-    "alwaysPublishLocalServerConfiguration": true,
-    "temporaryPublishWithoutServerConfiguration": false,
     "abortOnErrors": true,
     "createPublishLog": false,
+    "createPackageInformation": false,
     "salt": "11cb8c9ca9fd4b77b6cfcd294688c84e",
     "encryptedTcHmiServerPassword": "eAErnnudh7EKVIZ5Hkd36g==",
     "tcHmiServerHost": "127.0.0.1",

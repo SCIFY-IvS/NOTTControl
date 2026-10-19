@@ -41,8 +41,7 @@ END_VAR
       <ST><![CDATA[stat.sName := in_sName;
 stat.sAutoSetpointSource := in_sAutoSetpointSource;
 
-// The thermal-box controller must be configured reverse acting (negative Kp):
-// fan demand increases when measured temperature rises above setpoint.
+// The upstream thermal-box PID selects cooling action with a positive gain.
 IF ctrl.bAuto THEN
 	lrDemand := in_lrAutoSetpointValue;
 ELSE
@@ -80,8 +79,6 @@ ELSE
 	ELSE
 		IF lrDemand <= 0.0 THEN
 			stat.lrDutyPct := 0.0;
-		ELSIF lrDemand < cfg.lrMinRunningDutyPct THEN
-			stat.lrDutyPct := cfg.lrMinRunningDutyPct;
 		ELSIF lrDemand > cfg.lrMaxDutyPct THEN
 			stat.lrDutyPct := cfg.lrMaxDutyPct;
 		ELSE

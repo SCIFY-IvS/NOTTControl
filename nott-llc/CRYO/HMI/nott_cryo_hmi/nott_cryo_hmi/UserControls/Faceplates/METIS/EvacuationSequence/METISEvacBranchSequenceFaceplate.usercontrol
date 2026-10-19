@@ -90,7 +90,7 @@
                 },
                 "compare2": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "compareOperator": "==",
@@ -225,7 +225,7 @@
                 "symbolExpression": "%pp%StartStopSequence%/pp%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -240,7 +240,7 @@
                 "symbolExpression": "%pp%StartStopSequence%/pp%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true

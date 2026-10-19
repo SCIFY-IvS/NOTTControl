@@ -61,12 +61,12 @@
           },
           {
             "objectType": "StaticValue",
-            "valueType": "tchmi:general#/definitions/Boolean",
+            "valueType": "tchmi:general#/definitions/BOOL",
             "value": false
           },
           {
             "objectType": "StaticValue",
-            "valueType": "tchmi:general#/definitions/Boolean",
+            "valueType": "tchmi:general#/definitions/BOOL",
             "value": true
           },
           {
@@ -144,12 +144,12 @@
           },
           {
             "objectType": "StaticValue",
-            "valueType": "tchmi:general#/definitions/Boolean",
+            "valueType": "tchmi:general#/definitions/BOOL",
             "value": false
           },
           {
             "objectType": "StaticValue",
-            "valueType": "tchmi:general#/definitions/Boolean",
+            "valueType": "tchmi:general#/definitions/BOOL",
             "value": true
           },
           {

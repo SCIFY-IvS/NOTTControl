@@ -7,6 +7,8 @@ VAR_INPUT
 	in_sName : STRING;   // name of the controller
 	{attribute 'OPC.UA.DA' := '0'}
     in_tCycleTime : TIME := T#10ms;
+    {attribute 'OPC.UA.DA' := '0'}
+    in_bCoolingAction : BOOL := FALSE; // TRUE: output increases when temperature is above setpoint
 END_VAR
 VAR_IN_OUT
 	{attribute 'OPC.UA.DA' := '0'}
@@ -225,6 +227,8 @@ VAR_INST
     
 	{attribute 'OPC.UA.DA' := '0'}
     lrActualValue : LREAL;
+    lrPidSetpointValue : LREAL;
+    lrPidActualValue : LREAL;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -300,10 +304,19 @@ stat.lrRampValue :=
     );
 
 
+// Reverse the PID error for cooling without changing diagnostics or gain sign.
+IF in_bCoolingAction THEN
+    lrPidSetpointValue := stat.lrActInput;
+    lrPidActualValue := stat.lrRampValue;
+ELSE
+    lrPidSetpointValue := stat.lrRampValue;
+    lrPidActualValue := stat.lrActInput;
+END_IF
+
 // execute the PID algorithm
 fbCtrlPid(
-    fSetpointValue  := stat.lrRampValue,
-    fActualValue    := stat.lrActInput,
+    fSetpointValue  := lrPidSetpointValue,
+    fActualValue    := lrPidActualValue,
     fManSyncValue   := ctrl.lrManualOut,
     bSync           := FALSE,
     eMode           := eCtrlMode,

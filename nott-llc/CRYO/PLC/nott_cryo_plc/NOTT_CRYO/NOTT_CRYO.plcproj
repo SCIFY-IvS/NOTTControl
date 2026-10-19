@@ -9,7 +9,7 @@
     <WriteProductVersion>true</WriteProductVersion>
     <GenerateTpy>false</GenerateTpy>
     <Name>NOTT_CRYO</Name>
-    <ProgramVersion>3.1.4026.22</ProgramVersion>
+    <ProgramVersion>3.1.4026.26</ProgramVersion>
     <Application>{99a3da66-881b-4c52-862d-cd380548ae32}</Application>
     <TypeSystem>{aaacea99-ce2f-4099-8983-d4237d52a1cc}</TypeSystem>
     <Implicit_Task_Info>{0f2bf332-1a22-412d-883b-30959aa1a251}</Implicit_Task_Info>
@@ -20,6 +20,15 @@
     <Released>false</Released>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DUTs\Structures\DetectorPower\T_NOTT_DETECTOR_POWER_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\DetectorPower\T_NOTT_DETECTOR_POWER_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\DetectorPower\T_NOTT_DETECTOR_POWER_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Enumerations\CoolDOwn\E_NOTT_CRYO_COOLDOWN_STATE.TcDUT">
       <SubType>Code</SubType>
     </Compile>
@@ -134,6 +143,9 @@
     <Compile Include="POUs\Devices\Control\FB_NOTT_TCTRLs.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Devices\Detector_Power\FB_NOTT_DETECTOR_POWER.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Devices\Heaters\FB_NOTT_HEATERS.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -198,6 +210,10 @@
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\VISU_DETECTOR_POWER.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="VISUs\VISU_NOTT_PRESSURES.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
@@ -225,6 +241,7 @@
     <Folder Include="DUTs\Structures" />
     <Folder Include="DUTs\Structures\ControlValve" />
     <Folder Include="DUTs\Structures\CoolDown" />
+    <Folder Include="DUTs\Structures\DetectorPower" />
     <Folder Include="DUTs\Structures\Fan" />
     <Folder Include="DUTs\Structures\ThermalBox" />
     <Folder Include="DUTs\Structures\WarmUp" />
@@ -236,6 +253,7 @@
     <Folder Include="POUs\Devices\Heaters" />
     <Folder Include="POUs\Devices\Fans" />
     <Folder Include="POUs\Devices\Control" />
+    <Folder Include="POUs\Devices\Detector_Power" />
     <Folder Include="POUs\Devices\NOTT_Pump" />
     <Folder Include="POUs\Devices\NOTT_Pump\Functions" />
     <Folder Include="POUs\Devices\NOTT_Pump\rp" />

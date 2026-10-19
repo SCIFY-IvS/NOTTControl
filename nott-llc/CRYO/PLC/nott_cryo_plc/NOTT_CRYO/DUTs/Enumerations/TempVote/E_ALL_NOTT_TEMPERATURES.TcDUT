@@ -39,10 +39,10 @@ TYPE E_ALL_NOTT_TEMPERATURES :
 	t_flat_field_2          := 20,
 	t_flat_field_vote       := 21,
 	// Thermal Box   (* 5 *)
-	t_thermal_box_1			:= 22,
-	t_thermal_box_2         := 23,
-	t_thermal_box_3			:= 24,
-	t_thermal_box_4         := 25,
+	t_thermal_box_outside			:= 22,
+	t_thermal_box_inside         := 23,
+	t_thermal_box_inlet			:= 24,
+	t_thermal_box_heatexchanger_inlet         := 25,
 	t_thermal_box_vote      := 26,
 	
 		// Cabinet   (* 3 *)

@@ -1,0 +1,57 @@
+[
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\DetectorPower.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Pages\\DetectorPower.content",
+    "hash": "04ddd86c7807ab7549bc2fe9624cc2557658412c08a39796175ec18301b0e1cf"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Properties\\tchmiconfig.json",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Properties\\tchmiconfig.json",
+    "hash": "2b7cf7bd93f7abb97e9a12329c09fa458f5458249c835938b770f014989576b1"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\nott_cryo_hmi.hmiproj",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\nott_cryo_hmi.hmiproj",
+    "hash": "deaca28c2f89276e079aeebad736e0113d7654aecf682b3f34978a428e5a0414"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+    "hash": "009b8594da7b4811a502f2f724f2e6e7b8a6ba59f3a20adf7b0bd39e2386eba8"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\nott_cryo_plc.tsproj",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\nott_cryo_plc.tsproj",
+    "hash": "5704258370e44e136cd4595bf4c1dd1f58fad45da989752e21fd3cf1350426f9"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\DetectorPowerOverview.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Pages\\DetectorPowerOverview.content",
+    "hash": null
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\DetectorPowerDiagnostics.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Pages\\DetectorPowerDiagnostics.content",
+    "hash": null
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\DetectorPowerConfiguration.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Pages\\DetectorPowerConfiguration.content",
+    "hash": null
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Images\\NOTT\\DetectorPowerPath.svg",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\Images\\NOTT\\DetectorPowerPath.svg",
+    "hash": null
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\JavaScript\\DetectorPowerAction.function.json",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\JavaScript\\DetectorPowerAction.function.json",
+    "hash": null
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\JavaScript\\DetectorPowerAction.js",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.detector-power\\files\\JavaScript\\DetectorPowerAction.js",
+    "hash": null
+  }
+]

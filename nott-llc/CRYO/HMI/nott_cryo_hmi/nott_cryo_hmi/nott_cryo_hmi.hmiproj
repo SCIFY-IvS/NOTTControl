@@ -130,9 +130,14 @@
     <Content Include="Server\ADS\ADS.Config.default.json">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Server\ADS\ADS.Config.default.json" />
+    <Content Include="Server\ADS\ADS.Config.default.json" />
     <Content Include="Server\ADS\ADS.Config.remote.json">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Server\ADS\ADS.Config.remote.json" />
+    <Content Include="Server\ADS\ADS.Config.remote.json" />
+    <Content Include="Server\ADS\ADS.Storage.json" />
     <Content Include="UserControls\Controls\NOTT\Fan\NOTTFanUserControl.usercontrol">
       <SubType>Content</SubType>
     </Content>
@@ -1303,4 +1308,17 @@
     <Error Condition="!Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets'))" />
   </Target>
   <Import Project="..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets" Condition="Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets')" />
+  <ItemGroup>
+    <Content Include="Pages\DetectorPowerOverview.content" />
+    <Content Include="Pages\DetectorPowerDiagnostics.content" />
+    <Content Include="Pages\DetectorPowerConfiguration.content" />
+    <Content Include="Images\NOTT\DetectorPowerPath.svg" />
+    <Content Include="JavaScript\DetectorPowerAction.function.json" />
+    <Content Include="JavaScript\DetectorPowerAction.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="JavaScript\NOTTHeaderStatus.js" />
+    <Content Include="Styles\NOTTStatus.css" />
+    <Content Include="JavaScript\NOTTHeaderStatus.function.json" />
+  </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@
   <DUT Name="T_NOTT_FAN_CFG" Id="{890e46b0-dc00-42fa-bb82-53bdc8373a9c}">
     <Declaration><![CDATA[TYPE T_NOTT_FAN_CFG :
 STRUCT
-	lrMinRunningDutyPct:	LREAL := 20.0;	// Minimum commanded running duty [%]
+	lrMinRunningDutyPct:	LREAL := 5.0;	// Legacy name: tach alarm monitoring threshold [%], not an output minimum
 	lrMaxDutyPct:			LREAL := 100.0;	// Maximum commanded duty [%]
 	lrStartDutyPct:		LREAL := 100.0;	// Startup boost duty [%]
 	tStartBoost:			TIME := T#2S;

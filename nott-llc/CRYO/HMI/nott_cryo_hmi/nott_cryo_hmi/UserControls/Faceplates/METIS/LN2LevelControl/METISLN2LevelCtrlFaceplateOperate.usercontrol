@@ -118,7 +118,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": null
                 },
                 "asyncWait": true
@@ -133,7 +133,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -274,7 +274,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -289,7 +289,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -343,7 +343,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": null
                 },
                 "asyncWait": true
@@ -369,7 +369,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -496,7 +496,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -511,7 +511,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true
@@ -638,7 +638,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": false
                 },
                 "asyncWait": true
@@ -653,7 +653,7 @@
                 "symbolExpression": "%ctx%owner::IsEnabled%/ctx%",
                 "value": {
                   "objectType": "StaticValue",
-                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "valueType": "tchmi:general#/definitions/BOOL",
                   "value": true
                 },
                 "asyncWait": true

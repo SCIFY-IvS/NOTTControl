@@ -5,7 +5,7 @@
       "displayName": "IsInEngineeringMode",
       "allowSymbolExpressionsInObject": false,
       "visible": true,
-      "type": "tchmi:general#/definitions/Boolean",
+      "type": "tchmi:general#/definitions/BOOL",
       "category": "",
       "description": "",
       "requiredOnCompile": false,

@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path');
+const file=path.join(__dirname,'nott_cryo_plc.tsproj');
+let src=fs.readFileSync(file,'utf8');
+const start=src.indexOf('<Name>DetectorPowerMeasurement (EL3681)</Name>');
+const end=src.indexOf('</EtherCAT>',start);
+const box=src.slice(start,end);
+const active='<Pdo Name="SAI Range" Index="#x1600" InOut="1" Flags="#x0010" SyncMan="2">';
+if(!box.includes(active))throw new Error('Expected active/unmapped meter control PDO not found');
+const updated=box.replace(active,'<Pdo Name="SAI Range" Index="#x1600" InOut="1" Flags="#x0010">');
+src=src.slice(0,start)+updated+src.slice(end);
+fs.writeFileSync(file,src);

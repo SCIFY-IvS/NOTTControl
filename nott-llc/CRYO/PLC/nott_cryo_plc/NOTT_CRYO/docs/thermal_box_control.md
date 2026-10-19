@@ -1,16 +1,17 @@
 # Thermal box control
 
 The PLC source implements the coordinator in FB_NOTT_THERMAL_BOX_CONTROL.
-The shared FB_NOTT_CTRL_TEMPERATURE and its cryostat heater users are unchanged.
+The shared FB_NOTT_CTRL_TEMPERATURE defaults to heating action; both thermal-box
+loops explicitly select cooling action with positive gains.
 The two thermal-box loop instances remain in FB_NOTT_TCTRLs, but only the
 coordinator calls them cyclically, after applying configuration and permissions.
 
 ## Sensors and target
 
-- t_thermal_box_1: outside temperature, variable setpoint source.
-- t_thermal_box_2: inside temperature, process value.
-- t_thermal_box_3: coolant inlet, monitoring only.
-- t_thermal_box_4: coolant outlet, monitoring only.
+- t_thermal_box_outside: outside temperature, variable setpoint source.
+- t_thermal_box_inside: inside temperature, process value.
+- t_thermal_box_inlet: thermal box inlet, monitoring only.
+- t_thermal_box_heatexchanger_inlet: heat exchanger inlet, monitoring only.
 - Target: outside temperature + cfg.lrSetpointOffset, in kelvin.
 - Neither the thermal-box voter nor cryostat heaters are used by the coordinator.
 
@@ -22,12 +23,16 @@ Both HMI routine buttons are always available to authorized operators. An accept
 Enable requests device AUTO once and requests PID AUTO/enable individually as
 each loop completes initialization. Device and PID modes are not overwritten
 cyclically. bAutoCommissioned is retained as a legacy commissioning record only.
-Uninitialized automatic branches, invalid control sensors, nonnegative cooling
+Uninitialized automatic branches, invalid control sensors, nonpositive cooling
 gains and PID errors cause branch hold and diagnostics rather than canceling the
 routine enable demand. A healthy branch can run while the other is held.
 ctrl.bStop is a one-shot stop that also stops independently operating devices
 when the routine is already disabled. Directly clearing ctrl.bEnable stops an
 active routine. After Stop, manual fan/valve operation can be started explicitly.
+The HMI Disable button writes ctrl.bStop directly before checking status. It does
+not depend on a feedback text control, valid sensors or automatic readiness.
+Feedback is optional and reports PLC confirmation (enable and active state),
+or a communication/acknowledgement failure; it never silently blocks Stop.
 Fan manual operation uses fan.ctrl.bAuto = FALSE, fan.ctrl.bEnable and
 fan.ctrl.lrManualDutyPct. The valve uses its standard manual controls. Each PID
 retains independent ctrl.eCtrlMode and ctrl.lrManualOut controls. While a device
@@ -124,13 +129,13 @@ No runtime activation is performed by editing this source.
    closure. Verify closing time before using timed power removal.
 3. Use MANUAL with controlled demands to verify fan duty, valve response and cooling.
 4. Verify sensor 1 is outside and sensor 2 is inside, in kelvin.
-5. Tune fan and valve loops separately with negative Kp. Prefer a faster fan loop
+5. Tune fan and valve loops separately with positive Kp. Prefer a faster fan loop
    and slower valve loop; two integral loops on the same PV can interact.
    Review each loop's existing ramp rates, target-change threshold and maximum
    tracking difference for ambient-temperature regulation; shared ramp logic is
    unchanged. Avoid a zero tracking difference, which can suppress cooling error.
-6. Verify tuned negative gains before allowing automatic outputs. Check that a
-   nonnegative gain holds only its automatic branch without rejecting Enable.
+6. Verify tuned positive gains before allowing automatic outputs. Check that a
+   nonpositive gain holds only its automatic branch without rejecting Enable.
 7. With an isolated test setup, shorten the fault hold and verify both sensor
    failures, frozen commands, recovery before expiry, timeout and operator restart.
    Verify independent PID/device overrides, safety reset refusal while sensors
@@ -143,3 +148,18 @@ No runtime activation is performed by editing this source.
 The fan code flags tach measurement limitations for the current 10 ms task.
 Reliable RPM/stall validation requires commissioning the input filtering and
 pulse capture; this implementation does not change the fan FB.
+
+## Fan demand and sensor naming
+
+After the configured startup boost, fan duty follows the PID/manual demand
+without a minimum-duty floor, subject to the existing maximum-duty limit.
+The legacy cfg.lrMinRunningDutyPct field now only sets the tach alarm monitoring
+threshold; it does not raise the PWM demand. Tach/RPM logic is otherwise unchanged.
+
+Sensor enumeration values 22..25 and physical RTD channels 1..4 are unchanged.
+PLC lookup names, I/O symbol paths and HMI mappings use the descriptive names.
+Existing saved sensor configurations or external clients using numbered names
+need migration/rebinding before deployment; no running PLC files were changed.
+Legacy coordinator status fields named CoolantIn and CoolantOut still refer to
+the thermal-box inlet and heat-exchanger inlet respectively. Their diagnostics
+and thresholds are unchanged by this naming update.

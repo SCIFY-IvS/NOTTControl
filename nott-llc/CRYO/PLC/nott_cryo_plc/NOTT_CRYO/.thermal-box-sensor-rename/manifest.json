@@ -1,0 +1,52 @@
+[
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\DUTs\\Enumerations\\TempVote\\E_ALL_NOTT_TEMPERATURES.TcDUT",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\0-E_ALL_NOTT_TEMPERATURES.TcDUT",
+    "hash": "d745be51ce046d26ac8628dce1fe22735f881c14f673519bac1727b6f6a429dc"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\POUs\\Devices\\Temperatures\\FB_NOTT_TEMPERATURES.TcPOU",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\1-FB_NOTT_TEMPERATURES.TcPOU",
+    "hash": "9f7d419dc9bd59cb6fe43c9c714095b0c17c99848cc33b95f89fa56b8f0b6175"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\POUs\\Devices\\ThermalBox\\FB_NOTT_THERMAL_BOX_CONTROL.TcPOU",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\2-FB_NOTT_THERMAL_BOX_CONTROL.TcPOU",
+    "hash": "ce881b83a2ac72ea5eb47bf20c6ddd0d35c6230064f001ee2964b395f5a08302"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\docs\\thermal_box_control.md",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\3-thermal_box_control.md",
+    "hash": "9c2047e5caeaf2572b68cb73c02a8a1ae69fbae2d30f552e601ef66a5240adf6"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\nott_cryo_plc.tsproj",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\4-nott_cryo_plc.tsproj",
+    "hash": "99c403332153fba06018ea19c82dc87d07c0b31c9ee79fc7bd48ee86a166586e"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Pages\\ThermalBox.content",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\5-ThermalBox.content",
+    "hash": "0b0ed4e25bc2eb7a1651c47d9d5f1f3a1e7cebe7a65b587bd47d8c2566deb164"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\UserControls\\NOTT\\CryogenicController_usercontrol_Temperatures.usercontrol",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\6-CryogenicController_usercontrol_Temperatures.usercontrol",
+    "hash": "75320b9ec66011dada5e61cd24e956b37b9c89c10af2a7a654be44a38d46228c"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\Server\\TcHmiSrv\\TcHmiSrv.Config.default.json",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\7-TcHmiSrv.Config.default.json",
+    "hash": "06fc2344ceb64bfa1f1d4e3de3d1e6f972872676f7d5e875a7860fb2b8b0d488"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\UserControls\\Faceplates\\NOTT\\Fan\\NOTTFanFaceplateConfiguration.usercontrol",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\8-NOTTFanFaceplateConfiguration.usercontrol",
+    "hash": "43f26aed0e85cfbab1c8174ffd2f092bed7b88ad553f5613596fb5bfda2526c8"
+  },
+  {
+    "target": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\HMI\\nott_cryo_hmi\\nott_cryo_hmi\\JavaScript\\NOTTFanAction.js",
+    "stage": "C:\\Users\\u0149673\\NOTT\\NOTTControl\\nott-llc\\CRYO\\PLC\\nott_cryo_plc\\NOTT_CRYO\\.thermal-box-sensor-rename\\staged\\9-NOTTFanAction.js",
+    "hash": "dc72547e1cf30f487fa08606dd31680dc99638cd47d7403f6d96a5ad51414ebb"
+  }
+]
