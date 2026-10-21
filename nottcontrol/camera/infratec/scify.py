@@ -1475,11 +1475,13 @@ class MainWindow(QMainWindow):
 
     def save_roi_position_to_config(self, roi, key):
         roi_pos = roi.pos()
+        roi_x = roi_pos[0]+config.getint(INFRATEC_SECTION, "window_x", fallback=0)
+        roi_y = roi_pos[1]+config.getint(INFRATEC_SECTION, "window_y", fallback=0)
         roi_size = roi.size()
         config.set_local(
             INFRATEC_SECTION,
             key,
-            f"{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}",
+            f"{roi_x},{roi_y},{roi_size[0]},{roi_size[1]}",
         )
 
     def connectSignalSlots(self):
