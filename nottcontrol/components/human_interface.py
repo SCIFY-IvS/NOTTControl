@@ -196,7 +196,7 @@ def hadamard_modulation(ntel, amp, drop_common=True):
     """
     Returns a hadamard matrix of given
     """
-    mat = hadamard(4)
+    mat = hadamard(ntel)
     if drop_common:
         mat = mat[1:,:]
     return mat*amp
