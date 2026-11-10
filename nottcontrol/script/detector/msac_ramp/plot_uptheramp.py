@@ -29,10 +29,10 @@ With first-sample subtraction the zero self-subtraction plane is
 
 Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1010–1030``, ``Y=950–970``). QA linearity uses the **median of the
-central 5×5** pixels in that box (drawn on the images). The **10 brightest**
-pixels are chosen once on the last CDS plane (``last − reset`` or
-``last − first``) after outlier rejection, then those same pixels are
-averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
+5×5 at the image centre** (drawn on the images; independent of WinMode
+size). The **10 brightest** pixels are chosen once on the last CDS plane
+(``last − reset`` or ``last − first``) after outlier rejection, then those
+same pixels are averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
 by subtracting the **per-channel HxRG reference-pixel** mean (32 SIDECAR
 outputs; disable with ``--no-ref-correct``). Flux and detector-QA
 linearity use that corrected cube. The flux plot also overlays the
@@ -106,7 +106,7 @@ try:
         DEFAULT_CENTER_MEDIAN_SIZE,
         H2RG_N_OUTPUTS,
         H2RG_REF_WIDTH,
-        center_subbox,
+        image_center_subbox,
         h2rg_ref_mask,
         n_outputs_for_shape,
         subtract_channel_reference_pixels,
@@ -117,7 +117,7 @@ except ImportError:
         DEFAULT_CENTER_MEDIAN_SIZE,
         H2RG_N_OUTPUTS,
         H2RG_REF_WIDTH,
-        center_subbox,
+        image_center_subbox,
         h2rg_ref_mask,
         n_outputs_for_shape,
         subtract_channel_reference_pixels,
@@ -512,8 +512,8 @@ def write_reset_illum_vs_r_plot(
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last = np.asarray(stack[-1], dtype=np.float64)
-    reset_metric_box = center_subbox(
-        illum_box, size=DEFAULT_CENTER_MEDIAN_SIZE
+    reset_metric_box = image_center_subbox(
+        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
     )
     plot_file_series(
         indices=r_indices,
@@ -1566,13 +1566,20 @@ def plot_file_series(
         ax_illum.set_title(illum_title)
         ax_illum.set_xlabel("X [pix]")
         ax_illum.set_ylabel("Y [pix]")
-        if metric_box is not None and illum_box is not None:
+        # Draw the image-centre 5×5 on the crop only when it lies inside.
+        if (
+            metric_box is not None
+            and illum_box is not None
+            and metric_box[0] >= illum_box[0]
+            and metric_box[1] <= illum_box[1]
+            and metric_box[2] >= illum_box[2]
+            and metric_box[3] <= illum_box[3]
+        ):
             display_metric = map_box_to_detector(
                 metric_box,
                 illum_box=illum_box,
                 detector_box=detector_box if illum_extent is not None else None,
             )
-            # When the crop has no detector extent, draw in crop-local pixels.
             if illum_extent is None:
                 display_metric = (
                     metric_box[0] - illum_box[0],
@@ -2396,15 +2403,14 @@ def main(argv: list[str] | None = None) -> int:
         n_sigma=args.n_sigma,
     )
     n_used = int(pixels.shape[0])
-    metric_box = center_subbox(
-        (row0, row1, col0, col1),
-        size=DEFAULT_CENTER_MEDIAN_SIZE,
+    metric_box = image_center_subbox(
+        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
     )
     mrow0, mrow1, mcol0, mcol1 = metric_box
     metric_label = f"median {mrow1 - mrow0}×{mcol1 - mcol0}"
     logging.info(
         "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
-        "%s -> rows[%d:%d) cols[%d:%d); "
+        "image-centre %s -> rows[%d:%d) cols[%d:%d); "
         "flux = mean of %d pixels selected on last CDS plane "
         "(rejected %d outliers); same pixels for all samples",
         illum_h,

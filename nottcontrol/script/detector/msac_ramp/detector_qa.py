@@ -22,7 +22,7 @@ H2RG_N_OUTPUTS = 32
 H2RG_REF_WIDTH = 4
 DEFAULT_FULL_FRAME = 2048
 REF_PIXEL_COLOR = "#e9c46a"
-# Median flux metric: size×size box at the centre of the illuminated ROI.
+# Median flux metric: size×size box at the centre of the delivered image.
 DEFAULT_CENTER_MEDIAN_SIZE = 5
 CENTER_MEDIAN_BOX_COLOR = "#ffe66d"
 
@@ -51,6 +51,16 @@ def center_subbox(
     rr0 = max(row0, min(row1 - use_h, cy - use_h // 2))
     cc0 = max(col0, min(col1 - use_w, cx - use_w // 2))
     return rr0, rr0 + use_h, cc0, cc0 + use_w
+
+
+def image_center_subbox(
+    shape: tuple[int, ...],
+    *,
+    size: int = DEFAULT_CENTER_MEDIAN_SIZE,
+) -> tuple[int, int, int, int]:
+    """Return a ``size×size`` box at the centre of an image *shape* ``(H, W)``."""
+    height, width = int(shape[0]), int(shape[1])
+    return center_subbox((0, height, 0, width), size=size)
 
 
 def median_in_box(
@@ -483,13 +493,12 @@ def plot_reset_qa(
         aspect="equal",
     )
     _draw_box(ax_im, illum_box, color="#ff6b6b")
-    if illum_box is not None:
-        _draw_box(
-            ax_im,
-            center_subbox(illum_box),
-            color=CENTER_MEDIAN_BOX_COLOR,
-            linestyle="-.",
-        )
+    _draw_box(
+        ax_im,
+        image_center_subbox(img.shape),
+        color=CENTER_MEDIAN_BOX_COLOR,
+        linestyle="-.",
+    )
     _draw_box(ax_im, extra_box, color="#4cc9f0", linestyle="--")
     ax_im.set_title("Reset / reference frame")
     ax_im.set_xlabel("X [pix]")
@@ -673,22 +682,21 @@ def _plot_linearity_curves(
                 "median full",
             )
         ]
-        if illum_box is not None:
-            mr0, mr1, mc0, mc1 = center_subbox(illum_box)
-            series.append(
-                (
-                    np.array(
-                        [
-                            float(np.nanmedian(plane[mr0:mr1, mc0:mc1]))
-                            for plane in data
-                        ],
-                        dtype=np.float64,
-                    ),
-                    "s-",
-                    "C0",
-                    f"median {mr1 - mr0}×{mc1 - mc0}",
-                )
+        mr0, mr1, mc0, mc1 = image_center_subbox(data.shape[1:])
+        series.append(
+            (
+                np.array(
+                    [
+                        float(np.nanmedian(plane[mr0:mr1, mc0:mc1]))
+                        for plane in data
+                    ],
+                    dtype=np.float64,
+                ),
+                "s-",
+                "C0",
+                f"median {mr1 - mr0}×{mc1 - mc0}",
             )
+        )
         if extra_box is not None:
             er0, er1, ec0, ec1 = extra_box
             series.append(
@@ -777,15 +785,14 @@ def _plot_linearity_curves(
         reset_refs: list[tuple[str, float, str]] = [
             ("reset median full", float(np.nanmedian(reset_img)), "0.45"),
         ]
-        if illum_box is not None:
-            mr0, mr1, mc0, mc1 = center_subbox(illum_box)
-            reset_refs.append(
-                (
-                    f"reset median {mr1 - mr0}×{mc1 - mc0}",
-                    float(np.nanmedian(reset_img[mr0:mr1, mc0:mc1])),
-                    "C0",
-                )
+        mr0, mr1, mc0, mc1 = image_center_subbox(reset_img.shape)
+        reset_refs.append(
+            (
+                f"reset median {mr1 - mr0}×{mc1 - mc0}",
+                float(np.nanmedian(reset_img[mr0:mr1, mc0:mc1])),
+                "C0",
             )
+        )
         if extra_box is not None:
             er0, er1, ec0, ec1 = extra_box
             reset_refs.append(
@@ -929,7 +936,7 @@ def plot_ramp_qa(
         interpolation="nearest",
         aspect="equal",
     )
-    metric_box = center_subbox(illum_box) if illum_box is not None else None
+    metric_box = image_center_subbox(plane_shape)
     _draw_box(ax_s, illum_box, color="#ff6b6b")
     _draw_box(ax_s, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
     _draw_box(ax_s, extra_box, color="#4cc9f0", linestyle="--")
