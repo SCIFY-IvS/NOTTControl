@@ -104,7 +104,7 @@ class StripeWindowTests(unittest.TestCase):
         mode = {m.label: m for m in WINDOW_MODES}["Photonic chip"]
         self.assertTrue(mode.x_window)
         self.assertTrue(mode.y_window)
-        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1024, 1087, 928, 959))
+        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1010, 1030, 950, 970))
 
 
 class CentralValueTests(unittest.TestCase):

@@ -28,15 +28,16 @@ With first-sample subtraction the zero self-subtraction plane is
 **omitted** from both cubes. Reset subtraction keeps every science plane.
 
 Illuminated box defaults to the **Photonic chip** WinMode
-(``X=1024–1087``, ``Y=928–959``). The **10 brightest** pixels are
-chosen once on the last CDS plane (``last − reset`` or ``last − first``)
-after outlier rejection, then those same pixels are averaged on every
-sample. On **full-frame** (2048×2048) data each plane is further corrected
+(``X=1010–1030``, ``Y=950–970``). QA linearity uses the **median of the
+central 5×5** pixels in that box (drawn on the images). The **10 brightest**
+pixels are chosen once on the last CDS plane (``last − reset`` or
+``last − first``) after outlier rejection, then those same pixels are
+averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
 by subtracting the **per-channel HxRG reference-pixel** mean (32 SIDECAR
 outputs; disable with ``--no-ref-correct``). Flux and detector-QA
 linearity use that corrected cube. The flux plot also overlays the
 (residual) mean over the reference-pixel border.
-Detector pixel **X=1076, Y=936** is tracked on full-frame / photonic
+Detector pixel **X=1020, Y=960** is tracked on full-frame / photonic
 windows when in bounds (override with ``--track-pixel``; skipped on
 other windowed readouts).
 
@@ -80,18 +81,18 @@ DEFAULT_RAMP_ROOT = Path("/data/bench_data/H2RG_ASIC")
 DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_N_BRIGHTEST = 10
 DEFAULT_ILLUM_SIZE = 20
-DEFAULT_ILLUM_CENTER_X = 1045
-DEFAULT_ILLUM_CENTER_Y = 943
+DEFAULT_ILLUM_CENTER_X = 1020
+DEFAULT_ILLUM_CENTER_Y = 960
 DEFAULT_ILLUM_ROI = 2
 DEFAULT_REGION2_ROI = 8
 REGION2_COLOR = "#4cc9f0"
 # Match H2RG GUI WindowMode "Photonic chip" (inclusive detector pixels).
-PHOTONIC_CHIP_X1 = 1024
-PHOTONIC_CHIP_X2 = 1087
-PHOTONIC_CHIP_Y1 = 928
-PHOTONIC_CHIP_Y2 = 959
+PHOTONIC_CHIP_X1 = 1010
+PHOTONIC_CHIP_X2 = 1030
+PHOTONIC_CHIP_Y1 = 950
+PHOTONIC_CHIP_Y2 = 970
 # Detector (X, Y) pixels always overplotted on the flux curve (photonic chip).
-DEFAULT_TRACK_PIXELS: tuple[tuple[int, int], ...] = ((1076, 936),)
+DEFAULT_TRACK_PIXELS: tuple[tuple[int, int], ...] = ((1020, 960),)
 H2RG_SECTION = "H2RG DETECTOR"
 # Full-frame H2RG; smaller shapes are treated as windowed readouts.
 DEFAULT_FULL_FRAME = 2048
@@ -101,16 +102,22 @@ REF_PIXEL_COLOR = "#e9c46a"
 
 try:
     from .detector_qa import (
+        CENTER_MEDIAN_BOX_COLOR,
+        DEFAULT_CENTER_MEDIAN_SIZE,
         H2RG_N_OUTPUTS,
         H2RG_REF_WIDTH,
+        center_subbox,
         h2rg_ref_mask,
         n_outputs_for_shape,
         subtract_channel_reference_pixels,
     )
 except ImportError:
     from detector_qa import (
+        CENTER_MEDIAN_BOX_COLOR,
+        DEFAULT_CENTER_MEDIAN_SIZE,
         H2RG_N_OUTPUTS,
         H2RG_REF_WIDTH,
+        center_subbox,
         h2rg_ref_mask,
         n_outputs_for_shape,
         subtract_channel_reference_pixels,
@@ -505,6 +512,9 @@ def write_reset_illum_vs_r_plot(
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last = np.asarray(stack[-1], dtype=np.float64)
+    reset_metric_box = center_subbox(
+        illum_box, size=DEFAULT_CENTER_MEDIAN_SIZE
+    )
     plot_file_series(
         indices=r_indices,
         means=means,
@@ -517,6 +527,7 @@ def write_reset_illum_vs_r_plot(
         full_frame=last,
         illum_frame=last[row0:row1, col0:col1],
         illum_box=illum_box,
+        metric_box=reset_metric_box,
         bg_box=r2_box,
         region_label=region_label,
         detector_box=detector_box,
@@ -671,7 +682,7 @@ def photonic_chip_illum_box(
 
     Full-frame cubes are cropped at the WinMode coordinates. A delivered
     frame that is already the photonic-chip size uses the whole image, with
-    detector-pixel labels still at ``1024–1087``, ``928–959``.
+    detector-pixel labels still at ``1010–1030``, ``950–970``.
     """
     x, y, w, h = photonic_chip_xywh()
     det_box = (y, y + h, x, x + w)
@@ -679,6 +690,26 @@ def photonic_chip_illum_box(
     if height == h and width == w:
         return (0, h, 0, w), det_box
     return illuminated_box_from_xywh((height, width), x, y, w, h), det_box
+
+
+def map_box_to_detector(
+    image_box: tuple[int, int, int, int],
+    *,
+    illum_box: tuple[int, int, int, int],
+    detector_box: tuple[int, int, int, int] | None,
+) -> tuple[int, int, int, int]:
+    """Map an image-coord box into detector pixels when *detector_box* is set."""
+    if detector_box is None:
+        return image_box
+    ir0, _ir1, ic0, _ic1 = illum_box
+    dr0, _dr1, dc0, _dc1 = detector_box
+    r0, r1, c0, c1 = image_box
+    return (
+        dr0 + (r0 - ir0),
+        dr0 + (r1 - ir0),
+        dc0 + (c0 - ic0),
+        dc0 + (c1 - ic0),
+    )
 
 
 def resolve_illum_center(
@@ -692,7 +723,7 @@ def resolve_illum_center(
 
     Explicit ``center_x`` / ``center_y`` always win. Otherwise a frame smaller
     than *full_frame* in either axis is assumed windowed with the spot at the
-    image centre; full-frame uses the lab defaults (X=1045, Y=943).
+    image centre; full-frame uses the lab defaults (X=1020, Y=960).
     """
     height, width = int(shape[0]), int(shape[1])
     if center_x is not None and center_y is not None:
@@ -1379,6 +1410,7 @@ def plot_file_series(
     full_frame: np.ndarray | None = None,
     illum_frame: np.ndarray | None = None,
     illum_box: tuple[int, int, int, int] | None = None,
+    metric_box: tuple[int, int, int, int] | None = None,
     bg_box: tuple[int, int, int, int] | None = None,
     region_label: str | None = None,
     detector_box: tuple[int, int, int, int] | None = None,
@@ -1450,6 +1482,15 @@ def plot_file_series(
                 color="#ff6b6b",
                 label=box_label,
             )
+        if metric_box is not None:
+            mr0, mr1, mc0, mc1 = metric_box
+            _draw_box(
+                ax_full,
+                *metric_box,
+                color=CENTER_MEDIAN_BOX_COLOR,
+                label=f"median {mr1 - mr0}×{mc1 - mc0}",
+                linestyle="-.",
+            )
         if bg_box is not None:
             r2_box_label = region2_label or "ROI"
             _draw_box(
@@ -1468,7 +1509,12 @@ def plot_file_series(
                     label="Reference pixels" if i == 0 else None,
                     linestyle=":",
                 )
-        if illum_box is not None or bg_box is not None or ref_boxes:
+        if (
+            illum_box is not None
+            or metric_box is not None
+            or bg_box is not None
+            or ref_boxes
+        ):
             ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
         if track_xy:
             xs = [x for x, _y in track_xy]
@@ -1520,6 +1566,29 @@ def plot_file_series(
         ax_illum.set_title(illum_title)
         ax_illum.set_xlabel("X [pix]")
         ax_illum.set_ylabel("Y [pix]")
+        if metric_box is not None and illum_box is not None:
+            display_metric = map_box_to_detector(
+                metric_box,
+                illum_box=illum_box,
+                detector_box=detector_box if illum_extent is not None else None,
+            )
+            # When the crop has no detector extent, draw in crop-local pixels.
+            if illum_extent is None:
+                display_metric = (
+                    metric_box[0] - illum_box[0],
+                    metric_box[1] - illum_box[0],
+                    metric_box[2] - illum_box[2],
+                    metric_box[3] - illum_box[2],
+                )
+            mr0, mr1, mc0, mc1 = display_metric
+            _draw_box(
+                ax_illum,
+                *display_metric,
+                color=CENTER_MEDIAN_BOX_COLOR,
+                label=f"median {mr1 - mr0}×{mc1 - mc0}",
+                linestyle="-.",
+            )
+            ax_illum.legend(loc="upper right", fontsize=8, framealpha=0.8)
         if track_xy:
             ax_illum.scatter(
                 [x for x, _y in track_xy],
@@ -2327,8 +2396,15 @@ def main(argv: list[str] | None = None) -> int:
         n_sigma=args.n_sigma,
     )
     n_used = int(pixels.shape[0])
+    metric_box = center_subbox(
+        (row0, row1, col0, col1),
+        size=DEFAULT_CENTER_MEDIAN_SIZE,
+    )
+    mrow0, mrow1, mcol0, mcol1 = metric_box
+    metric_label = f"median {mrow1 - mrow0}×{mcol1 - mcol0}"
     logging.info(
         "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
+        "%s -> rows[%d:%d) cols[%d:%d); "
         "flux = mean of %d pixels selected on last CDS plane "
         "(rejected %d outliers); same pixels for all samples",
         illum_h,
@@ -2340,6 +2416,11 @@ def main(argv: list[str] | None = None) -> int:
         row1,
         col0,
         col1,
+        metric_label,
+        mrow0,
+        mrow1,
+        mcol0,
+        mcol1,
         n_used,
         n_rej,
     )
@@ -2454,7 +2535,9 @@ def main(argv: list[str] | None = None) -> int:
             ref.index,
         )
         raw_med_full[i] = float(np.nanmedian(abs_plane))
-        raw_med_box[i] = float(np.nanmedian(abs_plane[row0:row1, col0:col1]))
+        raw_med_box[i] = float(
+            np.nanmedian(abs_plane[mrow0:mrow1, mcol0:mcol1])
+        )
         if raw_med_roi is not None and region2_box is not None:
             rr0, rr1, rc0, rc1 = region2_box
             raw_med_roi[i] = float(np.nanmedian(abs_plane[rr0:rr1, rc0:rc1]))
@@ -2497,7 +2580,9 @@ def main(argv: list[str] | None = None) -> int:
             pixel_matrix[i] = pixel_values(cds_plane, pixels)
 
         corr_med_full[i] = float(np.nanmedian(cds_plane))
-        corr_med_box[i] = float(np.nanmedian(cds_plane[row0:row1, col0:col1]))
+        corr_med_box[i] = float(
+            np.nanmedian(cds_plane[mrow0:mrow1, mcol0:mcol1])
+        )
         if corr_med_roi is not None and region2_box is not None:
             rr0, rr1, rc0, rc1 = region2_box
             corr_med_roi[i] = float(np.nanmedian(cds_plane[rr0:rr1, rc0:rc1]))
@@ -2697,7 +2782,7 @@ def main(argv: list[str] | None = None) -> int:
 
     corrected_series = [
         (corr_med_full, "o-", "0.45", "median full"),
-        (corr_med_box, "s-", "C0", "median box"),
+        (corr_med_box, "s-", "C0", metric_label),
     ]
     if corr_med_roi is not None:
         corrected_series.append(
@@ -2709,7 +2794,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     raw_series = [
         (raw_med_full, "o-", "0.45", "median full"),
-        (raw_med_box, "s-", "C0", "median box"),
+        (raw_med_box, "s-", "C0", metric_label),
     ]
     if raw_med_roi is not None:
         raw_series.append((raw_med_roi, "d-", "#4cc9f0", "median ROI"))
@@ -2746,6 +2831,7 @@ def main(argv: list[str] | None = None) -> int:
         full_frame=last_cds_f64,
         illum_frame=last_cds_f64[row0:row1, col0:col1],
         illum_box=(row0, row1, col0, col1),
+        metric_box=metric_box,
         bg_box=region2_box,
         region_label=region_label,
         detector_box=detector_box,

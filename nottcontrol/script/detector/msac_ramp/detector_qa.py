@@ -22,6 +22,44 @@ H2RG_N_OUTPUTS = 32
 H2RG_REF_WIDTH = 4
 DEFAULT_FULL_FRAME = 2048
 REF_PIXEL_COLOR = "#e9c46a"
+# Median flux metric: size×size box at the centre of the illuminated ROI.
+DEFAULT_CENTER_MEDIAN_SIZE = 5
+CENTER_MEDIAN_BOX_COLOR = "#ffe66d"
+
+
+def center_subbox(
+    box: tuple[int, int, int, int],
+    *,
+    size: int = DEFAULT_CENTER_MEDIAN_SIZE,
+) -> tuple[int, int, int, int]:
+    """Return a ``size×size`` box centred inside *box* ``(row0,row1,col0,col1)``.
+
+    Clamped to stay within *box*. If *box* is smaller than *size* on an
+    axis, that axis uses the full *box* span.
+    """
+    if size <= 0:
+        raise ValueError(f"center sub-box size must be positive (got {size})")
+    row0, row1, col0, col1 = (int(v) for v in box)
+    if not (row1 > row0 and col1 > col0):
+        raise ValueError(f"invalid outer box {box}")
+    height = row1 - row0
+    width = col1 - col0
+    use_h = min(int(size), height)
+    use_w = min(int(size), width)
+    cy = (row0 + row1) // 2
+    cx = (col0 + col1) // 2
+    rr0 = max(row0, min(row1 - use_h, cy - use_h // 2))
+    cc0 = max(col0, min(col1 - use_w, cx - use_w // 2))
+    return rr0, rr0 + use_h, cc0, cc0 + use_w
+
+
+def median_in_box(
+    image: np.ndarray,
+    box: tuple[int, int, int, int],
+) -> float:
+    """Finite median of *image* pixels inside *box*."""
+    r0, r1, c0, c1 = box
+    return float(np.nanmedian(np.asarray(image, dtype=np.float64)[r0:r1, c0:c1]))
 
 
 def _finite(image: np.ndarray) -> np.ndarray:
@@ -445,6 +483,13 @@ def plot_reset_qa(
         aspect="equal",
     )
     _draw_box(ax_im, illum_box, color="#ff6b6b")
+    if illum_box is not None:
+        _draw_box(
+            ax_im,
+            center_subbox(illum_box),
+            color=CENTER_MEDIAN_BOX_COLOR,
+            linestyle="-.",
+        )
     _draw_box(ax_im, extra_box, color="#4cc9f0", linestyle="--")
     ax_im.set_title("Reset / reference frame")
     ax_im.set_xlabel("X [pix]")
@@ -629,19 +674,19 @@ def _plot_linearity_curves(
             )
         ]
         if illum_box is not None:
-            r0, r1, c0, c1 = illum_box
+            mr0, mr1, mc0, mc1 = center_subbox(illum_box)
             series.append(
                 (
                     np.array(
                         [
-                            float(np.nanmedian(plane[r0:r1, c0:c1]))
+                            float(np.nanmedian(plane[mr0:mr1, mc0:mc1]))
                             for plane in data
                         ],
                         dtype=np.float64,
                     ),
                     "s-",
                     "C0",
-                    "median box",
+                    f"median {mr1 - mr0}×{mc1 - mc0}",
                 )
             )
         if extra_box is not None:
@@ -733,11 +778,11 @@ def _plot_linearity_curves(
             ("reset median full", float(np.nanmedian(reset_img)), "0.45"),
         ]
         if illum_box is not None:
-            r0, r1, c0, c1 = illum_box
+            mr0, mr1, mc0, mc1 = center_subbox(illum_box)
             reset_refs.append(
                 (
-                    "reset median box",
-                    float(np.nanmedian(reset_img[r0:r1, c0:c1])),
+                    f"reset median {mr1 - mr0}×{mc1 - mc0}",
+                    float(np.nanmedian(reset_img[mr0:mr1, mc0:mc1])),
                     "C0",
                 )
             )
@@ -884,7 +929,9 @@ def plot_ramp_qa(
         interpolation="nearest",
         aspect="equal",
     )
+    metric_box = center_subbox(illum_box) if illum_box is not None else None
     _draw_box(ax_s, illum_box, color="#ff6b6b")
+    _draw_box(ax_s, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
     _draw_box(ax_s, extra_box, color="#4cc9f0", linestyle="--")
     _overlay_pixels(ax_s, pixels)
     ax_s.set_title("Slope [ADU / sample]")
@@ -903,6 +950,7 @@ def plot_ramp_qa(
         aspect="equal",
     )
     _draw_box(ax_rms, illum_box, color="#ff6b6b")
+    _draw_box(ax_rms, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
     _draw_box(ax_rms, extra_box, color="#4cc9f0", linestyle="--")
     ax_rms.set_title("Residual RMS [ADU]")
     ax_rms.set_xlabel("X [pix]")
@@ -920,6 +968,7 @@ def plot_ramp_qa(
         aspect="equal",
     )
     _draw_box(ax_last, illum_box, color="#ff6b6b")
+    _draw_box(ax_last, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
     _draw_box(ax_last, extra_box, color="#4cc9f0", linestyle="--")
     _overlay_pixels(ax_last, pixels)
     ax_last.set_title("Last CDS sample")
