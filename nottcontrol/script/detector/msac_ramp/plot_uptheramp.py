@@ -10,29 +10,29 @@ script selects the **latest** subdirectory (by modification time), then
 loads **all** FITS there.
 
 Frames are stacked in file-index order (last plane of each FITS, or all
-planes of a single multi-sample cube). If a **reset frame** is present
-(``_R0001`` / ``_R######`` in the filename), each science sample is
-``frame - reset``. Otherwise each plane is ``frame[k] - frame[0]``.
-Sessions that contain **only** reset frames (typical for window-mode
-reset checkouts) are plotted as an absolute-ADU series vs ``_R`` index.
-When a science session also has **two or more** reset FITS, an extra
-plot ``{session}_msac_reset_illum_vs_R.png`` shows the same illuminated
-regions as absolute ADU vs ``_R``.
+planes of a single multi-sample cube). Science ramps use
+``frame[k] - frame[0]`` (first NDR sample as pedestal). MSAC ``_R*``
+reset FITS are treated as **destructive reads**, not pedestals: they are
+**not** subtracted from the ramp. They are still used for reset QA and,
+when a science session has **two or more** reset FITS, for
+``{session}_msac_reset_illum_vs_R.png`` (absolute ADU vs ``_R``).
+Sessions that contain **only** reset frames are plotted as absolute ADU
+vs ``_R``.
 
 Two reduced cubes are written next to the plot:
 
 * full-frame ``{session}_msac_uptheramp_frame_minus_first.fits``
 * illuminated-box crop ``{session}_msac_uptheramp_frame_minus_first_illum.fits``
 
-With first-sample subtraction the zero self-subtraction plane is
-**omitted** from both cubes. Reset subtraction keeps every science plane.
+The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
+from both cubes.
 
 Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1010–1030``, ``Y=950–970``). QA linearity uses the **median of the
 5×5 at the image centre** (drawn on the images; independent of WinMode
 size). The **10 brightest** pixels are chosen once on the last CDS plane
-(``last − reset`` or ``last − first``) after outlier rejection, then those
-same pixels are averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
+(``last − first``) after outlier rejection, then those same pixels are
+averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
 by subtracting the **per-channel HxRG reference-pixel** mean (32 SIDECAR
 outputs; disable with ``--no-ref-correct``). Flux and detector-QA
 linearity use that corrected cube. The flux plot also overlays the
@@ -296,7 +296,10 @@ def split_science_and_reset(
 def load_reset_reference(
     reset_paths: list[Path],
 ) -> tuple[np.ndarray, Path] | None:
-    """Load the last plane of the first reset FITS (lowest ``R`` index)."""
+    """Load the last plane of the first reset FITS (lowest ``R`` index).
+
+    Used for reset QA only; not subtracted from science ramps.
+    """
     if not reset_paths:
         return None
     ranked = sorted(
@@ -1126,20 +1129,21 @@ def make_cds_plane(
     abs_plane: np.ndarray,
     *,
     reset_only: bool,
-    reset_frame: np.ndarray | None,
     first_abs: np.ndarray | None,
     do_ref_correct: bool,
 ) -> tuple[np.ndarray, bool]:
-    """Return ``(cds_plane float32, ref_corrected)`` for one absolute sample."""
+    """Return ``(cds_plane float32, ref_corrected)`` for one absolute sample.
+
+    Science planes are ``sample − first_abs`` (first NDR pedestal). Destructive
+    MSAC reset reads are never used as the subtraction reference.
+    """
     plane = np.array(abs_plane, dtype=np.float32, copy=True)
     if reset_only:
         pass
-    elif reset_frame is not None:
-        plane -= np.asarray(reset_frame, dtype=np.float32)
     elif first_abs is not None:
         plane -= np.asarray(first_abs, dtype=np.float32)
     else:
-        raise ValueError("CDS needs reset_frame or first_abs")
+        raise ValueError("CDS needs first_abs (first science NDR sample)")
     ref_ok = False
     if do_ref_correct:
         plane, ref_ok = subtract_channel_reference_pixels(plane, inplace=True)
@@ -1775,15 +1779,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Reset FITS to subtract from each science sample. "
-            "Default: the lowest-index _R###### file in the session folder, "
-            "if present"
+            "Destructive-reset FITS for reset QA only (not subtracted from the "
+            "science ramp). Default: lowest-index _R###### in the session folder"
         ),
     )
     parser.add_argument(
         "--no-reset",
         action="store_true",
-        help="Ignore reset frames and subtract the first science sample instead",
+        help="Ignore reset FITS entirely (skip reset QA / reset-vs-R plots)",
     )
     parser.add_argument(
         "--all",
@@ -1913,9 +1916,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Full-frame FITS cube path (planes = frame - reset when a "
-            "reset file is present, else frame - first; default: "
-            "msac_uptheramp_frame_minus_first.fits in the session dir)"
+            "Full-frame FITS cube path (planes = frame - first science NDR; "
+            "default: msac_uptheramp_frame_minus_first.fits in the session dir)"
         ),
     )
     parser.add_argument(
@@ -2076,7 +2078,8 @@ def main(argv: list[str] | None = None) -> int:
         if reset_loaded is not None:
             reset_frame, reset_fits_path = reset_loaded
             logging.info(
-                "Subtracting reset frame %s from each science sample",
+                "Reset frame %s kept for QA only (destructive read; "
+                "not subtracted). Science ramp uses frame − first NDR",
                 reset_fits_path.name,
             )
         else:
@@ -2085,12 +2088,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.no_reset:
                 logging.info(
                     "Ignoring reset frames (--no-reset); "
-                    "subtracting first science sample"
+                    "science ramp uses frame − first NDR"
                 )
             else:
                 logging.info(
                     "No reset frame (_R######) in the session folder; "
-                    "subtracting the first science sample"
+                    "science ramp uses frame − first NDR"
                 )
 
     if reset_only:
@@ -2162,18 +2165,8 @@ def main(argv: list[str] | None = None) -> int:
             "MSAC UpTheRamp reset-only cube: each plane is a reset frame "
             "(absolute ADU; no CDS subtraction)"
         )
-    elif reset_frame is not None:
-        if reset_fits_path is None:
-            raise RuntimeError("Reset frame loaded without a FITS path")
-        cds_short = "frame−reset"
-        cds_label = "last − reset"
-        reduct_card = ("FRAME-RESET", "Each plane = sample - reset frame")
-        skip_ref = False
-        reduct_history = (
-            f"MSAC UpTheRamp CDS-relative cube: each plane = sample - "
-            f"reset ({reset_fits_path.name})"
-        )
     else:
+        # Destructive MSAC _R frames are QA-only; pedestal is first NDR.
         cds_short = "frame−first"
         cds_label = "last − first"
         reduct_card = ("FRAME-FIRST", "Each plane = sample - first sample")
@@ -2181,7 +2174,7 @@ def main(argv: list[str] | None = None) -> int:
         reduct_history = (
             "MSAC UpTheRamp CDS-relative cube: each plane = "
             "sample - first sample (ordered by file/plane index); "
-            "zero reference plane omitted"
+            "zero reference plane omitted; destructive reset FITS not subtracted"
         )
 
     first_abs, header0 = load_sample_absolute(sample_refs[0])
@@ -2207,7 +2200,6 @@ def main(argv: list[str] | None = None) -> int:
     last_cds, ref_corrected = make_cds_plane(
         last_abs,
         reset_only=reset_only,
-        reset_frame=reset_frame,
         first_abs=first_abs,
         do_ref_correct=do_ref_correct,
     )
@@ -2226,7 +2218,7 @@ def main(argv: list[str] | None = None) -> int:
             n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
         )
         if reset_frame is not None:
-            # Copy for QA dashed levels only — CDS still uses the raw reset.
+            # Optional ch-ref copy for dashed reset levels on the raw QA panel.
             reset_levels_frame, reset_ref_ok = subtract_channel_reference_pixels(
                 reset_frame
             )
@@ -2555,7 +2547,6 @@ def main(argv: list[str] | None = None) -> int:
         cds_plane, _ = make_cds_plane(
             abs_plane,
             reset_only=reset_only,
-            reset_frame=reset_frame,
             first_abs=first_abs,
             do_ref_correct=do_ref_correct,
         )
@@ -2629,7 +2620,6 @@ def main(argv: list[str] | None = None) -> int:
             cds_plane, _ = make_cds_plane(
                 abs_plane,
                 reset_only=reset_only,
-                reset_frame=reset_frame,
                 first_abs=first_abs,
                 do_ref_correct=do_ref_correct,
             )
@@ -2677,7 +2667,7 @@ def main(argv: list[str] | None = None) -> int:
                     else (
                         "Kept all reset planes (absolute ADU)"
                         if reset_only
-                        else "Kept all science planes (reset subtraction)"
+                        else "Kept all science planes (frame-first CDS)"
                     )
                 ),
             ),
@@ -2689,7 +2679,7 @@ def main(argv: list[str] | None = None) -> int:
         if reset_fits_path is not None:
             reset_cards["RESETFIL"] = (
                 reset_fits_path.name,
-                "Reset FITS used as subtraction reference",
+                "Destructive reset FITS (QA only; not subtracted)",
             )
         cds_for_disk = cds_disk
         illum_for_disk = illum_disk
@@ -2727,12 +2717,9 @@ def main(argv: list[str] | None = None) -> int:
                     "each plane = reset frame (absolute ADU)"
                     if reset_only
                     else (
-                        f"each plane = sample - reset ({reset_fits_path.name})"
-                        if reset_fits_path is not None
-                        else (
-                            "each plane = sample - first sample; "
-                            "zero reference plane omitted"
-                        )
+                        "each plane = sample - first sample; "
+                        "zero reference plane omitted; "
+                        "destructive reset FITS not subtracted"
                     )
                 )
                 + "; spatial crop is the illuminated analysis box"

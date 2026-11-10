@@ -4,8 +4,8 @@
 Each immediate subdirectory of ``--root`` that contains FITS files is treated
 as one acquisition session. For every session the script builds the same
 illuminated flux vs file-index series used by ``plot_uptheramp.py`` (CDS
-relative to reset or first sample, photonic-chip brightest pixels) and
-scores whether flux **increases** with ramp index.
+relative to first science NDR; destructive ``_R`` resets are not
+subtracted) and scores whether flux **increases** with ramp index.
 
 Example::
 
@@ -136,19 +136,13 @@ def build_flux_series(
     folder_fits = ramp.list_ramp_fits(session_dir)
     science_paths, reset_from_folder = ramp.split_science_and_reset(folder_fits)
 
-    reset_paths: list[Path] = []
-    if not no_reset:
-        reset_paths = list({p.resolve() for p in reset_from_folder})
-
-    reset_loaded = None if no_reset else ramp.load_reset_reference(reset_paths)
-    reset_frame = reset_loaded[0] if reset_loaded is not None else None
-
+    # Destructive MSAC _R frames are not used as a CDS pedestal.
+    # *no_reset* remains for CLI compatibility (resets are never subtracted).
     reset_only = False
     paths = science_paths
     if not paths and reset_from_folder:
         reset_only = True
         paths = list({p.resolve(): p.resolve() for p in reset_from_folder}.values())
-        reset_frame = None
         preferred_tag = "R"
     else:
         preferred_tag = ramp.choose_index_tag(paths)
@@ -197,11 +191,8 @@ def build_flux_series(
     stack = np.stack([row[3] for row in records], axis=0)
     if reset_only:
         cds_cube = np.asarray(stack, dtype=np.float64)
-    elif reset_frame is not None:
-        if reset_frame.shape != stack.shape[1:]:
-            raise RuntimeError("reset frame shape mismatch")
-        cds_cube = ramp.relative_to_reference(stack, reset_frame)
     else:
+        # Destructive MSAC _R frames are not pedestals; use first NDR.
         cds_cube = ramp.relative_to_first(stack)
 
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
