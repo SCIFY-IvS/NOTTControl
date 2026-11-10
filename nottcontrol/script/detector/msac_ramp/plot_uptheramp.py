@@ -13,11 +13,12 @@ Frames are stacked in file-index order (last plane of each FITS, or all
 planes of a single multi-sample cube). Science ramps use
 ``frame[k] - frame[0]`` (first NDR sample as pedestal). MSAC ``_R*``
 reset FITS are treated as **destructive reads**, not pedestals: they are
-**not** subtracted from the ramp. They are still used for reset QA and,
-when a science session has **two or more** reset FITS, for
-``{session}_msac_reset_illum_vs_R.png`` (absolute ADU vs ``_R``).
-Sessions that contain **only** reset frames are plotted as absolute ADU
-vs ``_R``.
+**not** subtracted from the ramp. Whenever **two or more** reset FITS
+are present (unless ``--no-reset``), the script also writes
+``{session}_msac_reset_illum_vs_R.png`` — absolute ADU vs ``_R`` (image-
+centre 5×5 median plus illuminated brightest pixels) for persistence /
+reset stability. Sessions that contain **only** reset frames use that
+series as the main plot.
 
 Two reduced cubes are written next to the plot:
 
@@ -381,24 +382,56 @@ def write_reset_illum_vs_r_plot(
     expected_shape: tuple[int, int] | None = None,
     ref_correct: bool = True,
 ) -> bool:
-    """Plot absolute-ADU flux vs ``_R`` for the same regions as the UTR plot.
+    """Plot absolute-ADU flux vs ``_R`` for reset frames (persistence / stability).
+
+    Primary curve is the image-centre 5×5 median. Illuminated-box brightest
+    pixels and optional second ROI are overplotted when they fit.
 
     Returns True if a plot was written.
     """
     loaded = load_reset_adu_series(reset_paths)
     if loaded is None:
+        logging.info(
+            "Reset-vs-R: need ≥2 reset FITS with _R indices (got %d path(s))",
+            len(reset_paths),
+        )
         return False
     stack, r_indices, names = loaded
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
     if expected_shape is not None and (ny, nx) != expected_shape:
         logging.warning(
-            "Skipping reset-vs-R plot: reset shape %dx%d != science %dx%d",
+            "Reset-vs-R: reset shape %dx%d != science %dx%d; "
+            "adapting illuminated box to the reset frames",
             nx,
             ny,
             expected_shape[1],
             expected_shape[0],
         )
-        return False
+        try:
+            (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
+                (ny, nx)
+            )
+            illum_h, illum_w = row1 - row0, col1 - col0
+            drow0, drow1, dcol0, dcol1 = detector_box
+            center_x = (dcol0 + dcol1) // 2
+            center_y = (drow0 + drow1) // 2
+            illum_source = photonic_chip_label()
+            region_label = photonic_chip_label()
+            illum_box = (row0, row1, col0, col1)
+        except ValueError:
+            (
+                (row0, row1, col0, col1),
+                illum_h,
+                illum_w,
+                center_x,
+                center_y,
+                illum_source,
+                region_label,
+            ) = full_window_illum((ny, nx))
+            detector_box = None
+            illum_box = (row0, row1, col0, col1)
+        region2_box = None
+        pixels = np.empty((0, 2), dtype=int)
 
     cds_short = "reset"
     if ref_correct and is_full_frame((ny, nx)):
@@ -411,17 +444,32 @@ def write_reset_illum_vs_r_plot(
 
     row0, row1, col0, col1 = illum_box
     if not (0 <= row0 < row1 <= ny and 0 <= col0 < col1 <= nx):
-        logging.warning(
-            "Skipping reset-vs-R plot: illum box rows[%d:%d) cols[%d:%d) "
-            "does not fit reset %d×%d",
-            row0,
-            row1,
-            col0,
-            col1,
-            ny,
+        (
+            (row0, row1, col0, col1),
+            illum_h,
+            illum_w,
+            center_x,
+            center_y,
+            illum_source,
+            region_label,
+        ) = full_window_illum((ny, nx))
+        illum_box = (row0, row1, col0, col1)
+        detector_box = None
+        logging.info(
+            "Reset-vs-R: illum box did not fit; using full %d×%d window",
             nx,
+            ny,
         )
-        return False
+
+    # Primary series: image-centre 5×5 median (persistence / stability).
+    mr0, mr1, mc0, mc1 = image_center_subbox(
+        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
+    )
+    means = np.array(
+        [float(np.nanmedian(plane[mr0:mr1, mc0:mc1])) for plane in stack],
+        dtype=np.float64,
+    )
+    flux_label = f"median {mr1 - mr0}×{mc1 - mc0} centre"
 
     use_pixels = pixels
     if use_pixels.size:
@@ -444,19 +492,22 @@ def write_reset_illum_vs_r_plot(
                 n_brightest=max(1, int(use_pixels.shape[0])),
                 n_sigma=n_sigma,
             )
-
-    n_used = int(use_pixels.shape[0])
-    if n_used == 0:
-        means = np.full(stack.shape[0], np.nan, dtype=np.float64)
     else:
-        means = np.array(
-            [float(np.mean(pixel_values(plane, use_pixels))) for plane in stack],
-            dtype=np.float64,
+        # Brightest in the illum box for the optional pixel panel.
+        use_pixels, _n_rej = select_brightest_after_outliers(
+            stack[-1],
+            row0,
+            row1,
+            col0,
+            col1,
+            n_brightest=DEFAULT_N_BRIGHTEST,
+            n_sigma=n_sigma,
         )
 
     r2_means: np.ndarray | None = None
     r2_frame = None
     r2_box = region2_box
+    r2_label_out = region2_label
     if r2_box is not None:
         rr0, rr1, rc0, rc1 = r2_box
         if 0 <= rr0 < rr1 <= ny and 0 <= rc0 < rc1 <= nx:
@@ -473,15 +524,18 @@ def write_reset_illum_vs_r_plot(
             logging.info(
                 "Reset-vs-R: second ROI does not fit reset frame; omitting"
             )
-    elif region2_label == "window mean":
+    # Also overlay illuminated-box median as the second region when useful.
+    if r2_means is None:
         r2_means = np.array(
             [
-                float(np.nanmean(plane[row0:row1, col0:col1]))
+                float(np.nanmedian(plane[row0:row1, col0:col1]))
                 for plane in stack
             ],
             dtype=np.float64,
         )
         r2_frame = stack[-1, row0:row1, col0:col1]
+        r2_box = illum_box
+        r2_label_out = "illum median"
 
     track_ok = [
         (x, y) for x, y in track_xy if 0 <= x < nx and 0 <= y < ny
@@ -500,24 +554,19 @@ def write_reset_illum_vs_r_plot(
             ref_boxes = reference_pixel_boxes((ny, nx))
 
     pixel_matrix: np.ndarray | None = None
-    if show_pixels and use_pixels.size:
+    if use_pixels.size and (show_pixels or use_pixels.shape[0] > 0):
         pixel_matrix = np.stack(
             [pixel_values(plane, use_pixels) for plane in stack],
             axis=0,
         )
 
-    flux_label = f"{n_used} brightest"
-    title_regions = illum_source
-    if region2_label and r2_means is not None:
-        title_regions = f"{illum_source} vs {region2_label}"
     title = (
-        f"{session_name} — {title_regions} ({cds_short}) vs R "
+        f"{session_name} — reset series ({flux_label} vs "
+        f"{r2_label_out or illum_source}, {cds_short}) vs R "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last = np.asarray(stack[-1], dtype=np.float64)
-    reset_metric_box = image_center_subbox(
-        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
-    )
+    reset_metric_box = (mr0, mr1, mc0, mc1)
     plot_file_series(
         indices=r_indices,
         means=means,
@@ -540,7 +589,7 @@ def write_reset_illum_vs_r_plot(
         track_xy=track_ok or None,
         track_matrix=track_matrix,
         region2_means=r2_means,
-        region2_label=region2_label if r2_means is not None else None,
+        region2_label=r2_label_out if r2_means is not None else None,
         region2_frame=r2_frame,
         ref_means=ref_means,
         ref_boxes=ref_boxes,
@@ -2848,21 +2897,26 @@ def main(argv: list[str] | None = None) -> int:
         session_name=session_name,
     )
 
-    # Science sessions with ≥2 reset FITS: same regions, absolute ADU vs R.
-    if not reset_only:
-        multi_resets: list[Path] = []
+    # Science sessions: always plot absolute-ADU vs R when ≥2 reset FITS exist.
+    if not reset_only and not args.no_reset:
         seen_r: dict[Path, Path] = {}
-        for path in reset_from_folder + reset_from_args:
+        for path in list(reset_paths) + reset_from_folder + reset_from_args:
             key = path.resolve()
             if key not in seen_r:
                 seen_r[key] = path.resolve()
         multi_resets = list(seen_r.values())
+        multi_resets.sort(key=lambda p: p.name.lower())
         if len(multi_resets) >= 2:
             reset_out = (
                 ramp_dir / f"{session_slug}_msac_reset_illum_vs_R.png"
             )
+            logging.info(
+                "Writing reset-frame series plot (%d _R FITS) → %s",
+                len(multi_resets),
+                reset_out.name,
+            )
             try:
-                write_reset_illum_vs_r_plot(
+                wrote = write_reset_illum_vs_r_plot(
                     reset_paths=multi_resets,
                     output=reset_out,
                     illum_box=(row0, row1, col0, col1),
@@ -2884,8 +2938,18 @@ def main(argv: list[str] | None = None) -> int:
                     expected_shape=(ny, nx),
                     ref_correct=not bool(args.no_ref_correct),
                 )
+                if not wrote:
+                    logging.warning(
+                        "Reset-vs-R plot was not written (see messages above)"
+                    )
             except Exception as exc:  # noqa: BLE001 — keep main UTR plot
                 logging.warning("Skipping reset-vs-R plot: %s", exc)
+        elif multi_resets:
+            logging.info(
+                "Only %d reset FITS in session — need ≥2 for "
+                "reset-illum-vs-R series plot",
+                len(multi_resets),
+            )
 
     qa_pixels = pixels if pixels.size else None
     if track_xy:
