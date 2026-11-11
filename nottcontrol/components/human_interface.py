@@ -1041,8 +1041,8 @@ class HumInt(object):
 
         return disp_null_stack, broad_null_stack
 
-    def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
-        disp_null_stack, broad_null_stack = self.characterize_null(dt, dark, sequence, frames)
+    def characterize_null_nifits_format(self, dt, dark=None, frames=None, sequence=False):
+        disp_null_stack, broad_null_stack = self.characterize_null(dt, dark, frames, sequence)
 
         # WIP
 
