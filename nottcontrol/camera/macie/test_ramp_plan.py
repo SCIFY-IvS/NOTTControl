@@ -138,6 +138,32 @@ class CalcRampPlanTests(unittest.TestCase):
         timeout = fits_wait_timeout_s(12.0, ncoadds=2, nseq=5, margin_s=10.0)
         self.assertEqual(timeout, 130.0)
 
+    def test_zmq_acquire_timeout_allows_long_multiramp(self) -> None:
+        """5 minutes aborts a still-running nseq Acquire and halt()s the ASIC.
+
+        f79d4e8 raised this to 1 hour; a519396 re-tracked config.ini at 5 min.
+        Cancel still works: acquire() polls every 1 s on _acquire_cancel.
+        """
+        from configparser import ConfigParser
+        from pathlib import Path
+
+        from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
+
+        self.assertGreaterEqual(ZMQ_ACQUIRE_TIMEOUT_MS, 3_600_000)
+
+        package = Path(__file__).resolve().parents[2]
+        for name in ("config.ini", "config.ini.example"):
+            parser = ConfigParser()
+            parser.optionxform = str
+            path = package / name
+            self.assertTrue(path.is_file(), path)
+            parser.read(path)
+            self.assertGreaterEqual(
+                parser.getint("H2RG DETECTOR", "zmq_acquire_timeout_ms"),
+                3_600_000,
+                name,
+            )
+
 
 class RampReductionTests(unittest.TestCase):
     def test_cds_last_minus_first(self) -> None:

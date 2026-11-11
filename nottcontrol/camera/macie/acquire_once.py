@@ -35,7 +35,7 @@ DEFAULT_ZMQ = config.get(
     H2RG_SECTION, "zmq_address", fallback="tcp://localhost:65534"
 )
 ACQUIRE_TIMEOUT_MS = config.getint(
-    H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=300_000
+    H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=3_600_000
 )
 
 
