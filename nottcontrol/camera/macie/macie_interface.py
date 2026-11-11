@@ -21,6 +21,8 @@ ZMQ_REQUEST_TIMEOUT_MS = config.getint(
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=300_000
 )
+# Slice long acquire waits so cancel / live-stop can be noticed promptly.
+ACQUIRE_POLL_MS = 1_000
 MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "shutdown_timeout_ms", fallback=2_000
 )
@@ -154,6 +156,8 @@ class MacieInterface():
         self._acquiring = Event()
         self._acquiring.clear()
         self._closing = Event()
+        # Set by halt / live-stop so a blocked acquire() poll can exit early.
+        self._acquire_cancel = Event()
         self._pause_live = Event()
         self._live_session_open = False
         self._live_restore_exposure: tuple | None = None
@@ -194,15 +198,18 @@ class MacieInterface():
         save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
             self.read_exposure_settings()
         )
-        self._live_restore_exposure = (
-            bool(save),
-            int(ncoadds),
-            int(nseq),
-            int(ngroups),
-            int(nreads),
-            int(ndrops),
-            int(nresets),
-        )
+        # A second Live start (button still says Live while ZMQ arms) must not
+        # replace the original N-ramp snapshot with the already-forced nseq=1.
+        if self._live_restore_exposure is None:
+            self._live_restore_exposure = (
+                bool(save),
+                int(ncoadds),
+                int(nseq),
+                int(ngroups),
+                int(nreads),
+                int(ndrops),
+                int(nresets),
+            )
         # One ramp per acquire; keep the latched CDS/Ramp group structure.
         self.exposure_settings(
             False, 1, 1, int(ngroups), int(nreads), int(ndrops), int(nresets)
@@ -234,7 +241,17 @@ class MacieInterface():
         if command in ("acquire", "fetchnewestfits"):
             # _request / _request_multipart already hold self._lock.
             self._attempt_halt_after_timeout()
+        if command == "acquire":
+            seconds = max(1, int(ZMQ_ACQUIRE_TIMEOUT_MS / 1000))
+            return TimeoutError(
+                f"Acquire timed out after {seconds}s "
+                "(detector not responding — check GigE cable / power)"
+            )
         return TimeoutError(f"ZMQ request timed out ({command})")
+
+    def cancel_acquire(self) -> None:
+        """Signal a blocked ``acquire()`` poll to abort (halt / live-stop)."""
+        self._acquire_cancel.set()
 
     def __enter__(self):
         self.init_camera()
@@ -284,6 +301,7 @@ class MacieInterface():
         )
         self._closing.set()
         self._acquiring.clear()
+        self._acquire_cancel.set()
 
         if self._continuous_thread is not None and self._continuous_thread.is_alive():
             self._continuous_thread.join(timeout=0.5)
@@ -402,11 +420,54 @@ class MacieInterface():
             return parts
 
     def acquire(self, no_recon: bool = True) -> AcquireResult:
-        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched)."""
-        parts = self._request_multipart(
-            f"acquire;{str(no_recon).lower()}",
-            timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
-        )
+        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched).
+
+        Waits up to ``zmq_acquire_timeout_ms``, polling in short slices so
+        ``cancel_acquire()`` / live-stop (``_acquire_cancel``) or ``disconnect``
+        can interrupt a hung readout instead of blocking until the full timeout.
+        Raises ``TimeoutError`` on operational timeout or cancel.
+        """
+        message = f"acquire;{str(no_recon).lower()}"
+        timeout_ms = max(1, int(ZMQ_ACQUIRE_TIMEOUT_MS))
+        poll_ms = max(100, min(ACQUIRE_POLL_MS, timeout_ms))
+        self._acquire_cancel.clear()
+
+        with self._lock:
+            self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+            self._socket.setsockopt(zmq.RCVTIMEO, poll_ms)
+            try:
+                self._socket.send_string(message)
+                deadline = time.monotonic() + timeout_ms / 1000.0
+                while True:
+                    if self._closing.is_set() or self._acquire_cancel.is_set():
+                        self._reset_socket()
+                        self._attempt_halt_after_timeout()
+                        raise TimeoutError(
+                            "Acquire cancelled "
+                            "(halt / live-stop while waiting for detector)"
+                        )
+                    remaining_ms = int((deadline - time.monotonic()) * 1000)
+                    if remaining_ms <= 0:
+                        raise self._handle_timeout(message, zmq.Again())
+                    self._socket.setsockopt(
+                        zmq.RCVTIMEO, min(poll_ms, remaining_ms)
+                    )
+                    try:
+                        parts = self._socket.recv_multipart()
+                        break
+                    except zmq.Again:
+                        continue
+            except TimeoutError:
+                raise
+            except zmq.Again as exc:
+                raise self._handle_timeout(message, exc) from exc
+            finally:
+                try:
+                    self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
+                    self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+                except Exception:
+                    pass
+
         return parse_acquire_preview_parts(parts)
 
     def get_save_dir(self) -> str | None:
@@ -464,6 +525,7 @@ class MacieInterface():
             pass
 
     def halt_acquisition(self):
+        self.cancel_acquire()
         return self._request("halt")
 
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
@@ -472,6 +534,14 @@ class MacieInterface():
 
     def set_exp_mode(self, mode: int) -> bool:
         return self._request(f"expmode;{int(mode)}")
+
+    def set_save_rst_frames(self, save: bool) -> bool:
+        """Include MACIE reset plane(s) in the ramp FITS (ASIC SaveRstFrames)."""
+        return self._request(f"saverst;{str(bool(save)).lower()}")
+
+    def set_preview_reduction(self, mode: int) -> bool:
+        """Set ZMQ/Live preview reduction (0=CDS, 1=Ramp last, 2=SingleFrame first)."""
+        return self._request(f"previewreduction;{int(mode)}")
 
     def configure_ramp_exposure(
         self,
@@ -483,10 +553,12 @@ class MacieInterface():
         ncoadds: int = 1,
         nseq: int = 1,
         save: bool = True,
+        save_rst: bool = False,
         windowed_cds: bool = False,
     ) -> dict[str, float | int]:
         """Apply CDS or Fowler ramp plan for the requested integration time."""
         from nottcontrol.camera.macie.ramp_plan import calc_ramp_plan, exp_mode_for_ramp
+        from nottcontrol.camera.macie.ramp_plan import preview_reduction_mode
 
         timing = self.read_exposure_timing()
         frametime_ms = timing["frametime_s"] * 1000.0
@@ -499,6 +571,8 @@ class MacieInterface():
             windowed_cds=windowed_cds,
         )
         self.set_exp_mode(exp_mode_for_ramp(ramp_mode))  # type: ignore[arg-type]
+        self.set_preview_reduction(preview_reduction_mode(ramp_mode))  # type: ignore[arg-type]
+        self.set_save_rst_frames(save_rst)
         _save, _ncoadds, _nseq, _ng, _nr, _nd, nresets = self.read_exposure_settings()
         self.exposure_settings(
             save,
@@ -519,6 +593,7 @@ class MacieInterface():
             "efficiency": timing["efficiency"],
             "ncoadds": int(ncoadds),
             "nseq": int(nseq),
+            "nresets": int(nresets),
             "ramp_mode": ramp_mode,
             "rounded_tint_ms": float(plan["tint_ms"])
             if "tint_ms" in plan
@@ -604,7 +679,10 @@ class MacieInterface():
             self._arm_live_single_ramp()
         except Exception as exc:
             print(f"Live single-ramp arm failed: {exc}")
-            self._live_restore_exposure = None
+            # Arm stores the pre-nseq=1 snapshot before the write. Keep it —
+            # the ASIC may already be at nseq=1 if the write landed and only
+            # the ZMQ reply failed. Wiping left Stop Live with nothing to
+            # restore and the next Acquire silently recorded 1 of N.
         # Keep GigE open between single-ramp acquires so cadence tracks the
         # detector instead of open/close overhead every frame.
         try:
@@ -614,6 +692,7 @@ class MacieInterface():
         self._acquiring.set()
 
     def stop_continuous_acquisition(self):
+        self._acquire_cancel.set()
         self._acquiring.clear()
         try:
             self._set_live_session(False)
@@ -649,6 +728,11 @@ class MacieInterface():
                     if self._acquiring.is_set() and not self._closing.is_set():
                         time.sleep(0.005)
                 except Exception as exc:
+                    # Live-stop / halt sets _acquire_cancel; not a detector fault.
+                    if isinstance(exc, TimeoutError) and (
+                        not self._acquiring.is_set() or self._acquire_cancel.is_set()
+                    ):
+                        continue
                     failures += 1
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
                     self._reset_live_science_interface()

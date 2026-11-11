@@ -1,29 +1,48 @@
 #!/usr/bin/env bash
 # Plot illuminated-region ADU along MSAC UpTheRamp FITS cubes.
 #
-# Default root: ~/frames/H2RG_ASIC/UpTheRamp/
+# Default root: /data/bench_data/H2RG_ASIC/ (MSAC saveDir; MACIE appends YYYYMMDD/)
 # The script uses the latest subdirectory under that root (session folder).
 #
-# Default illuminated region: [H2RG DETECTOR] ROI 2
-# Default background / reference: ROI 8 (pedestal subtracted per plane)
-# Override with --illum-roi / --bg-roi / --illum-center / --illum-size;
-# disable pedestal with --no-bg-roi.
+# Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)
+# Flux = mean of the 10 brightest pixels after outlier rejection.
+# Always overplots detector pixel X=1076, Y=936 (override with --track-pixel).
+# Second region: config.ini ROI 8 (mean ADU), plotted not subtracted.
+# Omit with --no-bg-roi; pick another with --bg-roi N.
+# Override the photonic box with --illum-roi / --illum-center / --illum-size.
 #
-# Builds CDS-relative cubes (each plane = frame - first; first zero plane
-# omitted; optional ROI-8 pedestal) next to the PNG plot:
-#   msac_uptheramp_frame_minus_first.fits       — full frame
-#   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
+# Builds reduced cubes next to the PNG plot (session = folder name):
+#   frame − reset  when a _R0001 (or _R######) FITS is in the session folder
+#   frame − first  otherwise (zero self-subtraction plane omitted)
+#   {session}_msac_uptheramp_frame_minus_first.fits       — full frame
+#   {session}_msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
 # Usage (on the acquisition machine):
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --latest 10
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --show-pixels
+#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --no-reset
 #
-# Default: all FITS in the latest UpTheRamp session folder.
-# X = file index from the name (_M###### or _N######);
-# Y = illuminated mean − background ROI (frame − first).
+# Default: all science FITS in the latest UpTheRamp session folder
+# (reset frames _R###### are used as the subtraction reference, not as
+# ramp points). Folders that contain only reset frames are plotted as an
+# absolute-ADU series vs _R index (useful for window-mode reset checks).
+# Science sessions with ≥2 reset FITS also write
+#   {session}_msac_reset_illum_vs_R.png
+# using the same illuminated regions.
+# X = file index from the name (_M######, _N######, or _R######);
+# Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
+#     (outliers rejected), then tracked on every sample.
+# Full-frame: per-channel HxRG reference-pixel mean is subtracted before
+# flux and linearity (disable with --no-ref-correct).
 #
-# PNG + FITS cubes are written into the session data folder.
+# PNG (flux plot + detector QA of reset and ramp) and FITS cubes
+# are written into the session data folder:
+#   {session}_msac_uptheramp_illum_vs_file.png
+#   {session}_msac_qa_reset.png / {session}_msac_qa_ramp.png
+#   {session}_msac_qa_slope.fits / {session}_msac_qa_resid_rms.fits
+# Skip QA with --no-qa.
+# Optional: --show-reset-levels adds dashed reset ADU lines on linearity.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)

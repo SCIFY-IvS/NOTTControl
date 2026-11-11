@@ -62,13 +62,25 @@ def local_config_path(base_path: str | Path) -> Path:
 class Config:
     """INI config with optional gitignored local overrides.
 
-    Load order: ``config.ini``, then ``config.local.ini`` (if present) so lab
-    ROI positions and other machine tweaks survive ``git pull``.
+    Load order: tracked ``config.ini`` (evolving defaults), then
+    ``config.local.ini`` (lab IPs / hosts / ROI tweaks) so site addresses
+    stay stable across ``git pull`` while shared settings remain versioned.
     """
 
     def __init__(self, path: str, comment_prefixes="#", **kwargs):
         self._path = path
         self._local_path = local_config_path(path)
+        base = Path(path)
+        if not base.is_file():
+            if base.name == "config.ini":
+                hint = (
+                    "Copy config.ini.example to config.ini, then put lab IPs in "
+                    "config.local.ini (see config.local.ini.example)."
+                )
+            else:
+                hint = f"Expected config file at {base}."
+            raise FileNotFoundError(f"Missing {base}. {hint}")
+
         self.config_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)
         self.config_parser.optionxform = str  # Preserve case sensitivity
         self._local_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)

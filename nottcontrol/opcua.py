@@ -71,6 +71,28 @@ class OPCUAConnection:
                 self.client.connect()
             self._connected = True
 
+    def try_connect(self) -> bool:
+        """Connect once; return False on failure (do not raise).
+
+        Used at GUI startup so offline CUs do not block opening the window.
+        Timers / reconnect still use ``connect`` / ``reconnect``.
+        """
+        with self._lock:
+            if self._connected and self._loop_alive():
+                return True
+            if self.client is not None and not self._loop_alive():
+                self._discard_client()
+            if self.client is None:
+                self.client = Client(self.url, timeout=self.timeout)
+            try:
+                self.client.connect()
+                self._connected = True
+                return True
+            except Exception as exc:
+                print(f"OPC UA connect failed ({self.url}): {exc}")
+                self._discard_client()
+                return False
+
     def disconnect(self):
         with self._lock:
             self._discard_client()

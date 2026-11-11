@@ -1,30 +1,63 @@
 #!/usr/bin/env python3
 """Plot illuminated-region ADU vs MSAC UpTheRamp file index.
 
-Default data root (on the acquisition machine)::
+Default data root (on nott-server, MSAC saveDir)::
 
-    ~/frames/H2RG_ASIC/UpTheRamp/
+    /data/bench_data/H2RG_ASIC/
 
 MSAC writes each session into a subdirectory of that root. By default the
 script selects the **latest** subdirectory (by modification time), then
 loads **all** FITS there.
 
 Frames are stacked in file-index order (last plane of each FITS, or all
-planes of a single multi-sample cube). Two **CDS-relative cubes** are
-written next to the plot (plane ``k`` = ``frame[k] - frame[0]``):
+planes of a single multi-sample cube). Science ramps use
+``frame[k] - frame[0]`` (first NDR sample as pedestal). MSAC ``_R*``
+reset FITS are treated as **destructive reads**, not pedestals: they are
+**not** subtracted from the ramp. Whenever **two or more** reset FITS
+are present (unless ``--no-reset``), the script also writes
+``{session}_msac_reset_illum_vs_R.png`` — absolute ADU vs ``_R`` (image-
+centre 5×5 median plus illuminated brightest pixels) for persistence /
+reset stability. Sessions that contain **only** reset frames use that
+series as the main plot.
 
-* full-frame ``msac_uptheramp_frame_minus_first.fits``
-* illuminated-box crop ``msac_uptheramp_frame_minus_first_illum.fits``
+Two reduced cubes are written next to the plot:
+
+* full-frame ``{session}_msac_uptheramp_frame_minus_first.fits``
+* illuminated-box crop ``{session}_msac_uptheramp_frame_minus_first_illum.fits``
 
 The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
-from both cubes. The illuminated-mean plot still includes that first point
-(~0) for reference.
+from both cubes.
 
-Illuminated box defaults to **H2RG ROI 2**; background / reference
-defaults to **H2RG ROI 8** (``config.ini`` / ``config.local.ini``).
-Each CDS plane is pedestal-corrected by subtracting the sigma-clipped
-mean of the background ROI. Override with ``--illum-roi``, ``--bg-roi``,
-``--illum-center``, or ``--illum-size``; disable with ``--no-bg-roi``.
+Illuminated box defaults to the **Photonic chip** WinMode
+(``X=1010–1030``, ``Y=950–970``). QA linearity uses the **median of the
+5×5 at the image centre** (drawn on the images; independent of WinMode
+size). The **10 brightest** pixels are chosen once on the last CDS plane
+(``last − first``) after outlier rejection, then those same pixels are
+averaged on every sample for the flux curve. On **full-frame** (2048×2048) data each plane is further corrected
+by subtracting the **per-channel HxRG reference-pixel** mean (32 SIDECAR
+outputs; disable with ``--no-ref-correct``). Flux and detector-QA
+linearity use that corrected cube. The flux plot also overlays the
+(residual) mean over the reference-pixel border.
+Detector pixel **X=1020, Y=960** is tracked on full-frame / photonic
+windows when in bounds (override with ``--track-pixel``; skipped on
+other windowed readouts).
+
+A second config.ini ROI (default **ROI 8**) is plotted as its own crop and
+mean-ADU curve — it is **not** subtracted from the cube. Omit it with
+``--no-bg-roi``, or pick another with ``--bg-roi N``. If that ROI is
+missing or outside the image (typical for a photonic-chip window), it is
+skipped with a warning. Other windowed ramps where the photonic box does
+not fit fall back to the **full delivered window**: window mean + the
+10 brightest pixels (no hard fail).
+
+Override the photonic box with ``--illum-roi``, ``--illum-center``, or
+``--illum-size``.
+
+Detector-quality products (reset spatial QA, per-pixel ramp slope and
+residual RMS) are written beside the flux plot as
+``{session}_msac_qa_*.png`` / ``{session}_msac_qa_*.fits``.
+Disable with ``--no-qa``. The session folder name is also shown in plot
+titles.
 """
 
 from __future__ import annotations
@@ -34,6 +67,7 @@ import logging
 import re
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 # Avoid Qt ABI clashes on nott-server (e.g. system Qt 5.15.17 vs pip 5.15.15).
 import matplotlib
@@ -44,24 +78,59 @@ import numpy as np
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
-DEFAULT_RAMP_ROOT = Path.home() / "frames" / "H2RG_ASIC" / "UpTheRamp"
+DEFAULT_RAMP_ROOT = Path("/data/bench_data/H2RG_ASIC")
 DEFAULT_N_ILLUM_PIXELS = 100
+DEFAULT_N_BRIGHTEST = 10
 DEFAULT_ILLUM_SIZE = 20
-DEFAULT_ILLUM_CENTER_X = 1045
-DEFAULT_ILLUM_CENTER_Y = 943
+DEFAULT_ILLUM_CENTER_X = 1020
+DEFAULT_ILLUM_CENTER_Y = 960
 DEFAULT_ILLUM_ROI = 2
-DEFAULT_BG_ROI = 8
+DEFAULT_REGION2_ROI = 8
+REGION2_COLOR = "#4cc9f0"
+# Match H2RG GUI WindowMode "Photonic chip" (inclusive detector pixels).
+PHOTONIC_CHIP_X1 = 1010
+PHOTONIC_CHIP_X2 = 1030
+PHOTONIC_CHIP_Y1 = 950
+PHOTONIC_CHIP_Y2 = 970
+# Detector (X, Y) pixels always overplotted on the flux curve (photonic chip).
+DEFAULT_TRACK_PIXELS: tuple[tuple[int, int], ...] = ((1020, 960),)
 H2RG_SECTION = "H2RG DETECTOR"
 # Full-frame H2RG; smaller shapes are treated as windowed readouts.
 DEFAULT_FULL_FRAME = 2048
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
+REF_PIXEL_COLOR = "#e9c46a"
 
-# MSAC names often embed both counters, e.g. ``…_N000012_M000001.fits``.
-# Prefer the tag (M or N) that varies across the session; do not assume it is
-# the trailing field (that is often a constant ``_M000001``).
-FILE_INDEX_RE = re.compile(r"_(?P<tag>[MN])(?P<index>\d+)", re.IGNORECASE)
+try:
+    from .detector_qa import (
+        CENTER_MEDIAN_BOX_COLOR,
+        DEFAULT_CENTER_MEDIAN_SIZE,
+        H2RG_N_OUTPUTS,
+        H2RG_REF_WIDTH,
+        image_center_subbox,
+        h2rg_ref_mask,
+        n_outputs_for_shape,
+        subtract_channel_reference_pixels,
+    )
+except ImportError:
+    from detector_qa import (
+        CENTER_MEDIAN_BOX_COLOR,
+        DEFAULT_CENTER_MEDIAN_SIZE,
+        H2RG_N_OUTPUTS,
+        H2RG_REF_WIDTH,
+        image_center_subbox,
+        h2rg_ref_mask,
+        n_outputs_for_shape,
+        subtract_channel_reference_pixels,
+    )
+
+# MSAC names often embed counters, e.g. ``…_N000012_M000001.fits`` or
+# a reset frame ``…_R0001.fits``. Prefer the science tag (M or N) that
+# varies across the session; do not assume it is the trailing field.
+FILE_INDEX_RE = re.compile(r"_(?P<tag>[MNR])(?P<index>\d+)", re.IGNORECASE)
 TRAILING_DIGITS_RE = re.compile(r"_(\d+)\s*$")
+SCIENCE_TAGS = frozenset({"M", "N"})
+RESET_TAG = "R"
 
 
 def _fits_in_dir(directory: Path) -> list[Path]:
@@ -102,8 +171,21 @@ def resolve_ramp_dir(path: Path) -> Path:
     )
 
 
+def session_folder_name(ramp_dir: Path) -> str:
+    """Human-readable session folder name for plot titles."""
+    name = ramp_dir.expanduser().resolve().name.strip()
+    return name or "session"
+
+
+def session_filename_slug(ramp_dir: Path) -> str:
+    """Filesystem-safe slug of the session folder for output filenames."""
+    slug = re.sub(r"[^\w.\-]+", "_", session_folder_name(ramp_dir))
+    slug = re.sub(r"_+", "_", slug).strip("._")
+    return slug or "session"
+
+
 def file_indices_from_name(name: str) -> dict[str, int]:
-    """Return all ``M``/``N`` counters found in *name* (last wins per tag)."""
+    """Return all ``M``/``N``/``R`` counters found in *name* (last wins per tag)."""
     stem = Path(name).stem
     found: dict[str, int] = {}
     for match in FILE_INDEX_RE.finditer(stem):
@@ -116,7 +198,8 @@ def choose_index_tag(paths: list[Path]) -> str | None:
     values: dict[str, set[int]] = {"M": set(), "N": set()}
     for path in paths:
         for tag, index in file_indices_from_name(path.name).items():
-            values[tag].add(index)
+            if tag in SCIENCE_TAGS:
+                values[tag].add(index)
 
     candidates = [
         (tag, len(vals))
@@ -152,25 +235,372 @@ def file_index_from_name(
 ) -> tuple[str, int] | None:
     """Return ``(tag, index)`` for plotting.
 
-    If *preferred_tag* is set (``M``/``N``), use that counter. Otherwise use
-    the last ``_M``/``_N`` field in the name, then trailing ``_######``.
+    If *preferred_tag* is set (``M``/``N``/``R``), use that counter.
+    Otherwise use the last ``_M``/``_N`` field in the name, then ``_R``,
+    then trailing ``_######``. Prefer science tags over reset unless the
+    caller asks for ``R`` (reset-only sessions).
     """
     found = file_indices_from_name(name)
+    science = {tag: index for tag, index in found.items() if tag in SCIENCE_TAGS}
     if preferred_tag:
         tag = preferred_tag.upper()
-        if tag in found:
-            return tag, found[tag]
-    if found:
-        # Last match in the filename order: re-scan for ordering.
+        if tag in SCIENCE_TAGS and tag in science:
+            return tag, science[tag]
+        if tag == RESET_TAG and RESET_TAG in found:
+            return RESET_TAG, found[RESET_TAG]
+    if science:
         stem = Path(name).stem
-        matches = list(FILE_INDEX_RE.finditer(stem))
-        match = matches[-1]
-        return match.group("tag").upper(), int(match.group("index"))
+        matches = [
+            match
+            for match in FILE_INDEX_RE.finditer(stem)
+            if match.group("tag").upper() in SCIENCE_TAGS
+        ]
+        if matches:
+            match = matches[-1]
+            return match.group("tag").upper(), int(match.group("index"))
+
+    if RESET_TAG in found:
+        return RESET_TAG, found[RESET_TAG]
 
     trailing = TRAILING_DIGITS_RE.search(Path(name).stem)
     if trailing:
         return "#", int(trailing.group(1))
     return None
+
+
+def is_reset_fits(name: str) -> bool:
+    """True if *name* is an MSAC reset frame (``_R0001`` / ``_R######``)."""
+    found = file_indices_from_name(name)
+    if RESET_TAG not in found:
+        return False
+    science = {tag for tag in found if tag in SCIENCE_TAGS}
+    if not science:
+        return True
+    matches = list(FILE_INDEX_RE.finditer(Path(name).stem))
+    return bool(matches) and matches[-1].group("tag").upper() == RESET_TAG
+
+
+def split_science_and_reset(
+    paths: list[Path],
+) -> tuple[list[Path], list[Path]]:
+    """Split FITS paths into science ramps and reset frames."""
+    science: list[Path] = []
+    resets: list[Path] = []
+    for path in paths:
+        if is_reset_fits(path.name):
+            resets.append(path)
+        else:
+            science.append(path)
+    return science, resets
+
+
+def load_reset_reference(
+    reset_paths: list[Path],
+) -> tuple[np.ndarray, Path] | None:
+    """Load the last plane of the first reset FITS (lowest ``R`` index).
+
+    Used for reset QA only; not subtracted from science ramps.
+    """
+    if not reset_paths:
+        return None
+    ranked = sorted(
+        reset_paths,
+        key=lambda p: (
+            file_indices_from_name(p.name).get(RESET_TAG, 10**9),
+            p.name.lower(),
+        ),
+    )
+    chosen = ranked[0]
+    if len(ranked) > 1:
+        logging.info(
+            "Found %d reset frame(s); using %s (R=%s)",
+            len(ranked),
+            chosen.name,
+            file_indices_from_name(chosen.name).get(RESET_TAG),
+        )
+    reference, _header = load_last_science_plane(chosen, dtype=np.float32)
+    logging.info(
+        "Reset reference %s: shape=%s",
+        chosen.name,
+        reference.shape,
+    )
+    return reference, chosen
+
+
+def load_reset_adu_series(
+    reset_paths: list[Path],
+) -> tuple[np.ndarray, np.ndarray, list[str]] | None:
+    """Stack reset frames as absolute ADU ordered by ``_R`` index.
+
+    Returns ``(stack, r_indices, names)`` with ``stack.shape == (n, y, x)``,
+    or ``None`` if fewer than two usable reset files.
+    """
+    records: list[tuple[int, str, np.ndarray]] = []
+    for path in reset_paths:
+        parsed = file_index_from_name(path.name, preferred_tag=RESET_TAG)
+        if parsed is None or parsed[0] != RESET_TAG:
+            logging.warning("Skipping reset series member without _R index: %s", path.name)
+            continue
+        _tag, index = parsed
+        cube, _header = load_ramp_cube(path)
+        records.append(
+            (
+                index,
+                path.name,
+                np.asarray(last_plane(cube), dtype=np.float64),
+            )
+        )
+    if len(records) < 2:
+        return None
+    records.sort(key=lambda row: (row[0], row[1].lower()))
+    stack = np.stack([row[2] for row in records], axis=0)
+    indices = np.array([row[0] for row in records], dtype=np.int64)
+    names = [row[1] for row in records]
+    return stack, indices, names
+
+
+def write_reset_illum_vs_r_plot(
+    *,
+    reset_paths: list[Path],
+    output: Path,
+    illum_box: tuple[int, int, int, int],
+    pixels: np.ndarray,
+    track_xy: list[tuple[int, int]],
+    region2_box: tuple[int, int, int, int] | None,
+    region2_label: str | None,
+    region_label: str | None,
+    detector_box: tuple[int, int, int, int] | None,
+    illum_source: str,
+    illum_h: int,
+    illum_w: int,
+    center_x: int,
+    center_y: int,
+    n_sigma: float,
+    show_pixels: bool,
+    show: bool,
+    session_name: str,
+    expected_shape: tuple[int, int] | None = None,
+    ref_correct: bool = True,
+) -> bool:
+    """Plot absolute-ADU flux vs ``_R`` for reset frames (persistence / stability).
+
+    Primary curve is the image-centre 5×5 median. Illuminated-box brightest
+    pixels and optional second ROI are overplotted when they fit.
+
+    Returns True if a plot was written.
+    """
+    loaded = load_reset_adu_series(reset_paths)
+    if loaded is None:
+        logging.info(
+            "Reset-vs-R: need ≥2 reset FITS with _R indices (got %d path(s))",
+            len(reset_paths),
+        )
+        return False
+    stack, r_indices, names = loaded
+    ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    if expected_shape is not None and (ny, nx) != expected_shape:
+        logging.warning(
+            "Reset-vs-R: reset shape %dx%d != science %dx%d; "
+            "adapting illuminated box to the reset frames",
+            nx,
+            ny,
+            expected_shape[1],
+            expected_shape[0],
+        )
+        try:
+            (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
+                (ny, nx)
+            )
+            illum_h, illum_w = row1 - row0, col1 - col0
+            drow0, drow1, dcol0, dcol1 = detector_box
+            center_x = (dcol0 + dcol1) // 2
+            center_y = (drow0 + drow1) // 2
+            illum_source = photonic_chip_label()
+            region_label = photonic_chip_label()
+            illum_box = (row0, row1, col0, col1)
+        except ValueError:
+            (
+                (row0, row1, col0, col1),
+                illum_h,
+                illum_w,
+                center_x,
+                center_y,
+                illum_source,
+                region_label,
+            ) = full_window_illum((ny, nx))
+            detector_box = None
+            illum_box = (row0, row1, col0, col1)
+        region2_box = None
+        pixels = np.empty((0, 2), dtype=int)
+
+    cds_short = "reset"
+    if ref_correct and is_full_frame((ny, nx)):
+        stack, applied = subtract_channel_reference_pixels(stack)
+        if applied:
+            cds_short = "reset−chref"
+            logging.info(
+                "Reset-vs-R: subtracted per-channel reference-pixel means"
+            )
+
+    row0, row1, col0, col1 = illum_box
+    if not (0 <= row0 < row1 <= ny and 0 <= col0 < col1 <= nx):
+        (
+            (row0, row1, col0, col1),
+            illum_h,
+            illum_w,
+            center_x,
+            center_y,
+            illum_source,
+            region_label,
+        ) = full_window_illum((ny, nx))
+        illum_box = (row0, row1, col0, col1)
+        detector_box = None
+        logging.info(
+            "Reset-vs-R: illum box did not fit; using full %d×%d window",
+            nx,
+            ny,
+        )
+
+    # Primary series: image-centre 5×5 median (persistence / stability).
+    mr0, mr1, mc0, mc1 = image_center_subbox(
+        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
+    )
+    means = np.array(
+        [float(np.nanmedian(plane[mr0:mr1, mc0:mc1])) for plane in stack],
+        dtype=np.float64,
+    )
+    flux_label = f"median {mr1 - mr0}×{mc1 - mc0} centre"
+
+    use_pixels = pixels
+    if use_pixels.size:
+        if (
+            int(use_pixels[:, 0].max()) >= ny
+            or int(use_pixels[:, 1].max()) >= nx
+            or int(use_pixels[:, 0].min()) < 0
+            or int(use_pixels[:, 1].min()) < 0
+        ):
+            logging.info(
+                "Reset-vs-R: science bright pixels out of reset bounds; "
+                "reselecting on last reset plane"
+            )
+            use_pixels, _n_rej = select_brightest_after_outliers(
+                stack[-1],
+                row0,
+                row1,
+                col0,
+                col1,
+                n_brightest=max(1, int(use_pixels.shape[0])),
+                n_sigma=n_sigma,
+            )
+    else:
+        # Brightest in the illum box for the optional pixel panel.
+        use_pixels, _n_rej = select_brightest_after_outliers(
+            stack[-1],
+            row0,
+            row1,
+            col0,
+            col1,
+            n_brightest=DEFAULT_N_BRIGHTEST,
+            n_sigma=n_sigma,
+        )
+
+    r2_means: np.ndarray | None = None
+    r2_frame = None
+    r2_box = region2_box
+    r2_label_out = region2_label
+    if r2_box is not None:
+        rr0, rr1, rc0, rc1 = r2_box
+        if 0 <= rr0 < rr1 <= ny and 0 <= rc0 < rc1 <= nx:
+            r2_means = np.array(
+                [
+                    region_mean(plane, rr0, rr1, rc0, rc1, n_sigma=n_sigma)
+                    for plane in stack
+                ],
+                dtype=np.float64,
+            )
+            r2_frame = stack[-1, rr0:rr1, rc0:rc1]
+        else:
+            r2_box = None
+            logging.info(
+                "Reset-vs-R: second ROI does not fit reset frame; omitting"
+            )
+    # Also overlay illuminated-box median as the second region when useful.
+    if r2_means is None:
+        r2_means = np.array(
+            [
+                float(np.nanmedian(plane[row0:row1, col0:col1]))
+                for plane in stack
+            ],
+            dtype=np.float64,
+        )
+        r2_frame = stack[-1, row0:row1, col0:col1]
+        r2_box = illum_box
+        r2_label_out = "illum median"
+
+    track_ok = [
+        (x, y) for x, y in track_xy if 0 <= x < nx and 0 <= y < ny
+    ]
+    track_matrix: np.ndarray | None = None
+    if track_ok:
+        track_matrix = np.column_stack(
+            [track_pixel_series(stack, xy) for xy in track_ok]
+        )
+
+    ref_means: np.ndarray | None = None
+    ref_boxes: list[tuple[int, int, int, int]] | None = None
+    if is_full_frame((ny, nx)):
+        ref_means = reference_pixel_means(stack)
+        if ref_means is not None:
+            ref_boxes = reference_pixel_boxes((ny, nx))
+
+    pixel_matrix: np.ndarray | None = None
+    if use_pixels.size and (show_pixels or use_pixels.shape[0] > 0):
+        pixel_matrix = np.stack(
+            [pixel_values(plane, use_pixels) for plane in stack],
+            axis=0,
+        )
+
+    title = (
+        f"{session_name} — reset series ({flux_label} vs "
+        f"{r2_label_out or illum_source}, {cds_short}) vs R "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
+    )
+    last = np.asarray(stack[-1], dtype=np.float64)
+    reset_metric_box = (mr0, mr1, mc0, mc1)
+    plot_file_series(
+        indices=r_indices,
+        means=means,
+        names=names,
+        index_tag=RESET_TAG,
+        pixel_matrix=pixel_matrix,
+        output=output,
+        title=title,
+        show=show,
+        full_frame=last,
+        illum_frame=last[row0:row1, col0:col1],
+        illum_box=illum_box,
+        metric_box=reset_metric_box,
+        bg_box=r2_box,
+        region_label=region_label,
+        detector_box=detector_box,
+        cds_label=cds_short,
+        cds_short=cds_short,
+        flux_label=flux_label,
+        track_xy=track_ok or None,
+        track_matrix=track_matrix,
+        region2_means=r2_means,
+        region2_label=r2_label_out if r2_means is not None else None,
+        region2_frame=r2_frame,
+        ref_means=ref_means,
+        ref_boxes=ref_boxes,
+        session_name=session_name,
+    )
+    logging.info(
+        "Reset-vs-R: plotted %d reset frame(s) → %s",
+        len(names),
+        output,
+    )
+    return True
 
 
 def illuminated_box(
@@ -242,6 +672,98 @@ def illuminated_box_from_xywh(
     return row0, row1, col0, col1
 
 
+def resolve_second_roi_box(
+    shape: tuple[int, int],
+    roi_index: int,
+) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int]] | None:
+    """Return ``(image_box, xywh)`` for config.ini ROI *roi_index*, or None.
+
+    Missing or out-of-frame ROIs are skipped with a warning (typical for a
+    photonic-chip windowed readout).
+    """
+    roi = load_h2rg_roi_xywh(roi_index)
+    if roi is None:
+        logging.warning(
+            "No [%s] ROI %d in config.ini (or config.local.ini); "
+            "omitting second region",
+            H2RG_SECTION,
+            roi_index,
+        )
+        return None
+    x, y, w, h = roi
+    try:
+        box = illuminated_box_from_xywh(shape, x, y, w, h)
+    except ValueError as exc:
+        logging.warning(
+            "H2RG ROI %d=%d,%d,%d,%d does not fit image %d×%d (%s); "
+            "omitting second region",
+            roi_index,
+            x,
+            y,
+            w,
+            h,
+            int(shape[0]),
+            int(shape[1]),
+            exc,
+        )
+        return None
+    return box, roi
+
+
+def photonic_chip_xywh() -> tuple[int, int, int, int]:
+    """Return ``(x, y, w, h)`` for the Photonic chip WinMode."""
+    return (
+        PHOTONIC_CHIP_X1,
+        PHOTONIC_CHIP_Y1,
+        PHOTONIC_CHIP_X2 - PHOTONIC_CHIP_X1 + 1,
+        PHOTONIC_CHIP_Y2 - PHOTONIC_CHIP_Y1 + 1,
+    )
+
+
+def photonic_chip_label() -> str:
+    return (
+        f"Photonic chip (X={PHOTONIC_CHIP_X1}–{PHOTONIC_CHIP_X2}, "
+        f"Y={PHOTONIC_CHIP_Y1}–{PHOTONIC_CHIP_Y2})"
+    )
+
+
+def photonic_chip_illum_box(
+    shape: tuple[int, int],
+) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int]]:
+    """Return ``(image_box, detector_box)`` as ``(row0, row1, col0, col1)``.
+
+    Full-frame cubes are cropped at the WinMode coordinates. A delivered
+    frame that is already the photonic-chip size uses the whole image, with
+    detector-pixel labels still at ``1010–1030``, ``950–970``.
+    """
+    x, y, w, h = photonic_chip_xywh()
+    det_box = (y, y + h, x, x + w)
+    height, width = int(shape[0]), int(shape[1])
+    if height == h and width == w:
+        return (0, h, 0, w), det_box
+    return illuminated_box_from_xywh((height, width), x, y, w, h), det_box
+
+
+def map_box_to_detector(
+    image_box: tuple[int, int, int, int],
+    *,
+    illum_box: tuple[int, int, int, int],
+    detector_box: tuple[int, int, int, int] | None,
+) -> tuple[int, int, int, int]:
+    """Map an image-coord box into detector pixels when *detector_box* is set."""
+    if detector_box is None:
+        return image_box
+    ir0, _ir1, ic0, _ic1 = illum_box
+    dr0, _dr1, dc0, _dc1 = detector_box
+    r0, r1, c0, c1 = image_box
+    return (
+        dr0 + (r0 - ir0),
+        dr0 + (r1 - ir0),
+        dc0 + (c0 - ic0),
+        dc0 + (c1 - ic0),
+    )
+
+
 def resolve_illum_center(
     shape: tuple[int, int],
     *,
@@ -253,7 +775,7 @@ def resolve_illum_center(
 
     Explicit ``center_x`` / ``center_y`` always win. Otherwise a frame smaller
     than *full_frame* in either axis is assumed windowed with the spot at the
-    image centre; full-frame uses the lab defaults (X=1045, Y=943).
+    image centre; full-frame uses the lab defaults (X=1020, Y=960).
     """
     height, width = int(shape[0]), int(shape[1])
     if center_x is not None and center_y is not None:
@@ -297,6 +819,89 @@ def choose_pixels(
     return coords[pick]
 
 
+def _mad_scale(values: np.ndarray) -> tuple[float, float]:
+    """Return ``(median, 1.4826 * MAD)`` for *values* (finite only)."""
+    work = np.asarray(values, dtype=np.float64)
+    work = work[np.isfinite(work)]
+    if work.size == 0:
+        return float("nan"), float("nan")
+    med = float(np.median(work))
+    mad = float(np.median(np.abs(work - med)))
+    scale = 1.4826 * mad if mad > 0 else float(np.std(work))
+    if not np.isfinite(scale) or scale < 1e-12:
+        scale = 0.0
+    return med, scale
+
+
+def isolated_hot_mask(image: np.ndarray, *, n_sigma: float) -> np.ndarray:
+    """True for isolated hot spikes (brighter than every 3×3 neighbour).
+
+    A compact waveguide spot (2+ adjacent bright pixels) is kept; a
+    single-pixel cosmic or hot pixel is rejected.
+    """
+    img = np.asarray(image, dtype=np.float64)
+    finite = np.isfinite(img)
+    med, scale = _mad_scale(img)
+    if not finite.any() or not np.isfinite(med):
+        return np.zeros(img.shape, dtype=bool)
+    padded = np.pad(
+        np.where(finite, img, np.nan),
+        1,
+        mode="constant",
+        constant_values=np.nan,
+    )
+    neigh_max = np.full(img.shape, -np.inf)
+    height, width = img.shape
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            if dr == 0 and dc == 0:
+                continue
+            sl = padded[1 + dr : 1 + dr + height, 1 + dc : 1 + dc + width]
+            neigh_max = np.fmax(
+                neigh_max, np.where(np.isfinite(sl), sl, -np.inf)
+            )
+    above_bg = img > (med + n_sigma * scale) if scale > 0 else img > med
+    neigh_is_bg = (
+        neigh_max < (med + n_sigma * scale) if scale > 0 else ~np.isfinite(neigh_max)
+    )
+    return finite & above_bg & neigh_is_bg & (img > neigh_max)
+
+
+def select_brightest_after_outliers(
+    image: np.ndarray,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    *,
+    n_brightest: int,
+    n_sigma: float,
+) -> tuple[np.ndarray, int]:
+    """Return ``(coords_rc, n_rejected)`` for the N brightest box pixels.
+
+    Rejects non-finite values, faint/dead pixels (low-side MAD clip), and
+    isolated hot spikes, then ranks what remains on *image*.
+    """
+    crop = np.asarray(image[row0:row1, col0:col1], dtype=np.float64)
+    finite = np.isfinite(crop)
+    med, scale = _mad_scale(crop)
+    dead = np.zeros(crop.shape, dtype=bool)
+    if np.isfinite(med) and scale > 0:
+        dead = finite & (crop < med - n_sigma * scale)
+    hot = isolated_hot_mask(crop, n_sigma=n_sigma)
+    keep = finite & ~dead & ~hot
+    n_rejected = int(crop.size - keep.sum())
+    if not keep.any():
+        return np.empty((0, 2), dtype=int), n_rejected
+    vals = crop[keep]
+    ys, xs = np.nonzero(keep)
+    order = np.argsort(vals)[::-1]
+    n_used = min(max(1, int(n_brightest)), int(order.size))
+    pick = order[:n_used]
+    coords = np.column_stack((ys[pick] + row0, xs[pick] + col0))
+    return coords, n_rejected
+
+
 def sigma_clip_mean(
     values: np.ndarray,
     *,
@@ -324,28 +929,111 @@ def sigma_clip_mean(
     return float(np.mean(work)), int(work.size), int(n_total - work.size)
 
 
-def load_ramp_cube(path: Path) -> tuple[np.ndarray, dict]:
-    """Return ``(nsamples, ny, nx)`` float64 cube and primary header dict."""
+def is_full_frame(
+    shape: tuple[int, int], *, full_frame: int = DEFAULT_FULL_FRAME
+) -> bool:
+    height, width = int(shape[0]), int(shape[1])
+    return height >= full_frame and width >= full_frame
+
+
+def full_window_illum(
+    shape: tuple[int, int],
+) -> tuple[tuple[int, int, int, int], int, int, int, int, str, str]:
+    """Use the entire delivered frame as the analysis window.
+
+    Returns ``(box, height, width, center_x, center_y, source, label)``.
+    """
+    height, width = int(shape[0]), int(shape[1])
+    box = (0, height, 0, width)
+    label = f"Full window ({width}×{height})"
+    return box, height, width, width // 2, height // 2, label, label
+
+
+def reference_pixel_boxes(
+    shape: tuple[int, int], *, width: int = H2RG_REF_WIDTH
+) -> list[tuple[int, int, int, int]]:
+    """Four reference bands: top, bottom, left, right (row0, row1, col0, col1)."""
+    height, img_width = int(shape[0]), int(shape[1])
+    if height < 4 * width or img_width < 4 * width:
+        return []
+    return [
+        (0, width, 0, img_width),
+        (height - width, height, 0, img_width),
+        (0, height, 0, width),
+        (0, height, img_width - width, img_width),
+    ]
+
+
+def reference_pixel_means(cube: np.ndarray) -> np.ndarray | None:
+    """Mean ADU over the HxRG reference-pixel border for each cube plane."""
+    data = np.asarray(cube, dtype=np.float64)
+    if data.ndim != 3:
+        return None
+    mask = h2rg_ref_mask(data.shape[1:])
+    if mask is None or not bool(mask.any()):
+        return None
+    return np.array(
+        [float(np.nanmean(plane[mask])) for plane in data],
+        dtype=np.float64,
+    )
+
+
+def _cube_axis0(data: np.ndarray, header: dict) -> np.ndarray:
+    """Normalize FITS payload to ``(nsamples, ny, nx)`` without casting."""
+    if data.ndim == 2:
+        return data[np.newaxis, ...]
+    if data.ndim == 3:
+        naxis3 = int(header.get("NAXIS3", data.shape[0]))
+        if data.shape[0] == naxis3:
+            return data
+        if data.shape[-1] == naxis3:
+            return np.moveaxis(data, -1, 0)
+        return data
+    raise ValueError(f"expected 2-D or 3-D FITS, got shape {data.shape}")
+
+
+def load_ramp_cube(
+    path: Path,
+    *,
+    dtype: np.dtype | type = np.float32,
+) -> tuple[np.ndarray, dict]:
+    """Return ``(nsamples, ny, nx)`` cube and primary header dict."""
     from astropy.io import fits
 
     with fits.open(path, memmap=False) as hdul:
         header = dict(hdul[0].header)
         data = np.asarray(hdul[0].data)
 
-    if data.ndim == 2:
-        cube = data[np.newaxis, ...]
-    elif data.ndim == 3:
-        naxis3 = int(header.get("NAXIS3", data.shape[0]))
-        if data.shape[0] == naxis3:
-            cube = data
-        elif data.shape[-1] == naxis3:
-            cube = np.moveaxis(data, -1, 0)
-        else:
-            cube = data
-    else:
-        raise ValueError(f"{path.name}: expected 2-D or 3-D FITS, got shape {data.shape}")
+    try:
+        cube = _cube_axis0(data, header)
+    except ValueError as exc:
+        raise ValueError(f"{path.name}: {exc}") from exc
+    return np.asarray(cube, dtype=dtype), header
 
-    return np.asarray(cube, dtype=np.float64), header
+
+def load_last_science_plane(
+    path: Path,
+    *,
+    dtype: np.dtype | type = np.float32,
+) -> tuple[np.ndarray, dict]:
+    """Load only the last ramp plane as ``dtype`` (one frame — not a stacked cube).
+
+    Uses ``memmap=False`` because MSAC FITS often carry BZERO/BSCALE/BLANK,
+    which astropy cannot memory-map.
+    """
+    from astropy.io import fits
+
+    with fits.open(path, memmap=False) as hdul:
+        header = dict(hdul[0].header)
+        data = hdul[0].data
+        if data is None:
+            raise ValueError(f"{path.name}: empty FITS data")
+        try:
+            cube = _cube_axis0(np.asarray(data), header)
+        except ValueError as exc:
+            raise ValueError(f"{path.name}: {exc}") from exc
+        plane = np.asarray(last_plane(cube), dtype=dtype)
+    return plane, header
 
 
 def list_ramp_fits(directory: Path) -> list[Path]:
@@ -360,19 +1048,203 @@ def list_ramp_fits(directory: Path) -> list[Path]:
     return paths
 
 
+def evenly_spaced_indices(n: int, max_count: int | None) -> np.ndarray:
+    """Indices ``0 … n-1``, or ``max_count`` evenly spaced samples including ends."""
+    if n <= 0:
+        return np.array([], dtype=int)
+    if max_count is None or max_count <= 0 or n <= max_count:
+        return np.arange(n, dtype=int)
+    return np.unique(np.linspace(0, n - 1, int(max_count)).astype(int))
+
+
+def subsample_sequence(items: list, max_count: int | None) -> list:
+    """Keep all items, or an evenly spaced subset of length ≤ ``max_count``."""
+    if not items:
+        return items
+    idx = evenly_spaced_indices(len(items), max_count)
+    if len(idx) == len(items):
+        return items
+    return [items[int(i)] for i in idx]
+
+
+class SampleRef(NamedTuple):
+    """One ramp sample on disk (last plane of a FITS, or one plane of a cube)."""
+
+    index: int
+    tag: str
+    name: str
+    path: Path
+    plane_index: int | None
+
+
+def peek_nplanes(path: Path) -> tuple[int, dict]:
+    """Return ``(nplanes, header)`` from FITS keywords (no pixel array load)."""
+    from astropy.io import fits
+
+    with fits.open(path, memmap=False) as hdul:
+        header = dict(hdul[0].header)
+    naxis = int(header.get("NAXIS", 0) or 0)
+    if naxis <= 2:
+        return 1, header
+    return max(1, int(header.get("NAXIS3", 1) or 1)), header
+
+
+def build_sample_refs(
+    paths: list[Path],
+    *,
+    preferred_tag: str | None,
+    max_frames: int | None,
+) -> tuple[list[SampleRef], dict | None]:
+    """Build ordered sample list (metadata only — no pixel stacks)."""
+    refs: list[SampleRef] = []
+    ref_header: dict | None = None
+
+    if len(paths) == 1:
+        nplanes, header = peek_nplanes(paths[0])
+        ref_header = header
+        if nplanes > 1:
+            parsed = file_index_from_name(
+                paths[0].name, preferred_tag=preferred_tag
+            )
+            base_tag = parsed[0] if parsed else "P"
+            plane_idx = evenly_spaced_indices(nplanes, max_frames)
+            if len(plane_idx) < nplanes:
+                logging.info(
+                    "%s: subsampled %d → %d plane(s) (--max-frames %s)",
+                    paths[0].name,
+                    nplanes,
+                    len(plane_idx),
+                    max_frames,
+                )
+            for iplane in plane_idx:
+                i = int(iplane)
+                refs.append(
+                    SampleRef(
+                        index=i + 1,
+                        tag=base_tag,
+                        name=f"{paths[0].name}[plane{i}]",
+                        path=paths[0],
+                        plane_index=i,
+                    )
+                )
+            logging.info(
+                "%s: using %d planes as ramp samples",
+                paths[0].name,
+                len(refs),
+            )
+            return refs, ref_header
+
+    for path in paths:
+        parsed = file_index_from_name(path.name, preferred_tag=preferred_tag)
+        if parsed is None:
+            logging.warning(
+                "Skipping %s: no _M###### / _N###### / _R###### "
+                "(or trailing _######) index",
+                path.name,
+            )
+            continue
+        tag, index = parsed
+        refs.append(
+            SampleRef(
+                index=index,
+                tag=tag,
+                name=path.name,
+                path=path,
+                plane_index=None,
+            )
+        )
+    refs.sort(key=lambda row: (row.index, row.name.lower()))
+    return refs, ref_header
+
+
+def load_sample_absolute(ref: SampleRef) -> tuple[np.ndarray, dict]:
+    """Load one absolute-ADU science plane as float32."""
+    if ref.plane_index is None:
+        return load_last_science_plane(ref.path, dtype=np.float32)
+    from astropy.io import fits
+
+    # memmap=False: scaled integer FITS (BZERO/BSCALE) cannot be memory-mapped.
+    with fits.open(ref.path, memmap=False) as hdul:
+        header = dict(hdul[0].header)
+        data = hdul[0].data
+        if data is None:
+            raise ValueError(f"{ref.path.name}: empty FITS data")
+        cube = _cube_axis0(np.asarray(data), header)
+        plane = np.asarray(cube[int(ref.plane_index)], dtype=np.float32)
+    return plane, header
+
+
+def make_cds_plane(
+    abs_plane: np.ndarray,
+    *,
+    reset_only: bool,
+    first_abs: np.ndarray | None,
+    do_ref_correct: bool,
+) -> tuple[np.ndarray, bool]:
+    """Return ``(cds_plane float32, ref_corrected)`` for one absolute sample.
+
+    Science planes are ``sample − first_abs`` (first NDR pedestal). Destructive
+    MSAC reset reads are never used as the subtraction reference.
+    """
+    plane = np.array(abs_plane, dtype=np.float32, copy=True)
+    if reset_only:
+        pass
+    elif first_abs is not None:
+        plane -= np.asarray(first_abs, dtype=np.float32)
+    else:
+        raise ValueError("CDS needs first_abs (first science NDR sample)")
+    ref_ok = False
+    if do_ref_correct:
+        plane, ref_ok = subtract_channel_reference_pixels(plane, inplace=True)
+    return plane, ref_ok
+
+
 def last_plane(cube: np.ndarray) -> np.ndarray:
     """Science-like sample: last saved ramp plane (or the only 2-D frame)."""
     return cube[-1]
 
 
-def relative_to_first(cube: np.ndarray) -> np.ndarray:
-    """Return ``cube[k] - cube[0]`` for every plane (float64)."""
+def relative_to_first(
+    cube: np.ndarray,
+    *,
+    dtype: np.dtype | type = np.float32,
+    inplace: bool = False,
+) -> np.ndarray:
+    """Return ``cube[k] - cube[0]`` for every plane."""
     if cube.ndim != 3:
         raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
     if cube.shape[0] < 1:
         raise ValueError("Cube has no planes")
-    first = cube[0]
-    return np.asarray(cube, dtype=np.float64) - first
+    if inplace:
+        data = cube
+        first = np.array(data[0], copy=True)
+        data -= first
+        return data
+    data = np.asarray(cube, dtype=dtype)
+    return data - data[0]
+
+
+def relative_to_reference(
+    cube: np.ndarray,
+    reference: np.ndarray,
+    *,
+    dtype: np.dtype | type = np.float32,
+    inplace: bool = False,
+) -> np.ndarray:
+    """Return ``cube[k] - reference`` for every plane."""
+    if cube.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
+    if reference.ndim != 2:
+        raise ValueError(f"Expected 2-D reset frame, got shape {reference.shape}")
+    if reference.shape != cube.shape[1:]:
+        raise ValueError(
+            f"Reset shape {reference.shape} does not match science {cube.shape[1:]}"
+        )
+    ref = np.asarray(reference, dtype=dtype if not inplace else cube.dtype)
+    if inplace:
+        cube -= ref
+        return cube
+    return np.asarray(cube, dtype=dtype) - ref
 
 
 def region_mean(
@@ -388,30 +1260,6 @@ def region_mean(
     region = np.asarray(image[row0:row1, col0:col1], dtype=np.float64).ravel()
     mean_val, _n_kept, _n_rej = sigma_clip_mean(region, n_sigma=n_sigma)
     return float(mean_val)
-
-
-def subtract_roi_pedestal(
-    cube: np.ndarray,
-    *,
-    row0: int,
-    row1: int,
-    col0: int,
-    col1: int,
-    n_sigma: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Subtract per-plane sigma-clipped ROI mean from *cube*.
-
-    Returns ``(corrected_cube, pedestal_per_plane)``.
-    """
-    if cube.ndim != 3:
-        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
-    out = np.empty(cube.shape, dtype=np.float64)
-    pedestals = np.empty(cube.shape[0], dtype=np.float64)
-    for i, plane in enumerate(cube):
-        ped = region_mean(plane, row0, row1, col0, col1, n_sigma=n_sigma)
-        pedestals[i] = ped
-        out[i] = np.asarray(plane, dtype=np.float64) - ped
-    return out, pedestals
 
 
 def drop_reference_plane(cube: np.ndarray) -> np.ndarray:
@@ -509,11 +1357,97 @@ def illuminated_mean_for_image(
     return mean_val
 
 
+def resolve_track_pixels(
+    requested: list[tuple[int, int]] | None,
+    *,
+    height: int,
+    width: int,
+) -> list[tuple[int, int]]:
+    """Return in-bounds detector ``(X, Y)`` pixels to track on the flux plot.
+
+    ``None`` uses the photonic-chip defaults; an empty list tracks nothing.
+    """
+    specs = list(DEFAULT_TRACK_PIXELS) if requested is None else list(requested)
+    seen: set[tuple[int, int]] = set()
+    kept: list[tuple[int, int]] = []
+    for x, y in specs:
+        if not (0 <= int(x) < width and 0 <= int(y) < height):
+            logging.warning(
+                "Skipping track pixel X=%d Y=%d (outside %d×%d image)",
+                int(x),
+                int(y),
+                width,
+                height,
+            )
+            continue
+        key = (int(x), int(y))
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(key)
+    return kept
+
+
+def track_pixel_series(
+    cube: np.ndarray, xy: tuple[int, int]
+) -> np.ndarray:
+    """ADU vs plane for detector pixel ``(X, Y)``."""
+    x, y = xy
+    return np.asarray(cube[:, int(y), int(x)], dtype=np.float64)
+
+
 def pixel_values(image: np.ndarray, pixels: np.ndarray) -> np.ndarray:
     return np.array(
         [float(image[int(r), int(c)]) for r, c in pixels],
         dtype=np.float64,
     )
+
+
+def _display_limits(image: np.ndarray) -> tuple[float, float]:
+    finite = np.asarray(image, dtype=np.float64)
+    finite = finite[np.isfinite(finite)]
+    if finite.size == 0:
+        return 0.0, 1.0
+    lo, hi = np.percentile(finite, (5.0, 99.5))
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = float(np.min(finite)), float(np.max(finite))
+        if hi <= lo:
+            hi = lo + 1.0
+    return float(lo), float(hi)
+
+
+def _draw_box(
+    ax,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    *,
+    color: str,
+    label: str,
+    linestyle: str = "-",
+) -> None:
+    from matplotlib.patches import Rectangle
+
+    ax.add_patch(
+        Rectangle(
+            (col0 - 0.5, row0 - 0.5),
+            col1 - col0,
+            row1 - row0,
+            fill=False,
+            edgecolor=color,
+            linewidth=1.2,
+            linestyle=linestyle,
+            label=label,
+        )
+    )
+
+
+def _extent_from_box(
+    box: tuple[int, int, int, int],
+) -> tuple[float, float, float, float]:
+    row0, row1, col0, col1 = box
+    return (col0 - 0.5, col1 - 0.5, row1 - 0.5, row0 - 0.5)
 
 
 def plot_file_series(
@@ -526,31 +1460,312 @@ def plot_file_series(
     output: Path,
     title: str,
     show: bool,
+    full_frame: np.ndarray | None = None,
+    illum_frame: np.ndarray | None = None,
+    illum_box: tuple[int, int, int, int] | None = None,
+    metric_box: tuple[int, int, int, int] | None = None,
+    bg_box: tuple[int, int, int, int] | None = None,
+    region_label: str | None = None,
+    detector_box: tuple[int, int, int, int] | None = None,
+    cds_label: str = "last − first",
+    cds_short: str = "frame−first",
+    flux_label: str = "10 brightest",
+    track_xy: list[tuple[int, int]] | None = None,
+    track_matrix: np.ndarray | None = None,
+    region2_means: np.ndarray | None = None,
+    region2_label: str | None = None,
+    region2_frame: np.ndarray | None = None,
+    ref_means: np.ndarray | None = None,
+    ref_boxes: list[tuple[int, int, int, int]] | None = None,
+    session_name: str | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
-    fig, axes = plt.subplots(
-        2 if show_pixels else 1,
-        1,
-        figsize=(9, 7 if show_pixels else 4.5),
-        sharex=True,
-        squeeze=False,
+    show_images = full_frame is not None and illum_frame is not None
+    show_region2 = region2_frame is not None
+    height_ratios: list[float] = []
+    if show_images:
+        height_ratios.append(1.55)
+    height_ratios.append(1.15)
+    if show_pixels:
+        height_ratios.append(1.0)
+    n_plot_rows = len(height_ratios)
+    n_image_cols = 3 if show_images and show_region2 else 2
+    fig_w = 16.5 if n_image_cols == 3 else 12.0
+    fig_h = 4.8 * n_plot_rows + (1.1 if session_name else 0.4)
+    fig = plt.figure(figsize=(fig_w, fig_h), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.04, hspace=0.06
+        )
+    except Exception:
+        pass
+    gs = fig.add_gridspec(
+        n_plot_rows,
+        n_image_cols,
+        height_ratios=height_ratios,
     )
-    ax_mean = axes[0, 0]
-    ax_mean.plot(indices, means, "o-", markersize=5, color="C0")
-    for index, mean_val, name in zip(indices, means, names):
+    if session_name:
+        fig.suptitle(session_name, fontsize=13, fontweight="bold")
+
+    row = 0
+    if show_images:
+        ax_full = fig.add_subplot(gs[row, 0])
+        ax_illum = fig.add_subplot(gs[row, 1])
+        vmin, vmax = _display_limits(full_frame)
+        im_full = ax_full.imshow(
+            full_frame,
+            origin="upper",
+            cmap="gray",
+            vmin=vmin,
+            vmax=vmax,
+            interpolation="nearest",
+            aspect="equal",
+        )
+        ax_full.set_title(f"Full frame ({cds_label})")
+        ax_full.set_xlabel("X [pix]")
+        ax_full.set_ylabel("Y [pix]")
+        if illum_box is not None:
+            irow0, irow1, icol0, icol1 = illum_box
+            box_label = region_label or (
+                f"Illum X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1}"
+            )
+            _draw_box(
+                ax_full,
+                *illum_box,
+                color="#ff6b6b",
+                label=box_label,
+            )
+        if metric_box is not None:
+            mr0, mr1, mc0, mc1 = metric_box
+            _draw_box(
+                ax_full,
+                *metric_box,
+                color=CENTER_MEDIAN_BOX_COLOR,
+                label=f"median {mr1 - mr0}×{mc1 - mc0}",
+                linestyle="-.",
+            )
+        if bg_box is not None:
+            r2_box_label = region2_label or "ROI"
+            _draw_box(
+                ax_full,
+                *bg_box,
+                color=REGION2_COLOR,
+                label=r2_box_label,
+                linestyle="--",
+            )
+        if ref_boxes:
+            for i, box in enumerate(ref_boxes):
+                _draw_box(
+                    ax_full,
+                    *box,
+                    color=REF_PIXEL_COLOR,
+                    label="Reference pixels" if i == 0 else None,
+                    linestyle=":",
+                )
+        if (
+            illum_box is not None
+            or metric_box is not None
+            or bg_box is not None
+            or ref_boxes
+        ):
+            ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
+        if track_xy:
+            xs = [x for x, _y in track_xy]
+            ys = [y for _x, y in track_xy]
+            ax_full.scatter(
+                xs,
+                ys,
+                s=48,
+                facecolors="none",
+                edgecolors="#00e5ff",
+                linewidths=1.4,
+                marker="o",
+                zorder=6,
+                label="Track pixel",
+            )
+        fig.colorbar(im_full, ax=ax_full, fraction=0.035, pad=0.02, label="ADU")
+
+        vmin_i, vmax_i = _display_limits(illum_frame)
+        axis_box = detector_box if detector_box is not None else illum_box
+        if axis_box is not None:
+            irow0, irow1, icol0, icol1 = axis_box
+            illum_extent = (
+                icol0 - 0.5,
+                icol1 - 0.5,
+                irow1 - 0.5,
+                irow0 - 0.5,
+            )
+            if region_label:
+                illum_title = f"{region_label}\n({cds_label})"
+            else:
+                illum_title = (
+                    f"Illuminated region ({cds_label})\n"
+                    f"X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1} "
+                    f"({icol1 - icol0}×{irow1 - irow0} pix)"
+                )
+        else:
+            illum_extent = None
+            illum_title = region_label or f"Illuminated region ({cds_label})"
+        im_illum = ax_illum.imshow(
+            illum_frame,
+            origin="upper",
+            cmap="gray",
+            vmin=vmin_i,
+            vmax=vmax_i,
+            interpolation="nearest",
+            aspect="equal",
+            extent=illum_extent,
+        )
+        ax_illum.set_title(illum_title)
+        ax_illum.set_xlabel("X [pix]")
+        ax_illum.set_ylabel("Y [pix]")
+        # Draw the image-centre 5×5 on the crop only when it lies inside.
+        if (
+            metric_box is not None
+            and illum_box is not None
+            and metric_box[0] >= illum_box[0]
+            and metric_box[1] <= illum_box[1]
+            and metric_box[2] >= illum_box[2]
+            and metric_box[3] <= illum_box[3]
+        ):
+            display_metric = map_box_to_detector(
+                metric_box,
+                illum_box=illum_box,
+                detector_box=detector_box if illum_extent is not None else None,
+            )
+            if illum_extent is None:
+                display_metric = (
+                    metric_box[0] - illum_box[0],
+                    metric_box[1] - illum_box[0],
+                    metric_box[2] - illum_box[2],
+                    metric_box[3] - illum_box[2],
+                )
+            mr0, mr1, mc0, mc1 = display_metric
+            _draw_box(
+                ax_illum,
+                *display_metric,
+                color=CENTER_MEDIAN_BOX_COLOR,
+                label=f"median {mr1 - mr0}×{mc1 - mc0}",
+                linestyle="-.",
+            )
+            ax_illum.legend(loc="upper right", fontsize=8, framealpha=0.8)
+        if track_xy:
+            ax_illum.scatter(
+                [x for x, _y in track_xy],
+                [y for _x, y in track_xy],
+                s=48,
+                facecolors="none",
+                edgecolors="#00e5ff",
+                linewidths=1.4,
+                marker="o",
+                zorder=6,
+            )
+        fig.colorbar(im_illum, ax=ax_illum, fraction=0.035, pad=0.02, label="ADU")
+
+        if show_region2:
+            ax_r2 = fig.add_subplot(gs[row, 2])
+            vmin_r, vmax_r = _display_limits(region2_frame)
+            r2_extent = _extent_from_box(bg_box) if bg_box is not None else None
+            r2_title = region2_label or "ROI"
+            if bg_box is not None:
+                br0, br1, bc0, bc1 = bg_box
+                r2_title = (
+                    f"{r2_title} ({cds_label})\n"
+                    f"X={bc0}–{bc1 - 1}, Y={br0}–{br1 - 1} "
+                    f"({bc1 - bc0}×{br1 - br0} pix)"
+                )
+            else:
+                r2_title = f"{r2_title}\n({cds_label})"
+            im_r2 = ax_r2.imshow(
+                region2_frame,
+                origin="upper",
+                cmap="gray",
+                vmin=vmin_r,
+                vmax=vmax_r,
+                interpolation="nearest",
+                aspect="equal",
+                extent=r2_extent,
+            )
+            ax_r2.set_title(r2_title)
+            ax_r2.set_xlabel("X [pix]")
+            ax_r2.set_ylabel("Y [pix]")
+            fig.colorbar(im_r2, ax=ax_r2, fraction=0.035, pad=0.02, label="ADU")
+        row += 1
+
+    ax_mean = fig.add_subplot(gs[row, :])
+    ax_mean.plot(
+        indices, means, "o-", markersize=5, color="C0", label=flux_label
+    )
+    if region2_means is not None and len(region2_means) == len(indices):
+        ax_mean.plot(
+            indices,
+            region2_means,
+            "s--",
+            markersize=5,
+            color=REGION2_COLOR,
+            label=region2_label or "ROI",
+        )
+    if ref_means is not None and len(ref_means) == len(indices):
+        ax_mean.plot(
+            indices,
+            ref_means,
+            "^:",
+            markersize=5,
+            color=REF_PIXEL_COLOR,
+            label=f"Reference pixels ({H2RG_REF_WIDTH} px border)",
+        )
+    if (
+        track_xy
+        and track_matrix is not None
+        and track_matrix.size
+        and track_matrix.shape[1] == len(track_xy)
+    ):
+        for i, (x, y) in enumerate(track_xy):
+            ax_mean.plot(
+                indices,
+                track_matrix[:, i],
+                "s--",
+                markersize=5,
+                color="C3",
+                label=f"X={x}, Y={y}",
+            )
+            for index, value in zip(indices, track_matrix[:, i]):
+                logging.info(
+                    "track X=%d Y=%d: index=%s%d  ADU=%.4g",
+                    x,
+                    y,
+                    index_tag,
+                    int(index),
+                    float(value),
+                )
+    ax_mean.legend(loc="best", fontsize=8, framealpha=0.85)
+    for i, (index, mean_val, name) in enumerate(zip(indices, means, names)):
+        extra = ""
+        if region2_means is not None and i < len(region2_means):
+            extra = (
+                f"  {region2_label or 'ROI'}={float(region2_means[i]):.4g} ADU"
+            )
+        if ref_means is not None and i < len(ref_means):
+            extra += f"  ref={float(ref_means[i]):.4g} ADU"
         logging.info(
-            "%s: index=%s%d  illum_mean=%.4g ADU",
+            "%s: index=%s%d  illum_mean=%.4g ADU%s",
             name,
             index_tag,
             int(index),
             mean_val,
+            extra,
         )
-    ax_mean.set_ylabel("Illuminated − bg ROI (frame−first) [ADU]")
+    y_label = f"({cds_short}) [ADU]"
+    if region2_means is None:
+        y_label = f"{flux_label} ({cds_short}) [ADU]"
+    ax_mean.set_ylabel(y_label)
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
+    if not show_pixels:
+        ax_mean.set_xlabel(f"File index ({index_tag})")
 
     if show_pixels:
-        ax_pix = axes[1, 0]
+        ax_pix = fig.add_subplot(gs[row + 1, :], sharex=ax_mean)
         for i in range(pixel_matrix.shape[1]):
             ax_pix.plot(
                 indices,
@@ -560,13 +1775,10 @@ def plot_file_series(
                 linewidth=0.7,
                 color="C1",
             )
-        ax_pix.set_ylabel("Pixel − bg ROI (frame−first) [ADU]")
+        ax_pix.set_ylabel(f"Pixel ({cds_short}) [ADU]")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
-    else:
-        ax_mean.set_xlabel(f"File index ({index_tag})")
 
-    fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=150)
     logging.info("Wrote plot: %s", output)
@@ -580,8 +1792,8 @@ def plot_file_series(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Plot illuminated-region ADU vs MSAC file index (_M / _N) "
-            "for UpTheRamp FITS."
+            "Plot MSAC UpTheRamp FITS: full frame, photonic and ROI crops, "
+            "and region ADU vs file index (_M / _N)."
         )
     )
     parser.add_argument(
@@ -606,7 +1818,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         metavar="N",
-        help="Use only the N newest FITS (default: all files in the session)",
+        help=(
+            "Use only the N newest science FITS (or reset FITS in a "
+            "reset-only session; default: all files in the session)"
+        ),
+    )
+    parser.add_argument(
+        "--reset-file",
+        type=Path,
+        default=None,
+        help=(
+            "Destructive-reset FITS for reset QA only (not subtracted from the "
+            "science ramp). Default: lowest-index _R###### in the session folder"
+        ),
+    )
+    parser.add_argument(
+        "--no-reset",
+        action="store_true",
+        help="Ignore reset FITS entirely (skip reset QA / reset-vs-R plots)",
     )
     parser.add_argument(
         "--all",
@@ -615,45 +1844,61 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--index-tag",
-        choices=("M", "N", "auto"),
+        choices=("M", "N", "R", "auto"),
         default="auto",
         help=(
-            "Which filename counter to use on the x-axis: M, N, or auto "
-            "(pick the tag that varies most across files; default: auto)"
+            "Which filename counter to use on the x-axis: M, N, R, or auto "
+            "(pick the tag that varies most across files; default: auto; "
+            "reset-only sessions use R)"
         ),
     )
     parser.add_argument(
         "--n-illum-pixels",
         type=int,
         default=DEFAULT_N_ILLUM_PIXELS,
-        help=f"Random pixels in illuminated box (default: {DEFAULT_N_ILLUM_PIXELS})",
+        help=(
+            "Deprecated. Flux uses --n-brightest after outlier rejection "
+            f"(this flag is ignored; default was {DEFAULT_N_ILLUM_PIXELS} random pixels)"
+        ),
+    )
+    parser.add_argument(
+        "--n-brightest",
+        type=int,
+        default=DEFAULT_N_BRIGHTEST,
+        metavar="N",
+        help=(
+            "Select N brightest illuminated-box pixels on the last CDS plane "
+            f"after outlier rejection, and average those same pixels on every "
+            f"sample (default: {DEFAULT_N_BRIGHTEST})"
+        ),
     )
     parser.add_argument(
         "--illum-roi",
         type=int,
-        default=DEFAULT_ILLUM_ROI,
+        default=None,
         metavar="N",
         help=(
-            f"Use [H2RG DETECTOR] ROI N as the illuminated box "
-            f"(default: {DEFAULT_ILLUM_ROI}). Ignored if --illum-center "
-            "or --illum-size is set."
+            "Use [H2RG DETECTOR] ROI N as the illuminated box. "
+            "Default is the Photonic chip WinMode "
+            f"(X={PHOTONIC_CHIP_X1}–{PHOTONIC_CHIP_X2}, "
+            f"Y={PHOTONIC_CHIP_Y1}–{PHOTONIC_CHIP_Y2}). "
+            "Ignored if --illum-center or --illum-size is set."
         ),
     )
     parser.add_argument(
         "--bg-roi",
         type=int,
-        default=DEFAULT_BG_ROI,
+        default=DEFAULT_REGION2_ROI,
         metavar="N",
         help=(
-            f"Use [H2RG DETECTOR] ROI N as background / reference pixels "
-            f"(default: {DEFAULT_BG_ROI}). Subtracted per plane after "
-            "frame−first."
+            "Second [H2RG DETECTOR] ROI to plot (mean ADU vs sample). "
+            f"Not subtracted. Default: ROI {DEFAULT_REGION2_ROI}."
         ),
     )
     parser.add_argument(
         "--no-bg-roi",
         action="store_true",
-        help="Do not subtract a background ROI pedestal",
+        help="Do not plot a second ROI",
     )
     parser.add_argument(
         "--illum-size",
@@ -695,12 +1940,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Also plot individual illuminated-pixel tracks vs file index",
     )
     parser.add_argument(
+        "--track-pixel",
+        action="append",
+        nargs=2,
+        type=int,
+        metavar=("X", "Y"),
+        dest="track_pixels",
+        help=(
+            "Detector pixel X Y to overplot on the flux curve (repeatable). "
+            f"Default: {', '.join(f'{x},{y}' for x, y in DEFAULT_TRACK_PIXELS)}"
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
         help=(
-            "Output PNG path (default: inside the session data directory, "
-            "next to the ramp FITS)"
+            "Output PNG path (default: inside the session data directory as "
+            "{session}_msac_uptheramp_illum_vs_file.png)"
         ),
     )
     parser.add_argument(
@@ -708,15 +1965,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Full-frame FITS cube path (planes = frame - first, first zero "
-            "plane omitted; default: "
-            "msac_uptheramp_frame_minus_first.fits in the session dir)"
+            "Full-frame FITS cube path (planes = frame - first science NDR; "
+            "default: msac_uptheramp_frame_minus_first.fits in the session dir)"
+        ),
+    )
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Evenly subsample at most N science samples (including first/last). "
+            "Use 0 or omit for the full ramp (default). Full ramps stream "
+            "one plane at a time — no full difference cube is kept in RAM."
         ),
     )
     parser.add_argument(
         "--no-cds-cube",
         action="store_true",
-        help="Skip writing the full-frame frame-minus-first FITS cube",
+        help="Skip writing the full-frame reduced FITS cube",
     )
     parser.add_argument(
         "--illum-cube",
@@ -731,6 +1998,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--no-illum-cube",
         action="store_true",
         help="Skip writing the illuminated-region crop FITS cube",
+    )
+    parser.add_argument(
+        "--no-qa",
+        action="store_true",
+        help="Skip detector-quality PNG/FITS maps of the reset and ramp",
+    )
+    parser.add_argument(
+        "--no-ref-correct",
+        action="store_true",
+        help=(
+            "Skip per-channel HxRG reference-pixel subtraction on full-frame "
+            "data (applied by default before flux and linearity)"
+        ),
+    )
+    parser.add_argument(
+        "--show-reset-levels",
+        action="store_true",
+        help=(
+            "On the raw absolute linearity panel, add dashed horizontal "
+            "lines for reset-frame levels (off by default)"
+        ),
     )
     parser.add_argument(
         "--show",
@@ -754,6 +2042,14 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     ramp_dir = resolve_ramp_dir(args.ramp_dir)
+    session_name = session_folder_name(ramp_dir)
+    session_slug = session_filename_slug(ramp_dir)
+    logging.info("Session folder: %s", session_name)
+    try:
+        folder_fits = list_ramp_fits(ramp_dir)
+    except FileNotFoundError:
+        folder_fits = []
+
     if args.file:
         paths: list[Path] = []
         for item in args.file:
@@ -763,16 +2059,100 @@ def main(argv: list[str] | None = None) -> int:
             if not path.is_file():
                 raise FileNotFoundError(path)
             paths.append(path.resolve())
+        science_paths, reset_from_args = split_science_and_reset(paths)
+        logging.info(
+            "Using %d science file(s) from --file",
+            len(science_paths),
+        )
     else:
-        all_paths = list_ramp_fits(ramp_dir)
+        science_paths, reset_from_args = split_science_and_reset(folder_fits)
         if args.latest is not None and not args.all:
             n = max(1, int(args.latest))
-            paths = all_paths[-n:]
-        else:
-            paths = all_paths
-        logging.info("Using %d ramp file(s) from %s", len(paths), ramp_dir)
+            science_paths = science_paths[-n:]
+        logging.info(
+            "Using %d science file(s) from %s",
+            len(science_paths),
+            ramp_dir,
+        )
 
-    if args.index_tag == "auto":
+    _, reset_from_folder = split_science_and_reset(folder_fits)
+    if args.no_reset:
+        reset_paths: list[Path] = []
+    elif args.reset_file is not None:
+        reset_path = args.reset_file.expanduser()
+        if not reset_path.is_absolute():
+            reset_path = ramp_dir / reset_path
+        if not reset_path.is_file():
+            raise FileNotFoundError(reset_path)
+        reset_paths = [reset_path.resolve()]
+    else:
+        seen: dict[Path, Path] = {}
+        for path in reset_from_folder + reset_from_args:
+            seen[path.resolve()] = path.resolve()
+        reset_paths = list(seen.values())
+
+    reset_only = False
+    paths = science_paths
+    if not paths:
+        # Prefer folder+CLI resets even when --no-reset cleared the CDS ref.
+        seen_plot: dict[Path, Path] = {}
+        for path in reset_from_folder + reset_from_args:
+            key = path.resolve()
+            if key not in seen_plot:
+                seen_plot[key] = path.resolve()
+        plot_resets = list(seen_plot.values())
+        # Preserve mtime order from list_ramp_fits when possible.
+        order = {p.resolve(): i for i, p in enumerate(folder_fits)}
+        plot_resets.sort(
+            key=lambda p: (order.get(p.resolve(), 10**9), p.name.lower())
+        )
+        if args.latest is not None and not args.all and not args.file:
+            n = max(1, int(args.latest))
+            plot_resets = plot_resets[-n:]
+        if plot_resets:
+            reset_only = True
+            paths = plot_resets
+            reset_frame = None
+            reset_fits_path = None
+            logging.info(
+                "Reset-only session: plotting %d reset frame(s) as absolute ADU",
+                len(paths),
+            )
+        else:
+            raise RuntimeError(
+                "No science or reset FITS files to plot in the session folder"
+            )
+    else:
+        reset_loaded = None if args.no_reset else load_reset_reference(reset_paths)
+        if reset_loaded is not None:
+            reset_frame, reset_fits_path = reset_loaded
+            logging.info(
+                "Reset frame %s kept for QA only (destructive read; "
+                "not subtracted). Science ramp uses frame − first NDR",
+                reset_fits_path.name,
+            )
+        else:
+            reset_frame = None
+            reset_fits_path = None
+            if args.no_reset:
+                logging.info(
+                    "Ignoring reset frames (--no-reset); "
+                    "science ramp uses frame − first NDR"
+                )
+            else:
+                logging.info(
+                    "No reset frame (_R######) in the session folder; "
+                    "science ramp uses frame − first NDR"
+                )
+
+    if reset_only:
+        preferred_tag = "R"
+        if args.index_tag not in ("auto", "R"):
+            logging.info(
+                "Reset-only session: ignoring --index-tag %s (using R)",
+                args.index_tag,
+            )
+    elif args.index_tag == "auto":
         preferred_tag = choose_index_tag(paths)
     else:
         preferred_tag = args.index_tag
@@ -791,93 +2171,127 @@ def main(argv: list[str] | None = None) -> int:
     req_center_x = int(args.illum_center[0]) if explicit_center else None
     req_center_y = int(args.illum_center[1]) if explicit_center else None
     use_manual_illum = explicit_center or illum_h is not None
-    illum_roi_index = int(args.illum_roi)
-    bg_roi_index = int(args.bg_roi)
-    use_bg_roi = not args.no_bg_roi
+    illum_roi_index = args.illum_roi
+    use_region2 = not args.no_bg_roi
+    bg_roi_index = int(args.bg_roi) if use_region2 else 0
+    use_photonic = not use_manual_illum and illum_roi_index is None
 
-    records: list[tuple[int, str, str, np.ndarray, dict]] = []
-    index_tag = "M"
-    ref_header: dict | None = None
+    max_frames = args.max_frames
+    if max_frames is not None and max_frames < 0:
+        raise ValueError("--max-frames must be >= 0 (0 = unlimited)")
+    if max_frames == 0:
+        max_frames = None
 
-    # Single multi-sample FITS → treat planes as the ramp; otherwise one
-    # sample per file (last plane).
-    use_planes_from_one_cube = False
-    if len(paths) == 1:
-        only_cube, only_header = load_ramp_cube(paths[0])
-        if only_cube.shape[0] > 1:
-            use_planes_from_one_cube = True
-            ref_header = only_header
-            parsed = file_index_from_name(
-                paths[0].name, preferred_tag=preferred_tag
-            )
-            base_tag = parsed[0] if parsed else "P"
-            index_tag = base_tag
-            for iplane, plane in enumerate(only_cube):
-                records.append(
-                    (
-                        iplane + 1,
-                        base_tag,
-                        f"{paths[0].name}[plane{iplane}]",
-                        np.asarray(plane, dtype=np.float64),
-                        only_header,
-                    )
-                )
-            logging.info(
-                "%s: using %d planes as ramp samples",
-                paths[0].name,
-                only_cube.shape[0],
-            )
-
-    if not use_planes_from_one_cube:
-        for path in paths:
-            parsed = file_index_from_name(
-                path.name, preferred_tag=preferred_tag
-            )
-            if parsed is None:
-                logging.warning(
-                    "Skipping %s: no _M###### / _N###### (or trailing _######) "
-                    "index",
-                    path.name,
-                )
-                continue
-            tag, index = parsed
-            index_tag = tag
-
-            cube, header = load_ramp_cube(path)
-            if ref_header is None:
-                ref_header = header
-            logging.info(
-                "%s: shape=%s  NAXIS=%s  index=%s%d",
-                path.name,
-                cube.shape,
-                header.get("NAXIS", "?"),
-                tag,
-                index,
-            )
-            records.append(
-                (
-                    index,
-                    tag,
-                    path.name,
-                    np.asarray(last_plane(cube), dtype=np.float64),
-                    header,
-                )
-            )
-
-    if not records:
-        raise RuntimeError(
-            "No usable FITS with an _M / _N file index in the name"
+    n_before_subsample = len(paths)
+    paths = subsample_sequence(paths, max_frames)
+    if len(paths) < n_before_subsample:
+        logging.info(
+            "Subsampled %d → %d frame(s) (--max-frames %d)",
+            n_before_subsample,
+            len(paths),
+            int(args.max_frames),
         )
 
-    records.sort(key=lambda row: (row[0], row[2].lower()))
-    stack = np.stack([row[3] for row in records], axis=0)
-    cds_cube = relative_to_first(stack)
-    indices = np.array([row[0] for row in records], dtype=np.int64)
-    names = [row[2] for row in records]
-    index_tag = records[0][1]
-    ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    sample_refs, ref_header = build_sample_refs(
+        paths, preferred_tag=preferred_tag, max_frames=max_frames
+    )
+    if not sample_refs:
+        raise RuntimeError(
+            "No usable FITS with an _M / _N / _R file index in the name"
+        )
+
+    indices = np.array([r.index for r in sample_refs], dtype=np.int64)
+    names = [r.name for r in sample_refs]
+    index_tag = sample_refs[0].tag
+    nplane = len(sample_refs)
+
+    if reset_only:
+        cds_short = "reset"
+        cds_label = "reset"
+        reduct_card = ("RESET-ABS", "Each plane = reset frame (absolute ADU)")
+        skip_ref = False
+        reduct_history = (
+            "MSAC UpTheRamp reset-only cube: each plane is a reset frame "
+            "(absolute ADU; no CDS subtraction)"
+        )
+    else:
+        # Destructive MSAC _R frames are QA-only; pedestal is first NDR.
+        cds_short = "frame−first"
+        cds_label = "last − first"
+        reduct_card = ("FRAME-FIRST", "Each plane = sample - first sample")
+        skip_ref = True
+        reduct_history = (
+            "MSAC UpTheRamp CDS-relative cube: each plane = "
+            "sample - first sample (ordered by file/plane index); "
+            "zero reference plane omitted; destructive reset FITS not subtracted"
+        )
+
+    first_abs, header0 = load_sample_absolute(sample_refs[0])
+    if ref_header is None:
+        ref_header = header0
+    last_abs, _ = load_sample_absolute(sample_refs[-1])
+    ny, nx = int(last_abs.shape[0]), int(last_abs.shape[1])
+    windowed = not is_full_frame((ny, nx))
+    do_ref_correct = (not args.no_ref_correct) and (not windowed)
+
+    if reset_frame is not None and reset_frame.shape != (ny, nx):
+        raise RuntimeError(
+            f"Reset frame {reset_fits_path.name} shape {reset_frame.shape} "
+            f"does not match science {(ny, nx)}"
+        )
+
+    reset_frame_raw = (
+        np.asarray(reset_frame, dtype=np.float32).copy()
+        if reset_frame is not None
+        else None
+    )
+    first_science = np.asarray(first_abs, dtype=np.float32).copy()
+    last_cds, ref_corrected = make_cds_plane(
+        last_abs,
+        reset_only=reset_only,
+        first_abs=first_abs,
+        do_ref_correct=do_ref_correct,
+    )
+    del last_abs
+    reset_levels_frame = None
+    if ref_corrected:
+        cds_short = f"{cds_short}−chref"
+        cds_label = f"{cds_label}, ch-ref"
+        reduct_history += (
+            "; per-channel HxRG reference-pixel mean subtracted "
+            "from each plane"
+        )
+        logging.info(
+            "Full frame: subtracted per-channel reference-pixel means "
+            "(%d outputs)",
+            n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
+        )
+        if reset_frame is not None:
+            # Optional ch-ref copy for dashed reset levels on the raw QA panel.
+            reset_levels_frame, reset_ref_ok = subtract_channel_reference_pixels(
+                reset_frame
+            )
+            if not reset_ref_ok:
+                logging.warning(
+                    "Could not apply channel ref correction to reset frame"
+                )
+                reset_levels_frame = None
+    elif args.no_ref_correct and not windowed:
+        logging.info("Skipping channel reference-pixel correction (--no-ref-correct)")
+
+    logging.info(
+        "Streaming %d sample(s) at %d×%d (float32 CDS plane ~%.1f MiB each; "
+        "no full difference cube in RAM)",
+        nplane,
+        ny,
+        nx,
+        (ny * nx * 4) / (1024**2),
+    )
 
     illum_source = "manual"
+    region_label: str | None = None
+    detector_box: tuple[int, int, int, int] | None = None
+    windowed_fallback = False
     if use_manual_illum:
         if illum_h is None:
             illum_h = illum_w = DEFAULT_ILLUM_SIZE
@@ -893,83 +2307,153 @@ def main(argv: list[str] | None = None) -> int:
             center_x=center_x,
             center_y=center_y,
         )
+        illum_source = "manual"
+    elif use_photonic:
+        try:
+            (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
+                (ny, nx)
+            )
+            illum_h, illum_w = row1 - row0, col1 - col0
+            drow0, drow1, dcol0, dcol1 = detector_box
+            center_x = (dcol0 + dcol1) // 2
+            center_y = (drow0 + drow1) // 2
+            illum_source = photonic_chip_label()
+            region_label = photonic_chip_label()
+        except ValueError as exc:
+            if not windowed:
+                raise RuntimeError(
+                    f"{photonic_chip_label()} does not fit image {ny}×{nx}: {exc}"
+                ) from exc
+            logging.info(
+                "Windowed %d×%d: photonic chip ROI does not fit (%s); "
+                "plotting full-window mean + brightest pixels",
+                nx,
+                ny,
+                exc,
+            )
+            (
+                (row0, row1, col0, col1),
+                illum_h,
+                illum_w,
+                center_x,
+                center_y,
+                illum_source,
+                region_label,
+            ) = full_window_illum((ny, nx))
+            detector_box = None
+            windowed_fallback = True
     else:
-        roi = load_h2rg_roi_xywh(illum_roi_index)
+        roi = load_h2rg_roi_xywh(int(illum_roi_index))
         if roi is None:
-            raise RuntimeError(
-                f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
-                "(or config.local.ini); set ROI or pass --illum-center / "
-                "--illum-size"
-            )
-        x, y, w, h = roi
-        try:
-            row0, row1, col0, col1 = illuminated_box_from_xywh(
-                (ny, nx), x, y, w, h
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                f"H2RG ROI {illum_roi_index}={x},{y},{w},{h} does not fit "
-                f"image {ny}×{nx}: {exc}"
-            ) from exc
-        illum_h, illum_w = h, w
-        center_x = x + w // 2
-        center_y = y + h // 2
-        illum_source = f"ROI {illum_roi_index}"
+            if windowed:
+                logging.info(
+                    "Windowed %d×%d: no H2RG ROI %s in config; "
+                    "plotting full-window mean + brightest pixels",
+                    nx,
+                    ny,
+                    illum_roi_index,
+                )
+                (
+                    (row0, row1, col0, col1),
+                    illum_h,
+                    illum_w,
+                    center_x,
+                    center_y,
+                    illum_source,
+                    region_label,
+                ) = full_window_illum((ny, nx))
+                windowed_fallback = True
+            else:
+                raise RuntimeError(
+                    f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
+                    "(or config.local.ini); set ROI or pass --illum-center / "
+                    "--illum-size"
+                )
+        else:
+            x, y, w, h = roi
+            try:
+                row0, row1, col0, col1 = illuminated_box_from_xywh(
+                    (ny, nx), x, y, w, h
+                )
+                illum_h, illum_w = h, w
+                center_x = x + w // 2
+                center_y = y + h // 2
+                illum_source = f"ROI {illum_roi_index}"
+            except ValueError as exc:
+                if not windowed:
+                    raise RuntimeError(
+                        f"H2RG ROI {illum_roi_index}={x},{y},{w},{h} does not "
+                        f"fit image {ny}×{nx}: {exc}"
+                    ) from exc
+                logging.info(
+                    "Windowed %d×%d: ROI %s does not fit (%s); "
+                    "plotting full-window mean + brightest pixels",
+                    nx,
+                    ny,
+                    illum_roi_index,
+                    exc,
+                )
+                (
+                    (row0, row1, col0, col1),
+                    illum_h,
+                    illum_w,
+                    center_x,
+                    center_y,
+                    illum_source,
+                    region_label,
+                ) = full_window_illum((ny, nx))
+                windowed_fallback = True
 
-    bg_source = "none"
     bg_row0 = bg_row1 = bg_col0 = bg_col1 = 0
-    if use_bg_roi:
-        bg_roi = load_h2rg_roi_xywh(bg_roi_index)
-        if bg_roi is None:
-            raise RuntimeError(
-                f"No [{H2RG_SECTION}] ROI {bg_roi_index} in config.ini "
-                "(or config.local.ini); set ROI or pass --no-bg-roi"
+    region2_box: tuple[int, int, int, int] | None = None
+    region2_means: np.ndarray | None = None
+    region2_label: str | None = None
+    want_region2 = False
+    if windowed_fallback:
+        region2_label = "window mean"
+        want_region2 = True
+        bg_row0, bg_row1, bg_col0, bg_col1 = row0, row1, col0, col1
+    elif use_region2:
+        resolved = resolve_second_roi_box((ny, nx), bg_roi_index)
+        if resolved is not None:
+            region2_box, (bx, by, bw, bh) = resolved
+            bg_row0, bg_row1, bg_col0, bg_col1 = region2_box
+            region2_label = f"ROI {bg_roi_index}"
+            want_region2 = True
+            logging.info(
+                "Second region ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d)",
+                bg_roi_index,
+                bx,
+                by,
+                bw,
+                bh,
+                bg_row0,
+                bg_row1,
+                bg_col0,
+                bg_col1,
             )
-        bx, by, bw, bh = bg_roi
-        try:
-            bg_row0, bg_row1, bg_col0, bg_col1 = illuminated_box_from_xywh(
-                (ny, nx), bx, by, bw, bh
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                f"H2RG ROI {bg_roi_index}={bx},{by},{bw},{bh} does not fit "
-                f"image {ny}×{nx}: {exc}"
-            ) from exc
-        cds_cube, bg_pedestals = subtract_roi_pedestal(
-            cds_cube,
-            row0=bg_row0,
-            row1=bg_row1,
-            col0=bg_col0,
-            col1=bg_col1,
-            n_sigma=args.n_sigma,
-        )
-        bg_source = f"ROI {bg_roi_index}"
-        logging.info(
-            "Background ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
-            "pedestal mean over ramp=%.4g ADU",
-            bg_roi_index,
-            bx,
-            by,
-            bw,
-            bh,
-            bg_row0,
-            bg_row1,
-            bg_col0,
-            bg_col1,
-            float(np.nanmean(bg_pedestals)),
-        )
 
-    n_illum = min(args.n_illum_pixels, (row1 - row0) * (col1 - col0))
-    pixels = choose_pixels(
-        (ny, nx),
-        n_illum,
-        args.seed,
-        row_slice=(row0, row1),
-        col_slice=(col0, col1),
+    n_brightest = max(1, int(args.n_brightest))
+    pixels, n_rej = select_brightest_after_outliers(
+        last_cds,
+        row0,
+        row1,
+        col0,
+        col1,
+        n_brightest=n_brightest,
+        n_sigma=args.n_sigma,
     )
+    n_used = int(pixels.shape[0])
+    metric_box = image_center_subbox(
+        (ny, nx), size=DEFAULT_CENTER_MEDIAN_SIZE
+    )
+    mrow0, mrow1, mcol0, mcol1 = metric_box
+    metric_label = f"median {mrow1 - mrow0}×{mcol1 - mcol0}"
     logging.info(
         "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
-        "%d pixels (seed=%d); bg=%s",
+        "image-centre %s -> rows[%d:%d) cols[%d:%d); "
+        "flux = mean of %d pixels selected on last CDS plane "
+        "(rejected %d outliers); same pixels for all samples",
         illum_h,
         illum_w,
         center_x,
@@ -979,24 +2463,226 @@ def main(argv: list[str] | None = None) -> int:
         row1,
         col0,
         col1,
-        n_illum,
-        args.seed,
-        bg_source,
+        metric_label,
+        mrow0,
+        mrow1,
+        mcol0,
+        mcol1,
+        n_used,
+        n_rej,
+    )
+    for row, col in pixels:
+        logging.info("  bright pixel X=%d Y=%d", int(col), int(row))
+    requested_track = None
+    if args.track_pixels:
+        requested_track = [(int(x), int(y)) for x, y in args.track_pixels]
+    elif windowed_fallback:
+        requested_track = []
+    track_xy = resolve_track_pixels(requested_track, height=ny, width=nx)
+    for x, y in track_xy:
+        logging.info("Tracking detector pixel X=%d Y=%d", x, y)
+
+    ref_mask = h2rg_ref_mask((ny, nx)) if is_full_frame((ny, nx)) else None
+    ref_boxes: list[tuple[int, int, int, int]] | None = (
+        reference_pixel_boxes((ny, nx)) if ref_mask is not None else None
     )
 
-    means = np.array(
-        [
-            illuminated_mean_for_image(plane, pixels, n_sigma=args.n_sigma)
-            for plane in cds_cube
-        ],
-        dtype=np.float64,
+    means = np.full(nplane, np.nan, dtype=np.float64)
+    region2_means = (
+        np.full(nplane, np.nan, dtype=np.float64) if want_region2 else None
     )
-    pixel_matrix: np.ndarray | None = None
-    if args.show_pixels:
-        pixel_matrix = np.stack(
-            [pixel_values(plane, pixels) for plane in cds_cube],
-            axis=0,
+    ref_means = (
+        np.full(nplane, np.nan, dtype=np.float64) if ref_mask is not None else None
+    )
+    track_matrix = (
+        np.full((nplane, len(track_xy)), np.nan, dtype=np.float64)
+        if track_xy
+        else None
+    )
+    pixel_matrix = (
+        np.full((nplane, n_used), np.nan, dtype=np.float64)
+        if args.show_pixels and n_used
+        else None
+    )
+
+    # QA linearity series (corrected + raw absolute) collected while streaming.
+    corr_med_full = np.full(nplane, np.nan, dtype=np.float64)
+    corr_med_box = np.full(nplane, np.nan, dtype=np.float64)
+    corr_med_roi = (
+        np.full(nplane, np.nan, dtype=np.float64) if region2_box is not None else None
+    )
+    corr_bright = np.full(nplane, np.nan, dtype=np.float64) if n_used else None
+    raw_med_full = np.full(nplane, np.nan, dtype=np.float64)
+    raw_med_box = np.full(nplane, np.nan, dtype=np.float64)
+    raw_med_roi = (
+        np.full(nplane, np.nan, dtype=np.float64) if region2_box is not None else None
+    )
+    raw_ref = np.full(nplane, np.nan, dtype=np.float64) if ref_mask is not None else None
+    raw_bright = np.full(nplane, np.nan, dtype=np.float64) if n_used else None
+
+    need_qa = not args.no_qa
+    sum_y = sum_ty = sum_resid2 = None
+    tt = t_mean = sxx = None
+    slope_map = rms_map = None
+    if need_qa and nplane >= 2:
+        try:
+            from .detector_qa import (
+                ramp_fit_accumulate_plane,
+                ramp_fit_accumulate_resid2,
+                ramp_fit_design,
+                ramp_fit_rms,
+                ramp_fit_slope_intercept,
+            )
+        except ImportError:
+            from detector_qa import (
+                ramp_fit_accumulate_plane,
+                ramp_fit_accumulate_resid2,
+                ramp_fit_design,
+                ramp_fit_rms,
+                ramp_fit_slope_intercept,
+            )
+        design = ramp_fit_design(indices)
+        if design is not None:
+            tt, t_mean, sxx = design
+            sum_y = np.zeros((ny, nx), dtype=np.float64)
+            sum_ty = np.zeros((ny, nx), dtype=np.float64)
+
+    write_full = not args.no_cds_cube
+    write_illum = not args.no_illum_cube
+    # Full-frame CDS cube is huge; only materialize when explicitly requested.
+    cds_disk: np.ndarray | None = None
+    illum_disk: np.ndarray | None = None
+    mmap_path: Path | None = None
+    if write_full:
+        mmap_path = ramp_dir / f".{session_slug}_cds_cube.mmap"
+        cds_disk = np.memmap(
+            mmap_path, dtype=np.float32, mode="w+", shape=(nplane, ny, nx)
         )
+        logging.info(
+            "Writing full CDS cube via memmap (%d×%d×%d float32 → %s)",
+            nplane,
+            ny,
+            nx,
+            mmap_path.name,
+        )
+    if write_illum:
+        ih, iw = int(row1 - row0), int(col1 - col0)
+        illum_disk = np.empty((nplane, ih, iw), dtype=np.float32)
+
+    for i, ref in enumerate(sample_refs):
+        abs_plane, header = load_sample_absolute(ref)
+        if ref_header is None:
+            ref_header = header
+        logging.info(
+            "%s: shape=%s  NAXIS=%s  index=%s%d",
+            ref.name,
+            (1, *abs_plane.shape),
+            header.get("NAXIS", "?"),
+            ref.tag,
+            ref.index,
+        )
+        raw_med_full[i] = float(np.nanmedian(abs_plane))
+        raw_med_box[i] = float(
+            np.nanmedian(abs_plane[mrow0:mrow1, mcol0:mcol1])
+        )
+        if raw_med_roi is not None and region2_box is not None:
+            rr0, rr1, rc0, rc1 = region2_box
+            raw_med_roi[i] = float(np.nanmedian(abs_plane[rr0:rr1, rc0:rc1]))
+        if raw_ref is not None and ref_mask is not None:
+            raw_ref[i] = float(np.nanmean(abs_plane[ref_mask]))
+        if raw_bright is not None and n_used:
+            raw_bright[i] = float(np.mean(pixel_values(abs_plane, pixels)))
+
+        cds_plane, _ = make_cds_plane(
+            abs_plane,
+            reset_only=reset_only,
+            first_abs=first_abs,
+            do_ref_correct=do_ref_correct,
+        )
+        del abs_plane
+
+        if n_used:
+            means[i] = float(np.mean(pixel_values(cds_plane, pixels)))
+        if region2_means is not None:
+            if windowed_fallback:
+                region2_means[i] = float(
+                    np.nanmean(cds_plane[bg_row0:bg_row1, bg_col0:bg_col1])
+                )
+            else:
+                region2_means[i] = region_mean(
+                    cds_plane,
+                    bg_row0,
+                    bg_row1,
+                    bg_col0,
+                    bg_col1,
+                    n_sigma=args.n_sigma,
+                )
+        if ref_means is not None and ref_mask is not None:
+            ref_means[i] = float(np.nanmean(cds_plane[ref_mask]))
+        if track_matrix is not None:
+            for j, (x, y) in enumerate(track_xy):
+                track_matrix[i, j] = float(cds_plane[int(y), int(x)])
+        if pixel_matrix is not None:
+            pixel_matrix[i] = pixel_values(cds_plane, pixels)
+
+        corr_med_full[i] = float(np.nanmedian(cds_plane))
+        corr_med_box[i] = float(
+            np.nanmedian(cds_plane[mrow0:mrow1, mcol0:mcol1])
+        )
+        if corr_med_roi is not None and region2_box is not None:
+            rr0, rr1, rc0, rc1 = region2_box
+            corr_med_roi[i] = float(np.nanmedian(cds_plane[rr0:rr1, rc0:rc1]))
+        if corr_bright is not None and n_used:
+            corr_bright[i] = means[i]
+
+        if sum_y is not None and tt is not None:
+            ramp_fit_accumulate_plane(sum_y, sum_ty, cds_plane, float(tt[i]))
+        if cds_disk is not None:
+            cds_disk[i] = cds_plane
+        if illum_disk is not None:
+            illum_disk[i] = cds_plane[row0:row1, col0:col1]
+        del cds_plane
+
+    if want_region2 and region2_means is not None:
+        logging.info(
+            "%s over ramp mean=%.4g ADU",
+            region2_label,
+            float(np.nanmean(region2_means)),
+        )
+    if ref_means is not None and ref_mask is not None:
+        logging.info(
+            "Full frame: reference-pixel mean over %d border pixels "
+            "(ramp mean=%.4g ADU)",
+            int(ref_mask.sum()),
+            float(np.nanmean(ref_means)),
+        )
+
+    if sum_y is not None and tt is not None:
+        slope_map, intercept_map = ramp_fit_slope_intercept(
+            sum_y, sum_ty, nplane=nplane, t_mean=t_mean, sxx=sxx
+        )
+        del sum_y, sum_ty
+        sum_resid2 = np.zeros((ny, nx), dtype=np.float64)
+        logging.info("Second pass for residual RMS maps (%d samples)", nplane)
+        for i, ref in enumerate(sample_refs):
+            abs_plane, _ = load_sample_absolute(ref)
+            cds_plane, _ = make_cds_plane(
+                abs_plane,
+                reset_only=reset_only,
+                first_abs=first_abs,
+                do_ref_correct=do_ref_correct,
+            )
+            del abs_plane
+            ramp_fit_accumulate_resid2(
+                sum_resid2,
+                cds_plane,
+                slope=slope_map,
+                intercept=intercept_map,
+                t_i=float(indices[i]),
+            )
+            del cds_plane
+        rms_map = ramp_fit_rms(sum_resid2, nplane)
+        del sum_resid2, intercept_map
 
     if args.output is not None:
         output = args.output.expanduser()
@@ -1004,8 +2690,12 @@ def main(argv: list[str] | None = None) -> int:
             output = (ramp_dir / output).resolve()
         else:
             output = output.resolve()
+    elif reset_only:
+        output = ramp_dir / f"{session_slug}_msac_reset_illum_vs_R.png"
     else:
-        output = ramp_dir / "msac_uptheramp_illum_vs_file.png"
+        output = (
+            ramp_dir / f"{session_slug}_msac_uptheramp_illum_vs_file.png"
+        )
 
     def _resolve_out(path: Path | None, default_name: str) -> Path:
         if path is not None:
@@ -1013,80 +2703,164 @@ def main(argv: list[str] | None = None) -> int:
             if not out.is_absolute():
                 return (ramp_dir / out).resolve()
             return out.resolve()
-        return (ramp_dir / default_name).resolve()
+        return (ramp_dir / f"{session_slug}_{default_name}").resolve()
 
-    write_full = not args.no_cds_cube
-    write_illum = not args.no_illum_cube
     if write_full or write_illum:
-        try:
-            cds_for_disk = drop_reference_plane(cds_cube)
-        except ValueError as exc:
-            logging.warning("Skipping CDS cube write(s): %s", exc)
-            write_full = False
-            write_illum = False
-        else:
-            if write_full:
-                save_cube_fits(
-                    _resolve_out(
-                        args.cds_cube, "msac_uptheramp_frame_minus_first.fits"
-                    ),
-                    cds_for_disk,
-                    reference_header=ref_header,
-                    history=(
-                        "MSAC UpTheRamp CDS-relative cube: each plane = "
-                        "sample - first sample (ordered by file/plane index); "
-                        "zero reference plane omitted"
-                        + (
-                            f"; pedestal = mean(ROI {bg_roi_index})"
-                            if use_bg_roi
-                            else ""
+        reset_cards: dict = {
+            "REDUCT": reduct_card,
+            "SKIPREF": (
+                skip_ref,
+                (
+                    "Omitted plane 0 (frame0-frame0 == 0)"
+                    if skip_ref
+                    else (
+                        "Kept all reset planes (absolute ADU)"
+                        if reset_only
+                        else "Kept all science planes (frame-first CDS)"
+                    )
+                ),
+            ),
+            "REFCORR": (
+                ref_corrected,
+                "Per-channel HxRG ref-pixel mean subtracted",
+            ),
+        }
+        if reset_fits_path is not None:
+            reset_cards["RESETFIL"] = (
+                reset_fits_path.name,
+                "Destructive reset FITS (QA only; not subtracted)",
+            )
+        cds_for_disk = cds_disk
+        illum_for_disk = illum_disk
+        if skip_ref:
+            if cds_for_disk is not None:
+                if nplane < 2:
+                    logging.warning("Skipping CDS cube write(s): need ≥2 planes")
+                    cds_for_disk = None
+                    illum_for_disk = None
+                else:
+                    cds_for_disk = np.asarray(cds_for_disk[1:], dtype=np.float32)
+                    if illum_for_disk is not None:
+                        illum_for_disk = np.asarray(
+                            illum_for_disk[1:], dtype=np.float32
                         )
-                        + "."
-                    ),
+            elif illum_for_disk is not None:
+                if nplane < 2:
+                    illum_for_disk = None
+                else:
+                    illum_for_disk = np.asarray(illum_for_disk[1:], dtype=np.float32)
+        if write_full and cds_for_disk is not None:
+            save_cube_fits(
+                _resolve_out(
+                    args.cds_cube, "msac_uptheramp_frame_minus_first.fits"
+                ),
+                np.asarray(cds_for_disk, dtype=np.float32),
+                reference_header=ref_header,
+                history=reduct_history + ".",
+                extra_cards=reset_cards,
+            )
+        if write_illum and illum_for_disk is not None:
+            illum_history = (
+                "MSAC UpTheRamp illuminated crop: "
+                + (
+                    "each plane = reset frame (absolute ADU)"
+                    if reset_only
+                    else (
+                        "each plane = sample - first sample; "
+                        "zero reference plane omitted; "
+                        "destructive reset FITS not subtracted"
+                    )
                 )
-            if write_illum:
-                illum_crop = cds_for_disk[:, row0:row1, col0:col1]
-                save_cube_fits(
-                    _resolve_out(
-                        args.illum_cube,
-                        "msac_uptheramp_frame_minus_first_illum.fits",
+                + "; spatial crop is the illuminated analysis box"
+                + "."
+            )
+            save_cube_fits(
+                _resolve_out(
+                    args.illum_cube,
+                    "msac_uptheramp_frame_minus_first_illum.fits",
+                ),
+                illum_for_disk,
+                reference_header=ref_header,
+                history=illum_history,
+                extra_cards={
+                    **reset_cards,
+                    "ILLUMROI": (
+                        0
+                        if use_manual_illum or use_photonic
+                        else int(illum_roi_index),
+                        "H2RG ROI index used for crop (0=photonic/manual)",
                     ),
-                    illum_crop,
-                    reference_header=ref_header,
-                    history=(
-                        "MSAC UpTheRamp CDS-relative illuminated crop: each "
-                        "plane = sample - first sample; zero reference plane "
-                        "omitted; spatial crop is the illuminated analysis box"
-                        + (
-                            f"; pedestal = mean(ROI {bg_roi_index})"
-                            if use_bg_roi
-                            else ""
-                        )
-                        + "."
+                    "BGROI": (
+                        bg_roi_index if region2_box is not None else 0,
+                        "Second plotted H2RG ROI (not subtracted; 0=none)",
                     ),
-                    extra_cards={
-                        "ILLUMROI": (
-                            0 if use_manual_illum else illum_roi_index,
-                            "H2RG ROI index used for crop (0=manual)",
-                        ),
-                        "BGROI": (
-                            bg_roi_index if use_bg_roi else 0,
-                            "H2RG ROI index used as pedestal (0=none)",
-                        ),
-                        "ILLUMX0": (col0, "Crop col start (inclusive, 0-based)"),
-                        "ILLUMX1": (col1, "Crop col end (exclusive, 0-based)"),
-                        "ILLUMY0": (row0, "Crop row start (inclusive, 0-based)"),
-                        "ILLUMY1": (row1, "Crop row end (exclusive, 0-based)"),
-                        "ILLUMCX": (center_x, "Illuminated box centre X"),
-                        "ILLUMCY": (center_y, "Illuminated box centre Y"),
-                    },
-                )
+                    "ILLUMX0": (
+                        (detector_box[2] if detector_box else col0),
+                        "Crop col start (inclusive, detector)",
+                    ),
+                    "ILLUMX1": (
+                        (detector_box[3] if detector_box else col1),
+                        "Crop col end (exclusive, detector)",
+                    ),
+                    "ILLUMY0": (
+                        (detector_box[0] if detector_box else row0),
+                        "Crop row start (inclusive, detector)",
+                    ),
+                    "ILLUMY1": (
+                        (detector_box[1] if detector_box else row1),
+                        "Crop row end (exclusive, detector)",
+                    ),
+                    "ILLUMCX": (center_x, "Illuminated box centre X"),
+                    "ILLUMCY": (center_y, "Illuminated box centre Y"),
+                },
+            )
+        if cds_disk is not None:
+            del cds_disk
+        if mmap_path is not None and mmap_path.is_file():
+            try:
+                mmap_path.unlink()
+            except OSError:
+                pass
 
+    corrected_series = [
+        (corr_med_full, "o-", "0.45", "median full"),
+        (corr_med_box, "s-", "C0", metric_label),
+    ]
+    if corr_med_roi is not None:
+        corrected_series.append(
+            (corr_med_roi, "d-", "#4cc9f0", "median ROI")
+        )
+    if corr_bright is not None:
+        corrected_series.append(
+            (corr_bright, "^-", "C3", "10 brightest")
+        )
+    raw_series = [
+        (raw_med_full, "o-", "0.45", "median full"),
+        (raw_med_box, "s-", "C0", metric_label),
+    ]
+    if raw_med_roi is not None:
+        raw_series.append((raw_med_roi, "d-", "#4cc9f0", "median ROI"))
+    if raw_ref is not None:
+        try:
+            from .detector_qa import REF_PIXEL_COLOR as _REF_PIX_COLOR
+        except ImportError:
+            from detector_qa import REF_PIXEL_COLOR as _REF_PIX_COLOR
+        raw_series.append(
+            (raw_ref, "v-", _REF_PIX_COLOR, "mean ref pixels")
+        )
+    if raw_bright is not None:
+        raw_series.append((raw_bright, "^-", "C3", "10 brightest"))
+
+    flux_label = f"{n_used} brightest"
+    title_regions = illum_source
+    if region2_label:
+        title_regions = f"{illum_source} vs {region2_label}"
+    x_axis = "R" if reset_only or index_tag == RESET_TAG else "index"
     title = (
-        f"MSAC UpTheRamp — illum−bg (frame−first) vs index "
-        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; "
-        f"{illum_source}, bg={bg_source})"
+        f"{session_name} — {title_regions} ({cds_short}) vs {x_axis} "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
+    last_cds_f64 = np.asarray(last_cds, dtype=np.float64)
     plot_file_series(
         indices=indices,
         means=means,
@@ -1096,7 +2870,120 @@ def main(argv: list[str] | None = None) -> int:
         output=output,
         title=title,
         show=args.show,
+        full_frame=last_cds_f64,
+        illum_frame=last_cds_f64[row0:row1, col0:col1],
+        illum_box=(row0, row1, col0, col1),
+        metric_box=metric_box,
+        bg_box=region2_box,
+        region_label=region_label,
+        detector_box=detector_box,
+        cds_label=cds_label,
+        cds_short=cds_short,
+        flux_label=flux_label,
+        track_xy=track_xy or None,
+        track_matrix=track_matrix,
+        region2_means=region2_means,
+        region2_label=region2_label,
+        region2_frame=(
+            last_cds_f64[
+                region2_box[0] : region2_box[1],
+                region2_box[2] : region2_box[3],
+            ]
+            if region2_box is not None
+            else None
+        ),
+        ref_means=ref_means,
+        ref_boxes=ref_boxes,
+        session_name=session_name,
     )
+
+    # Science sessions: always plot absolute-ADU vs R when ≥2 reset FITS exist.
+    if not reset_only and not args.no_reset:
+        seen_r: dict[Path, Path] = {}
+        for path in list(reset_paths) + reset_from_folder + reset_from_args:
+            key = path.resolve()
+            if key not in seen_r:
+                seen_r[key] = path.resolve()
+        multi_resets = list(seen_r.values())
+        multi_resets.sort(key=lambda p: p.name.lower())
+        if len(multi_resets) >= 2:
+            reset_out = (
+                ramp_dir / f"{session_slug}_msac_reset_illum_vs_R.png"
+            )
+            logging.info(
+                "Writing reset-frame series plot (%d _R FITS) → %s",
+                len(multi_resets),
+                reset_out.name,
+            )
+            try:
+                wrote = write_reset_illum_vs_r_plot(
+                    reset_paths=multi_resets,
+                    output=reset_out,
+                    illum_box=(row0, row1, col0, col1),
+                    pixels=pixels,
+                    track_xy=track_xy or [],
+                    region2_box=region2_box,
+                    region2_label=region2_label,
+                    region_label=region_label,
+                    detector_box=detector_box,
+                    illum_source=illum_source,
+                    illum_h=int(illum_h),
+                    illum_w=int(illum_w),
+                    center_x=int(center_x),
+                    center_y=int(center_y),
+                    n_sigma=float(args.n_sigma),
+                    show_pixels=bool(args.show_pixels),
+                    show=bool(args.show),
+                    session_name=session_name,
+                    expected_shape=(ny, nx),
+                    ref_correct=not bool(args.no_ref_correct),
+                )
+                if not wrote:
+                    logging.warning(
+                        "Reset-vs-R plot was not written (see messages above)"
+                    )
+            except Exception as exc:  # noqa: BLE001 — keep main UTR plot
+                logging.warning("Skipping reset-vs-R plot: %s", exc)
+        elif multi_resets:
+            logging.info(
+                "Only %d reset FITS in session — need ≥2 for "
+                "reset-illum-vs-R series plot",
+                len(multi_resets),
+            )
+
+    qa_pixels = pixels if pixels.size else None
+    if track_xy:
+        extra = np.array([[y, x] for x, y in track_xy], dtype=int)
+        qa_pixels = extra if qa_pixels is None else np.vstack((qa_pixels, extra))
+    if not args.no_qa:
+        try:
+            from .detector_qa import run_detector_qa
+        except ImportError:
+            from detector_qa import run_detector_qa
+
+        run_detector_qa(
+            out_dir=ramp_dir,
+            cds_cube=None,
+            sample_index=indices,
+            reset_frame=reset_frame_raw,
+            reset_name=reset_fits_path.name if reset_fits_path is not None else None,
+            first_science=first_science,
+            illum_box=(row0, row1, col0, col1),
+            extra_box=region2_box,
+            pixels=qa_pixels,
+            n_sigma=args.n_sigma,
+            cds_short=cds_short,
+            session_name=session_name,
+            session_slug=session_slug,
+            show_reset_levels=args.show_reset_levels,
+            reset_levels_frame=reset_levels_frame,
+            raw_cube=None,
+            slope=slope_map,
+            rms=rms_map,
+            last_cds=last_cds,
+            corrected_series=corrected_series,
+            raw_series=raw_series,
+        )
     return 0
 
 

@@ -139,6 +139,7 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->displayPreviewNx = 0;
     ptUserData->displayPreviewNy = 0;
     ptUserData->bDisplayPreviewValid = false;
+    ptUserData->displayPreviewReduction = 0;
 
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
@@ -1985,6 +1986,14 @@ bool CloseScienceInterface(MACIE_Settings *ptUserData)
     return ok;
 }
 
+/// Refresh MACIE buffer sizing and drop any stale GigE/USB science session so
+/// the next acquire reopens with geometry that matches the last ReconfigureASIC.
+void sync_gige_after_reconfigure(MACIE_Settings *ptUserData)
+{
+    ConfigBuffers(ptUserData);
+    CloseScienceInterface(ptUserData);
+}
+
 void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
 {
     if (SettingsCheckNULL(ptUserData) == false)
@@ -2036,7 +2045,21 @@ void ClearDisplayPreview(MACIE_Settings *ptUserData)
     ptUserData->bDisplayPreviewValid = false;
 }
 
-/// CDS = last − first when nframes≥2, else copy the single plane (float32).
+/// Leading reset planes included in a downloaded ramp (SaveRstFrames).
+/// Matches DownloadAndSaveAllUSB: nframes_ramp = ngroups*nreads + this.
+static int ramp_saved_reset_planes(MACIE_Settings *ptUserData)
+{
+    unsigned int val = 0;
+    if (ptUserData == NULL)
+        return 0;
+    if (GetASICParameter(ptUserData, "SaveRstFrames", &val) == true && val == 1)
+        return (int)ASIC_NResets(ptUserData, false, 0);
+    return 0;
+}
+
+/// Build the 2D ZMQ/Live preview from downloaded ramp planes (float32).
+/// Leading SaveRstFrames planes are skipped. Reduction follows
+/// displayPreviewReduction so Ramp/SingleFrame match fits_science, not always CDS.
 static bool store_display_preview_plane(MACIE_Settings *ptUserData,
                                         int xpix, int ypix, int nframes_ramp,
                                         const unsigned short *pU16,
@@ -2046,6 +2069,13 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
         return false;
     if (pU16 == NULL && pF32 == NULL)
         return false;
+
+    int skip = ramp_saved_reset_planes(ptUserData);
+    if (skip < 0)
+        skip = 0;
+    if (skip >= nframes_ramp)
+        skip = nframes_ramp - 1;
+    const int nscience = nframes_ramp - skip;
 
     const long framesize = (long)xpix * (long)ypix;
     float *disp = NULL;
@@ -2060,31 +2090,50 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
         return false;
     }
 
-    if (nframes_ramp == 1)
+    const long first0 = framesize * (long)skip;
+    const long last0 = framesize * (long)(nframes_ramp - 1);
+    const unsigned int reduction = ptUserData->displayPreviewReduction;
+    const char *reduction_label = "CDS";
+
+    if (reduction == 2 || nscience == 1)
     {
+        reduction_label = (reduction == 2) ? "first" : "single";
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = pF32[i];
+                disp[i] = pF32[first0 + i];
         }
         else
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = (float)pU16[i];
+                disp[i] = (float)pU16[first0 + i];
+        }
+    }
+    else if (reduction == 1)
+    {
+        reduction_label = "last";
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[last0 + i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[last0 + i];
         }
     }
     else
     {
-        const long last0 = framesize * (long)(nframes_ramp - 1);
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = pF32[last0 + i] - pF32[i];
+                disp[i] = pF32[last0 + i] - pF32[first0 + i];
         }
         else
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = (float)pU16[last0 + i] - (float)pU16[i];
+                disp[i] = (float)pU16[last0 + i] - (float)pU16[first0 + i];
         }
     }
 
@@ -2094,8 +2143,18 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
     ptUserData->displayPreviewNy = ypix;
     ptUserData->bDisplayPreviewValid = true;
     verbose_printf(LOG_INFO, ptUserData,
-                   "  Stored display preview %dx%d (CDS/single) for ZMQ\n",
-                   xpix, ypix);
+                   "  Stored display preview %dx%d (%s, skip %d reset) for ZMQ\n",
+                   xpix, ypix, reduction_label, skip);
+    return true;
+}
+
+bool set_display_preview_reduction(MACIE_Settings *ptUserData, unsigned int mode)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return false;
+    if (mode > 2)
+        mode = 0;
+    ptUserData->displayPreviewReduction = mode;
     return true;
 }
 
@@ -2140,13 +2199,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     // Number of frame reads in a group
     const int nreads = (int)ASIC_NReads(ptUserData, false, 0);
 
-    // Saving reset frames?
-    int nresets_ramp = (int)ASIC_NResets(ptUserData, false, 0);
-    int nresets_save = 0;
-    unsigned int val = 0;
-    if (GetASICParameter(ptUserData, "SaveRstFrames", &val) == true)
-        if (val == 1)
-            nresets_save = nresets_ramp;
+    // Saving reset frames? Same count store_display_preview_plane skips.
+    const int nresets_save = ramp_saved_reset_planes(ptUserData);
 
     // Number of frames in a ramp (to download)
     const int nframes_ramp = ngroups * nreads + nresets_save;
@@ -4256,6 +4310,8 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
         return false;
     }
 
+    sync_gige_after_reconfigure(ptUserData);
+
     double rtime_ms = ptUserData->ramptime_ms;         // Ramp time including reset frames
     double itime_ms = exposure_inttime_ms(ptUserData); // Photon collection time
     double etime_sec = rtime_ms * ncoadds * nsaved_ramps / 1000;
@@ -4327,13 +4383,11 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe (ASIC Y set to the stripe, same as
     // full-frame multi-ramp path). Fall back to WinMode if microcode has no
     // StripeReads*.
-    bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
         if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
-            use_burst_stripe = true;
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): SC via burst stripe (parallel outputs) "
                            "ASIC y=[%u,%u].\n",
@@ -4370,6 +4424,12 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         // Order matters, because ASIC_WinHorz will disable stripe
         ASIC_WinVert(ptUserData, true, (uint)bVertWin);
         ASIC_WinHorz(ptUserData, true, (uint)bHorzWin);
+        if (!bVertWin && !bHorzWin)
+        {
+            ASIC_STRIPEMode(ptUserData, true, false);
+            if (RegMap.count("WinMode") > 0)
+                ASIC_Generic(ptUserData, "WinMode", true, 0);
+        }
     }
 
     // Set y1=0 and y2=ydet-1 if bVertWin=False
@@ -4406,25 +4466,21 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         return false;
     }
 
-    // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
-    // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
-    // must stay Normal (0) or Live oscillates between clean CDS and channel
-    // seams / horizontal artifacts.
+    // Keep Enhanced clocking (MCD default) for full frame and windowed readout.
+    // MSAC cold science uses Enhanced on full frame; do not downgrade to Normal.
     if (RegMap.count("PixelClkScheme") > 0)
     {
         uint pixClk = ptUserData->ffPixelClkScheme;
-        if (use_burst_stripe || bVertWin || bHorzWin)
-            pixClk = ptUserData->winPixelClkScheme; // Normal
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
         verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): PixelClkScheme=%u (%s)\n",
-                       __func__, pixClk,
-                       (use_burst_stripe || bVertWin || bHorzWin) ? "window/SC Normal" : "full-frame");
+                       "%s(): PixelClkScheme=%u (Enhanced)\n", __func__, pixClk);
     }
+
+    sync_gige_after_reconfigure(ptUserData);
 
     x1 = ASIC_getX1(ptUserData);
     x2 = ASIC_getX2(ptUserData);
@@ -4525,6 +4581,8 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
+            else if (RegMap.count("WinMode") > 0)
+                ASIC_Generic(ptUserData, "WinMode", true, 0);
             // Do NOT write StripeReads* here. Touching 4024… on the way back to
             // full frame poisons GigE the same way a pristine-FF ffidle write
             // does (Set succeeds; Acquire/download fails). Counters are only

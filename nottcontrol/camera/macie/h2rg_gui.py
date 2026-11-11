@@ -60,8 +60,9 @@ from nottcontrol.camera.macie.h2rg_roi_panel import (
     ROI_COLORS,
     H2rgRoiPanel,
     H2rgRoiPlots,
-    compute_roi_brightness,
+    compute_local_roi_brightness,
     map_roi_image_to_full,
+    pop_roi_to_image,
     redis_key_for_roi,
     remap_rois_to_image,
     roi_profile_1d,
@@ -104,6 +105,9 @@ MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
 )
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     H2RG_SECTION, "save_science_fits", fallback=False
+)
+MACIE_SAVE_RESET_FRAMES = config.getboolean(
+    H2RG_SECTION, "save_reset_frames", fallback=False
 )
 MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
@@ -304,7 +308,7 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
             *_centered_vertical_stripe(1024, array_size=array_size),
         ),
         WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
-        WindowMode("Photonic chip", True, True, 1024, 1087, 928, 959),
+        WindowMode("Photonic chip", True, True, 1010, 1030, 950, 970),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
         WindowMode("LR 1024x1024", True, True, *_window_region(half, 0, 1024)),
         WindowMode("UL 1024x1024", True, True, *_window_region(0, half, 1024)),
@@ -318,6 +322,24 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
 
 WINDOW_MODES = _build_window_modes()
 DETECTOR_MODES = ("Slow", "Fast")
+
+
+def apply_window_geometry(macie, mode: WindowMode) -> None:
+    """Program WinMode/stripe/XY so GigE matches the last ReconfigureASIC.
+
+    Ramp-plan exposure writes (ExpMode / SaveRst / NGroups) reconfigure the
+    ASIC and poison full-frame GigE (~65535 ADU) until geometry is latched
+    again. Window toggle already did this via a second frame_settings call;
+    Set / Acquire / Live / Take Background must do the same.
+    """
+    macie.frame_settings(
+        mode.x_window,
+        mode.y_window,
+        mode.x1,
+        mode.x2,
+        mode.y1,
+        mode.y2,
+    )
 
 
 def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
@@ -1033,6 +1055,20 @@ def fits_frame_number_label(name: str | None) -> str:
     return stem
 
 
+def ramp_fits_sort_key(name: str | None) -> tuple[str, int]:
+    """Order ramps by date prefix then numeric index (``nott_YYYYMMDD_000018``)."""
+    if not name:
+        return ("", -1)
+    label = fits_frame_number_label(name)
+    if label.isdigit():
+        stem = Path(name).stem
+        if stem.lower().endswith("_science"):
+            stem = stem[: -len("_science")]
+        prefix = stem.rsplit("_", 1)[0].lower()
+        return (prefix, int(label))
+    return (str(name).lower(), -1)
+
+
 def next_fits_frame_number(
     directory: Path, *, dir_ok: bool | None = None, width: int = 6
 ) -> str:
@@ -1127,12 +1163,15 @@ def is_new_ramp_fits(
         return mtime > before_mtime
     if mtime > before_mtime:
         return True
-    # Same-second filesystem resolution: accept a different basename only when
-    # mtime is not older. Never treat an older file as new — that caused Live
-    # to flip forever between the latest ramp and the previous one.
+    # Same-second filesystem resolution (SMB often quantizes mtime to 1 s):
+    # a different basename is new only when it sorts *after* the snapshot.
+    # Older siblings from the same 1-second burst must not be treated as the
+    # next acquire — that archived stale ramps and dropped the real frames.
     if mtime < before_mtime:
         return False
-    return bool(before_name and name != before_name)
+    if not before_name:
+        return False
+    return ramp_fits_sort_key(name) > ramp_fits_sort_key(before_name)
 
 
 def acquire_archive_science_params(ctx: dict) -> dict:
@@ -1160,6 +1199,22 @@ def acquire_archive_science_params(ctx: dict) -> dict:
         "keep_files": bool(ctx.get("keep_files", True)),
         "exposure_report": ctx.get("exposure") or {},
     }
+
+
+def cube_reset_kwargs(report: dict | None) -> dict[str, int]:
+    """NGROUPS/NREADS/NRESETS for skipping SaveRstFrames planes in a cube."""
+    kwargs: dict[str, int] = {}
+    if not report:
+        return kwargs
+    for key in ("nresets", "ngroups", "nreads"):
+        raw = report.get(key)
+        if raw is None:
+            continue
+        try:
+            kwargs[key] = int(raw)
+        except (TypeError, ValueError):
+            continue
+    return kwargs
 
 
 def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
@@ -1275,6 +1330,28 @@ def list_new_ramp_fits_in_dir(
     return new_paths
 
 
+def select_acquire_ramp_paths(paths, expected_count: int) -> list[Path]:
+    """Keep the newest *expected_count* ramps (MACIE writes later indices last).
+
+    Extra same-mtime leftovers used to be sliced from the *start* of an
+    ascending sort, so the current acquire's files were the ones dropped.
+    """
+    ramp_paths = sorted(
+        paths,
+        key=lambda path: (
+            path.stat().st_mtime if path.exists() else 0.0,
+            ramp_fits_sort_key(path.name),
+        ),
+    )
+    try:
+        count = max(1, int(expected_count or 1))
+    except (TypeError, ValueError):
+        count = 1
+    if len(ramp_paths) > count:
+        return ramp_paths[-count:]
+    return ramp_paths
+
+
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
@@ -1282,6 +1359,7 @@ class H2rgMainWindow(QMainWindow):
     acquire_preview_frame = pyqtSignal(object, str)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
+    zmq_startup_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
     controls_enabled = pyqtSignal(bool)
     readouts_updated = pyqtSignal(object)
@@ -1314,6 +1392,9 @@ class H2rgMainWindow(QMainWindow):
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
             self._on_live_acquisition_failed, Qt.QueuedConnection
+        )
+        self.zmq_startup_failed.connect(
+            self._on_zmq_startup_failed, Qt.QueuedConnection
         )
         self.status_updated.connect(self._set_status, Qt.QueuedConnection)
         self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
@@ -1357,6 +1438,8 @@ class H2rgMainWindow(QMainWindow):
         self._fits_dir_ok: bool | None = None
         self._macie = None
         self._live_active = False
+        self._live_starting = False
+        self._live_start_gen = 0
         self._background: numpy.ndarray | None = None
         self._current_frame: numpy.ndarray | None = None
         self._central_value: float | None = None
@@ -1372,6 +1455,7 @@ class H2rgMainWindow(QMainWindow):
         self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
         self._last_roi_regions: dict[int, numpy.ndarray] | None = None
         self._last_roi_plot_refresh = 0.0
+        self._last_measurable_roi_indices: set[int] = set()
         # Full-frame origin of the displayed subframe (+ optional pad_top).
         self._display_origin_x = 0
         self._display_origin_y = 0
@@ -1517,7 +1601,7 @@ class H2rgMainWindow(QMainWindow):
             "ok;"
             f"initialized={int(self._initialized)};"
             f"busy={int(self._macie_operation_busy or self._operation_lock.locked())};"
-            f"live={int(self._live_active)}"
+            f"live={int(self._live_session_busy())}"
         )
 
     def _remote_acquire_handler(self) -> str:
@@ -1525,7 +1609,7 @@ class H2rgMainWindow(QMainWindow):
             return "nok;shutting_down"
         if not self._initialized:
             return "nok;not_initialized"
-        if self._live_active:
+        if self._live_session_busy():
             return "nok;live_active"
         if self._macie_operation_busy or self._operation_lock.locked():
             return "nok;busy"
@@ -1543,7 +1627,7 @@ class H2rgMainWindow(QMainWindow):
         done = self._pending_remote_acquire_done
         self._pending_remote_acquire_done = None
         try:
-            if self._live_active:
+            if self._live_session_busy():
                 self._remote_op_error = "live_active"
                 self._on_operation_failed("Stop live mode before acquiring")
                 return
@@ -1593,7 +1677,7 @@ class H2rgMainWindow(QMainWindow):
         """Refresh the display when a new ramp appears on disk (e.g. script ZMQ)."""
         if self._shutting_down or not self._initialized:
             return
-        if self._live_active or self._macie_operation_busy:
+        if self._live_session_busy() or self._macie_operation_busy:
             return
         loaded = self._load_latest_frame(force=False, macie=self._macie)
         if loaded is None:
@@ -1984,7 +2068,10 @@ class H2rgMainWindow(QMainWindow):
                 message = (
                     f"{message} — also set [H2RG DETECTOR] fits_directory for FITS preview"
                 )
+            # Show immediately on the GUI thread; do not proceed to ZMQ connect.
             self.status_updated.emit(message)
+            self.zmq_startup_failed.emit(message)
+            return
 
     def _relayout_control_panels(self) -> None:
         self._layout_conf_panel()
@@ -2255,6 +2342,7 @@ class H2rgMainWindow(QMainWindow):
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
         image_column_layout.addWidget(self._roi_panel, stretch=0)
+        self._sync_roi_pop_controls()
         top.addWidget(image_column, stretch=1)
 
         # Right: logo + config at top; acquisition at bottom (aligns with ROI bottom).
@@ -2448,6 +2536,7 @@ class H2rgMainWindow(QMainWindow):
                 row.show_checkbox.toggled.connect(self._on_roi_toggled)
                 row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
                 row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
+                row.pop_checkbox.stateChanged.connect(self._on_roi_pop_toggled)
 
         for widget in (
             self.ui.lineEdit_integration_time,
@@ -2465,6 +2554,9 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_window_mode.currentIndexChanged.connect(
             self._on_window_mode_changed
         )
+        self.ui.comboBox_window_mode.currentIndexChanged.connect(
+            lambda _index: self._sync_roi_pop_controls()
+        )
         self.ui.comboBox_detector_mode.currentIndexChanged.connect(
             self._on_detector_mode_changed
         )
@@ -2472,6 +2564,13 @@ class H2rgMainWindow(QMainWindow):
     def _on_roi_toggled(self, _checked: bool) -> None:
         self._update_roi_overlays()
         self._refresh_display()
+
+    def _on_roi_pop_toggled(self, _state: int = 0) -> None:
+        self._update_roi_overlays()
+        if self._current_frame is not None:
+            self._update_roi_values(self._current_frame, record=False)
+        else:
+            self._refresh_display()
 
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
         self._refresh_roi_plots(force=True)
@@ -2523,9 +2622,73 @@ class H2rgMainWindow(QMainWindow):
         self._display_origin_x = ox
         self._display_origin_y = oy
         self._display_pad_top = pad
+        self._sync_roi_pop_controls()
+        self._last_measurable_roi_indices = self._measurable_roi_indices(
+            self._frame_shape_for_roi()
+        )
         self._update_roi_overlays()
         if changed and self._current_frame is not None:
             self._update_roi_values(self._current_frame, record=False)
+        elif changed:
+            self._refresh_roi_plots(force=True)
+
+    def _frame_shape_for_roi(self) -> tuple[int, int] | None:
+        if self._current_frame is not None:
+            return int(self._current_frame.shape[0]), int(self._current_frame.shape[1])
+        if self.image is not None and getattr(self.image, "image", None) is not None:
+            shape = self.image.image.shape
+            return int(shape[0]), int(shape[1])
+        return None
+
+    def _subframe_window_selected(self) -> bool:
+        mode = self._selected_window_mode()
+        return bool(mode.x_window or mode.y_window)
+
+    def _display_is_subframe(self, frame_shape: tuple[int, ...] | None = None) -> bool:
+        if self._subframe_window_selected():
+            return True
+        if frame_shape is None:
+            frame_shape = self._frame_shape_for_roi()
+        if frame_shape is not None:
+            height, width = int(frame_shape[0]), int(frame_shape[1])
+            if height >= H2RG_ARRAY_SIZE - 16 and width >= H2RG_ARRAY_SIZE - 16:
+                return False
+            return True
+        return False
+
+    def _sync_roi_pop_controls(self) -> None:
+        if self._roi_panel is None:
+            return
+        subframe = self._subframe_window_selected()
+        for index, row in self._roi_panel.rows.items():
+            enabled = subframe and index in self._h2rg_rois
+            row.pop_checkbox.setEnabled(enabled)
+            if not enabled and row.pop_checkbox.isChecked():
+                blocked = row.pop_checkbox.blockSignals(True)
+                row.pop_checkbox.setChecked(False)
+                row.pop_checkbox.blockSignals(blocked)
+
+    def _apply_popped_rois(
+        self,
+        mapped: dict[int, tuple[int, int, int, int]],
+        *,
+        image_w: int,
+        image_h: int,
+    ) -> dict[int, tuple[int, int, int, int]]:
+        if self._roi_panel is None or not self._subframe_window_selected():
+            return mapped
+        merged = dict(mapped)
+        for index, row in self._roi_panel.rows.items():
+            if not row.pop_checkbox.isChecked() or index not in self._h2rg_rois:
+                continue
+            if index in merged:
+                continue
+            merged[index] = pop_roi_to_image(
+                self._h2rg_rois[index],
+                image_w=image_w,
+                image_h=image_h,
+            )
+        return merged
 
     def _refine_pad_top_for_frame(self, frame: numpy.ndarray) -> int:
         """Match display pad to delivered height (SC is ny rows, pad=0)."""
@@ -2586,12 +2749,13 @@ class H2rgMainWindow(QMainWindow):
         ):
             args = self._roi_window_args_for_frame(self._current_frame)
             height, width = (int(self._current_frame.shape[0]), int(self._current_frame.shape[1]))
-            return remap_rois_to_image(
+            mapped = remap_rois_to_image(
                 self._h2rg_rois,
                 image_w=width,
                 image_h=height,
                 **args,  # type: ignore[arg-type]
             )
+            return self._apply_popped_rois(mapped, image_w=width, image_h=height)
         if frame_shape is None:
             if (
                 self.image is not None
@@ -2608,7 +2772,7 @@ class H2rgMainWindow(QMainWindow):
                     mode.y2 - mode.y1 + 1 + pad,
                     mode.x2 - mode.x1 + 1,
                 )
-                return remap_rois_to_image(
+                mapped = remap_rois_to_image(
                     self._h2rg_rois,
                     origin_x=ox,
                     origin_y=oy,
@@ -2620,6 +2784,11 @@ class H2rgMainWindow(QMainWindow):
                     window_y1=mode.y1,
                     window_y2=mode.y2,
                 )
+                return self._apply_popped_rois(
+                    mapped,
+                    image_w=int(frame_shape[1]),
+                    image_h=int(frame_shape[0]),
+                )
         height, width = int(frame_shape[0]), int(frame_shape[1])
         mode = self._selected_window_mode()
         ox, oy, pad = window_origin_for_frame(
@@ -2629,7 +2798,7 @@ class H2rgMainWindow(QMainWindow):
         self._display_origin_y = oy
         self._display_pad_top = pad
         use_gate = not (ox == 0 and oy == 0 and pad == 0 and height >= H2RG_ARRAY_SIZE - 16)
-        return remap_rois_to_image(
+        mapped = remap_rois_to_image(
             self._h2rg_rois,
             origin_x=ox,
             origin_y=oy,
@@ -2641,6 +2810,13 @@ class H2rgMainWindow(QMainWindow):
             window_y1=mode.y1 if use_gate else None,
             window_y2=mode.y2 if use_gate else None,
         )
+        return self._apply_popped_rois(mapped, image_w=width, image_h=height)
+
+    def _measurable_roi_indices(
+        self, frame_shape: tuple[int, ...] | None = None
+    ) -> set[int]:
+        """ROI indices that intersect the current image (incl. Pop placement)."""
+        return set(self._rois_in_image_coords(frame_shape).keys())
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
@@ -2736,6 +2912,7 @@ class H2rgMainWindow(QMainWindow):
                 header,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                **cube_reset_kwargs(self._last_exposure_report),
             )
         return self._current_frame
 
@@ -2884,12 +3061,9 @@ class H2rgMainWindow(QMainWindow):
     ) -> None:
         if self._roi_panel is None or not self._h2rg_rois:
             return
-        args = self._roi_window_args_for_frame(frame)
-        results, regions = compute_roi_brightness(
-            frame,
-            self._h2rg_rois,
-            **args,  # type: ignore[arg-type]
-        )
+        local = self._rois_in_image_coords(frame.shape)
+        self._last_measurable_roi_indices = set(local.keys())
+        results, regions = compute_local_roi_brightness(frame, local)
         for index, row in self._roi_panel.rows.items():
             row.set_values(results.get(index))
 
@@ -2902,6 +3076,12 @@ class H2rgMainWindow(QMainWindow):
                 row = self._roi_panel.rows.get(index)
                 if row is not None:
                     row.add_sample(result)
+            for index, row in self._roi_panel.rows.items():
+                if (
+                    index not in results
+                    and row.time_plot_checkbox.isChecked()
+                ):
+                    row.add_gap_sample()
             if self._roi_plots is not None:
                 self._roi_plots.append_timestamp(stamp)
             if MACIE_RECORD_ROIS:
@@ -2937,9 +3117,12 @@ class H2rgMainWindow(QMainWindow):
         if not force and (now - self._last_roi_plot_refresh) < MACIE_ROI_PLOT_INTERVAL_S:
             return
         self._last_roi_plot_refresh = now
-        self._roi_plots.refresh_time_plot(self._roi_panel.rows)
+        measurable = self._last_measurable_roi_indices
+        self._roi_plots.refresh_time_plot(self._roi_panel.rows, measurable)
         self._roi_plots.refresh_profile_plot(
-            self._roi_panel.rows, self._last_roi_profiles
+            self._roi_panel.rows,
+            self._last_roi_profiles,
+            measurable,
         )
 
     def _exposure_field_widgets(self) -> list:
@@ -2967,7 +3150,7 @@ class H2rgMainWindow(QMainWindow):
         enabled = (
             self._initialized
             and not self._macie_operation_busy
-            and not self._live_active
+            and not self._live_session_busy()
         )
         self.ui.button_take_background.setEnabled(enabled)
         if getattr(self, "_button_acquire_background", None) is not None:
@@ -2990,7 +3173,7 @@ class H2rgMainWindow(QMainWindow):
             return
 
         self._update_next_frame_number()
-        if self._live_active:
+        if self._live_session_busy():
             self._set_live_dependent_controls(True)
             return
 
@@ -3017,10 +3200,24 @@ class H2rgMainWindow(QMainWindow):
         self._set_exposure_panel_enabled(enabled)
         self._sync_background_buttons_enabled()
 
+    def _live_session_busy(self) -> bool:
+        """True while Live is arming or running.
+
+        The Live button stays labeled "Live" until ZMQ apply+arm returns, so
+        Acquire / a second Live click must use this — not only ``_live_active``.
+        """
+        return bool(self._live_active or getattr(self, "_live_starting", False))
+
     def _stop_live_ui(self) -> None:
+        self._live_start_gen = getattr(self, "_live_start_gen", 0) + 1
+        self._live_starting = False
         self._live_active = False
         self._live_poll_stop.set()
         self._live_frame_available.set()
+        # Live forced nseq=1. Restore can fail (ReconfigureASIC after
+        # livesession close); drop the fingerprint so the next Acquire
+        # re-latches the GUI's N instead of silently recording 1 of N.
+        self._applied_exposure_fingerprint = None
         if self.ui is not None:
             self.ui.button_live.setText("Live")
         self._set_live_dependent_controls(False)
@@ -3032,7 +3229,24 @@ class H2rgMainWindow(QMainWindow):
         self._live_pending_frame = frame
         self._live_frame_available.set()
 
+    def _finish_live_start(self, gen: int) -> None:
+        """Activate Live UI only if this start is still the current attempt."""
+        if gen == getattr(self, "_live_start_gen", 0) and self._live_starting:
+            self._activate_live_ui()
+            return
+        # Abandoned start armed after Halt: stop only if nothing newer is live.
+        if (
+            not self._live_starting
+            and not self._live_active
+            and self._macie is not None
+        ):
+            try:
+                self._macie.stop_continuous_acquisition()
+            except Exception:
+                pass
+
     def _activate_live_ui(self) -> None:
+        self._live_starting = False
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
@@ -3128,6 +3342,8 @@ class H2rgMainWindow(QMainWindow):
         if 0 <= index < len(WINDOW_MODES):
             # Remap ROI overlays immediately to the selected geometry.
             self._set_display_window_from_mode(WINDOW_MODES[index])
+        else:
+            self._sync_roi_pop_controls()
         self._schedule_window_mode_apply(index)
 
     def _schedule_window_mode_apply(self, index: int) -> None:
@@ -3142,14 +3358,7 @@ class H2rgMainWindow(QMainWindow):
 
     def _apply_window_mode_to_macie(self, macie, index: int) -> None:
         mode = WINDOW_MODES[index]
-        macie.frame_settings(
-            mode.x_window,
-            mode.y_window,
-            mode.x1,
-            mode.x2,
-            mode.y1,
-            mode.y2,
-        )
+        apply_window_geometry(macie, mode)
         # Confirm what the server actually programmed (helps catch SC mis-centers).
         try:
             x_win, y_win, x1, x2, y1, y2 = macie.read_frame_settings()
@@ -3186,6 +3395,8 @@ class H2rgMainWindow(QMainWindow):
         # uses so photon/execution match immediately (not only on Acquire).
         self._applied_exposure_fingerprint = None
         report = self._apply_exposure_settings(macie, force=True)
+        # Trailing latch after the ramp-plan reconfigure (Init/window toggle).
+        apply_window_geometry(macie, mode)
         self.display_window_updated.emit(display_window_origin(mode))
         if mode.y_window and not mode.x_window:
             nreads = int(report.get("nreads", 0))
@@ -3441,9 +3652,11 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
-        if enabled and not self._macie_operation_busy and not self._live_active:
+        if enabled and not self._macie_operation_busy and not self._live_session_busy():
             self._set_exposure_panel_enabled(True)
         self._sync_background_buttons_enabled()
+        if enabled:
+            self._sync_roi_pop_controls()
 
     def _apply_init_button_state(self, state: str) -> None:
         if self.ui is None:
@@ -3498,6 +3711,10 @@ class H2rgMainWindow(QMainWindow):
     def _on_operation_failed(self, message: str) -> None:
         self._set_status(message)
         QMessageBox.warning(self, "H2RG", message)
+
+    def _on_zmq_startup_failed(self, message: str) -> None:
+        self._set_status(message)
+        QMessageBox.critical(self, "H2RG ZMQ server", message)
 
     def _on_live_macie_error(self, exc: Exception) -> None:
         self.live_acquisition_failed.emit(str(exc))
@@ -3593,7 +3810,7 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def init_camera(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before initializing")
             return
         self.init_button_state.emit("busy")
@@ -3605,8 +3822,14 @@ class H2rgMainWindow(QMainWindow):
             macie = self._ensure_macie(detector_config_file(detector_index))
             macie.reinit_camera()
             self._applied_exposure_fingerprint = None
+            # Apply window geometry and exposure before any extra SaveRst
+            # reconfigure — an early ReconfigureASIC poisons full-frame GigE
+            # (~65535 ADU) until frame settings latch WinMode/stripe/XY.
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
+            else:
+                macie.set_save_rst_frames(self._save_reset_enabled())
+                self._apply_exposure_settings(macie, force=True)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
             self.status_updated.emit(
@@ -3627,13 +3850,13 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def power_on(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before power on")
             return
         self._run_macie_operation("Power on", lambda: self._ensure_macie().power_on())
 
     def power_off(self) -> None:
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before power off")
             return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
@@ -3643,6 +3866,9 @@ class H2rgMainWindow(QMainWindow):
         if box is None:
             return True
         return bool(box.isChecked())
+
+    def _save_reset_enabled(self) -> bool:
+        return MACIE_SAVE_RESET_FRAMES
 
     def _autoscale_enabled(self) -> bool:
         box = getattr(self, "_checkBox_autoscale", None)
@@ -3674,6 +3900,7 @@ class H2rgMainWindow(QMainWindow):
             ncoadds,
             nseq,
             self._save_image_enabled(),
+            self._save_reset_enabled(),
             tint_key,
             window_index,
             windowed_cds,  # CDS+WinMode two-sample floor; Ramp ignores this
@@ -3701,13 +3928,14 @@ class H2rgMainWindow(QMainWindow):
     def _exposure_report_from_server(self, macie) -> dict[str, float | int]:
         """Timing/ramp snapshot for Acquire when Set has not been clicked yet."""
         timing = macie.read_exposure_timing()
-        _save, ncoadds, nseq, ngroups, nreads, ndrops, _nresets = (
+        _save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
             macie.read_exposure_settings()
         )
         return {
             "ngroups": int(ngroups),
             "nreads": int(nreads),
             "ndrops": int(ndrops),
+            "nresets": int(nresets),
             "fowler_pairs": int(self._fowler_pairs),
             "inttime_ms": float(timing["inttime_s"] * 1000.0),
             "ramptime_ms": float(timing["ramptime_s"] * 1000.0),
@@ -3757,9 +3985,14 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
+            save_rst=self._save_reset_enabled(),
             # CDS WinMode: never 1-read. Ramp WinMode may be one frame.
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
+        # ExpMode/SaveRst/NGroups ReconfigureASIC poisons full-frame GigE
+        # (~65535 ADU) until WinMode/stripe/XY is programmed again. Window
+        # apply already relatched; Set / Acquire / Live / background did not.
+        apply_window_geometry(macie, self._selected_window_mode())
         self._last_tint_ms = float(result["inttime_ms"])
         # Ramp/CDS may quantize DIT to N×frametime — mirror in the box.
         rounded = result.get("rounded_tint_ms")
@@ -3772,10 +4005,11 @@ class H2rgMainWindow(QMainWindow):
                 fingerprint[2],
                 fingerprint[3],
                 fingerprint[4],
+                fingerprint[5],
                 rounded_f,
-                fingerprint[6],
                 fingerprint[7],
                 fingerprint[8],
+                fingerprint[9],
             )
         # Photon time (read-only) shows the achieved value.
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
@@ -3851,7 +4085,7 @@ class H2rgMainWindow(QMainWindow):
         # Guard: QPushButton.clicked emits a bool; never treat that as done_event.
         if done_event is not None and not isinstance(done_event, threading.Event):
             done_event = None
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before acquiring")
             if isinstance(done_event, threading.Event):
                 done_event.set()
@@ -4225,6 +4459,7 @@ class H2rgMainWindow(QMainWindow):
             ngroups=report.get("ngroups"),
             nreads=report.get("nreads"),
             ndrops=report.get("ndrops"),
+            nresets=report.get("nresets"),
         )
         cards.extend(self._cryo_fits_header_cards())
         return cards
@@ -4385,6 +4620,7 @@ class H2rgMainWindow(QMainWindow):
             header,
             reduction=reduction,  # type: ignore[arg-type]
             fowler_pairs=fowler_pairs,
+            **cube_reset_kwargs(report),
         )
         output_path = self._science_output_path(ramp_path)
         cards = self._acquisition_fits_header_cards(
@@ -4609,16 +4845,44 @@ class H2rgMainWindow(QMainWindow):
             self._stop_live_ui()
             self._set_status("Live stopped")
             return
+        # Button still says "Live" during ZMQ apply+arm. A second click would
+        # arm again and snapshot nseq=1 as the restore target (1-of-N Acquire).
+        if self._live_starting:
+            return
+        # GUI is re-enabled after ZMQ returns, but archive still holds
+        # _operation_lock. Live writes new ramps into the same save dir and
+        # would be collected as part of the in-progress science acquire.
+        if self._macie_operation_busy or self._operation_lock.locked():
+            self._on_operation_failed(
+                "Wait for the current acquire to finish archiving"
+            )
+            return
 
+        self._live_start_gen = getattr(self, "_live_start_gen", 0) + 1
+        start_gen = self._live_start_gen
+        self._live_starting = True
+        self._set_live_dependent_controls(True)
         self._set_status("Starting live acquisition…")
 
         def worker() -> None:
             try:
                 # Latch GUI DIT/mode before arming continuous acquires.
                 self._apply_exposure_settings(self._macie)
+                if start_gen != self._live_start_gen or not self._live_starting:
+                    return
                 # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
-                QTimer.singleShot(0, self._activate_live_ui)
+                # Fingerprint still describes the GUI's N-frame request. Drop
+                # it now — Stop Live restore can fail and leave nseq=1 latched.
+                self._applied_exposure_fingerprint = None
+                if start_gen != self._live_start_gen or not self._live_starting:
+                    if not self._live_starting and not self._live_active:
+                        try:
+                            self._macie.stop_continuous_acquisition()
+                        except Exception:
+                            pass
+                    return
+                QTimer.singleShot(0, lambda: self._finish_live_start(start_gen))
                 self.status_updated.emit(
                     "Live acquiring… (1 ramp/frame, GigE keep-alive)"
                 )
@@ -4628,7 +4892,10 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def halt(self) -> None:
-        if self._live_active and self._macie is not None:
+        if self._macie is not None:
+            # Unblock a hung acquire() poll without waiting for the operation lock.
+            self._macie.cancel_acquire()
+        if self._live_session_busy() and self._macie is not None:
             self._macie.stop_continuous_acquisition()
             self._stop_live_ui()
 
@@ -4840,7 +5107,7 @@ class H2rgMainWindow(QMainWindow):
 
     def acquire_background(self) -> None:
         """Close shutters, acquire a dark, store as background, re-open shutters."""
-        if self._live_active:
+        if self._live_session_busy():
             self._on_operation_failed("Stop live mode before taking background")
             return
         if self._opcua_conn is None:
@@ -5000,18 +5267,16 @@ class H2rgMainWindow(QMainWindow):
 
     def _newest_ramp_path(self, paths) -> Path | None:
         newest: Path | None = None
-        newest_mtime = -1.0
-        newest_name = ""
+        newest_key: tuple[float, tuple[str, int]] = (-1.0, ("", -1))
         for path in paths:
             try:
                 mtime = path.stat().st_mtime if path.exists() else 0.0
             except OSError:
                 mtime = 0.0
-            name = path.name.lower()
-            if newest is None or (mtime, name) > (newest_mtime, newest_name):
+            key = (mtime, ramp_fits_sort_key(path.name))
+            if newest is None or key > newest_key:
                 newest = path
-                newest_mtime = mtime
-                newest_name = name
+                newest_key = key
         return newest
 
     def _emit_acquire_preview(
@@ -5042,6 +5307,7 @@ class H2rgMainWindow(QMainWindow):
                     header,
                     reduction=self._acquire_preview_reduction,  # type: ignore[arg-type]
                     fowler_pairs=self._acquire_preview_fowler,
+                    **cube_reset_kwargs(self._last_exposure_report),
                 )
             except TruncatedFitsError:
                 # Still being written — retry on the next poll, do not mark shown.
@@ -5125,6 +5391,7 @@ class H2rgMainWindow(QMainWindow):
         if status:
             self._set_status(status)
         # Sync overlays to subframe geometry, then ROI numbers + plots.
+        self._sync_roi_pop_controls()
         self._update_roi_values(display, record=True)
         self._update_roi_overlays()
         self._refresh_roi_plots(force=False)
@@ -5236,15 +5503,7 @@ class H2rgMainWindow(QMainWindow):
                         preview_seen()
             time.sleep(0.2)
 
-        ramp_paths = sorted(
-            seen.values(),
-            key=lambda path: (
-                path.stat().st_mtime if path.exists() else 0.0,
-                path.name.lower(),
-            ),
-        )
-        if expected_count > 1 and len(ramp_paths) > expected_count:
-            ramp_paths = ramp_paths[:expected_count]
+        ramp_paths = select_acquire_ramp_paths(seen.values(), expected_count)
         if not ramp_paths:
             # Acquire finished but SMB never showed the file — pull newest over ZMQ
             # even if the basename matches the pre-acquire snapshot.
@@ -5327,6 +5586,7 @@ class H2rgMainWindow(QMainWindow):
             header,
             reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
             fowler_pairs=self._fowler_pairs_value(),
+            **cube_reset_kwargs(self._last_exposure_report),
         )
 
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
@@ -5542,7 +5802,7 @@ class H2rgMainWindow(QMainWindow):
         """
         utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
         connected = self._macie is not None
-        live = bool(self._live_active)
+        live = bool(self._live_session_busy())
         acquiring = bool(self._macie_operation_busy) and not live
 
         frame = self._current_frame
@@ -5587,7 +5847,7 @@ class H2rgMainWindow(QMainWindow):
         self._shutting_down = True
 
         self._stop_gui_services()
-        halt_server = self._live_active
+        halt_server = self._live_session_busy()
         self._cursor_readout_timer.stop()
         self._live_poll_stop.set()
         self._stop_live_ui()

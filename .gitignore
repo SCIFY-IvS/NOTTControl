@@ -234,6 +234,7 @@ nottcontrol/script/diagnostics/redis_lag_shutter_time_stats.png
 *.ipynb_checkpoints*
 
 nottcontrol/persist.json
+# Lab IPs / hosts / paths — overlay on tracked config.ini (see config.local.ini.example)
 nottcontrol/config.local.ini
 nottcontrol/camera/macie/macie_exe/zmq_server
 nottcontrol/nottcontrol.egg-info/

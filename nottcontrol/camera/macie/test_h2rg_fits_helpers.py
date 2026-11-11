@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import threading
 import time
@@ -13,24 +14,30 @@ import numpy
 
 from nottcontrol.camera.macie.h2rg_gui import (
     WINDOW_MODES,
+    H2rgMainWindow,
     _bottom_vertical_stripe,
     _centered_vertical_stripe,
     _centered_window,
     _channel_window,
     acquire_archive_science_params,
+    apply_window_geometry,
     central_value_median,
+    cube_reset_kwargs,
     fits_basename,
     fits_frame_number_label,
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
+    list_new_ramp_fits_in_dir,
     list_ramp_fits_in_dir,
     local_fits_file_for_viewer,
     map_server_fits_path,
     newest_fits_file,
     next_fits_frame_number,
     ramp_fits_path_for_viewer,
+    ramp_fits_sort_key,
     resolve_ramp_fits_path,
+    select_acquire_ramp_paths,
 )
 
 
@@ -97,7 +104,7 @@ class StripeWindowTests(unittest.TestCase):
         mode = {m.label: m for m in WINDOW_MODES}["Photonic chip"]
         self.assertTrue(mode.x_window)
         self.assertTrue(mode.y_window)
-        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1024, 1087, 928, 959))
+        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1010, 1030, 950, 970))
 
 
 class CentralValueTests(unittest.TestCase):
@@ -236,6 +243,27 @@ class NewRampFitsTests(unittest.TestCase):
             )
         )
 
+    def test_later_macie_index_with_same_mtime_is_new(self) -> None:
+        self.assertTrue(
+            is_new_ramp_fits(
+                "nott_20260817_000019.fits",
+                100.0,
+                before_name="nott_20260817_000018.fits",
+                before_mtime=100.0,
+            )
+        )
+
+    def test_earlier_macie_index_with_same_mtime_is_not_new(self) -> None:
+        """SMB 1 s mtime: leftover siblings from the last burst are not new."""
+        self.assertFalse(
+            is_new_ramp_fits(
+                "nott_20260817_000010.fits",
+                100.0,
+                before_name="nott_20260817_000018.fits",
+                before_mtime=100.0,
+            )
+        )
+
     def test_older_different_name_is_not_new(self) -> None:
         # Regression: Live used to flip between latest and previous because any
         # different basename was treated as new regardless of mtime.
@@ -247,6 +275,52 @@ class NewRampFitsTests(unittest.TestCase):
                 before_mtime=200.0,
             )
         )
+
+
+class SelectAcquireRampPathsTests(unittest.TestCase):
+    def test_sort_key_orders_macie_indices_numerically(self) -> None:
+        self.assertLess(
+            ramp_fits_sort_key("nott_20260817_000009.fits"),
+            ramp_fits_sort_key("nott_20260817_000010.fits"),
+        )
+        self.assertLess(
+            ramp_fits_sort_key("nott_20260816_000099.fits"),
+            ramp_fits_sort_key("nott_20260817_000001.fits"),
+        )
+
+    def test_overflow_keeps_newest_not_oldest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            leftovers = [
+                directory / f"nott_20260817_{index:06d}.fits"
+                for index in range(10, 18)
+            ]
+            current = [
+                directory / f"nott_20260817_{index:06d}.fits"
+                for index in range(19, 24)
+            ]
+            for path in leftovers + current:
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            selected = select_acquire_ramp_paths(leftovers + current, 5)
+            self.assertEqual([path.name for path in selected], [p.name for p in current])
+
+    def test_same_mtime_siblings_are_not_collected_as_new(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            for index in range(10, 19):
+                path = directory / f"nott_20260817_{index:06d}.fits"
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            new_paths = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name="nott_20260817_000018.fits",
+                dir_ok=True,
+            )
+            self.assertEqual(new_paths, [])
 
 
 class MapServerFitsPathTests(unittest.TestCase):
@@ -377,6 +451,14 @@ class AcquireArchiveScienceParamsTests(unittest.TestCase):
         self.assertNotEqual(params["ramp_mode"], live_gui["ramp_mode"])
         self.assertNotEqual(params["keep_files"], live_gui["keep_files"])
 
+    def test_cube_reset_kwargs_from_exposure_report(self) -> None:
+        self.assertEqual(
+            cube_reset_kwargs({"ngroups": 2, "nreads": 1, "nresets": 1}),
+            {"ngroups": 2, "nreads": 1, "nresets": 1},
+        )
+        self.assertEqual(cube_reset_kwargs({"nresets": "x"}), {})
+        self.assertEqual(cube_reset_kwargs(None), {})
+
     def test_invalid_pairs_and_missing_mode_fall_back(self) -> None:
         params = acquire_archive_science_params(
             {"fowler_pairs": "x", "tint_ms": "bad"}
@@ -409,6 +491,86 @@ class AcquireArchiveScienceParamsTests(unittest.TestCase):
         thread.join(timeout=2.0)
         self.assertFalse(thread.is_alive())
         self.assertEqual(events, ["zmq-done", "archive-done"])
+
+
+class ApplyWindowGeometryTests(unittest.TestCase):
+    def test_forwards_full_frame_and_sc_args(self) -> None:
+        class FakeMacie:
+            def __init__(self) -> None:
+                self.args = None
+
+            def frame_settings(self, *args) -> None:
+                self.args = args
+
+        macie = FakeMacie()
+        full = WINDOW_MODES[0]
+        apply_window_geometry(macie, full)
+        self.assertEqual(
+            macie.args,
+            (full.x_window, full.y_window, full.x1, full.x2, full.y1, full.y2),
+        )
+
+        sc = next(mode for mode in WINDOW_MODES if mode.label == "SC 256")
+        apply_window_geometry(macie, sc)
+        self.assertEqual(
+            macie.args,
+            (sc.x_window, sc.y_window, sc.x1, sc.x2, sc.y1, sc.y2),
+        )
+        self.assertTrue(sc.y_window)
+        self.assertFalse(sc.x_window)
+
+    def test_exposure_reconfigure_is_followed_by_geometry_latch(self) -> None:
+        """Set/Acquire/Live share _apply_exposure_settings; it must relatch.
+
+        configure_ramp_exposure ReconfigureASIC poisons full-frame GigE
+        (~65535 ADU) until frame_settings runs again. Window toggle already
+        did this; Set and Acquire did not.
+        """
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow._apply_exposure_settings)
+        configure_at = source.index("configure_ramp_exposure")
+        latch_at = source.index("apply_window_geometry")
+        self.assertGreater(
+            latch_at,
+            configure_at,
+            "WinMode/stripe/XY must be re-latched after the ramp-plan write",
+        )
+
+    def test_live_clicked_sets_starting_flag_before_worker(self) -> None:
+        """Second Live click during ZMQ arm must not start another session."""
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow.live_clicked)
+        flag_at = source.index("self._live_starting = True")
+        thread_at = source.index("threading.Thread")
+        self.assertGreater(
+            thread_at,
+            flag_at,
+            "Live start must latch _live_starting before the ZMQ worker",
+        )
+        acquire_src = inspect.getsource(H2rgMainWindow.acquire)
+        self.assertIn("_live_session_busy()", acquire_src)
+
+    def test_live_stop_drops_fingerprint_so_next_acquire_relatches_nseq(self) -> None:
+        """Take Background already drops the fingerprint after override_nseq.
+
+        Live restore can fail (ReconfigureASIC after livesession close) and
+        leave nseq=1. Without this, the next Acquire skips reconfigure and
+        silently records 1 of N.
+        """
+        import inspect
+
+        stop_src = inspect.getsource(H2rgMainWindow._stop_live_ui)
+        self.assertIn("self._applied_exposure_fingerprint = None", stop_src)
+        live_src = inspect.getsource(H2rgMainWindow.live_clicked)
+        arm_at = live_src.index("start_continuous_acquisition")
+        drop_at = live_src.index("self._applied_exposure_fingerprint = None")
+        self.assertGreater(
+            drop_at,
+            arm_at,
+            "Live must drop the N-ramp fingerprint after forcing nseq=1",
+        )
 
 
 if __name__ == "__main__":

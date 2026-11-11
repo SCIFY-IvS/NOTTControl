@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>H2RG Teledyne vs NOTT bias reference</title>
+  <style>
+    @page { margin: 18mm; size: A4; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.35;
+      color: #111;
+      max-width: 190mm;
+      margin: 0 auto;
+      padding: 12mm;
+    }
+    h1 { font-size: 16pt; margin: 0 0 4mm; }
+    .subtitle { font-size: 10pt; color: #444; margin-bottom: 8mm; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      margin: 6mm 0;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 4px 6px;
+      vertical-align: top;
+    }
+    th { background: #eee; text-align: left; }
+    td.mono { font-family: "Menlo", "Consolas", monospace; white-space: nowrap; }
+    .diff { background: #fff3cd; font-weight: bold; }
+    .notes { font-size: 9pt; color: #333; margin-top: 8mm; }
+    .notes li { margin-bottom: 2mm; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>H2RG detector bias reference — Teledyne acceptance vs NOTT (working)</h1>
+  <p class="subtitle">
+    Slow mode, cold ASIC (&lt;40&nbsp;K). Registers are ASIC addresses (MSAC / Manual Command: <span class="mono">hXXXX</span>).
+    Values in <span class="mono">0xXXXX</span> are full 16-bit MCD register writes unless noted.
+    Printed: August 2026.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Bias name</th>
+        <th>Register</th>
+        <th>Teledyne target (V)</th>
+        <th>Teledyne <span class="mono">hXXXX</span></th>
+        <th>NOTT working (V)</th>
+        <th>NOTT working <span class="mono">hXXXX</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>VReset1</td>
+        <td class="mono">h6000</td>
+        <td>0.250</td>
+        <td class="mono">8080</td>
+        <td>0.250</td>
+        <td class="mono">8080</td>
+      </tr>
+      <tr>
+        <td>DSub1</td>
+        <td class="mono">h6002</td>
+        <td>0.500</td>
+        <td class="mono">8100</td>
+        <td>0.500</td>
+        <td class="mono">8100</td>
+      </tr>
+      <tr class="diff">
+        <td>VBiasGate1</td>
+        <td class="mono">h6004</td>
+        <td>2.300</td>
+        <td class="mono">B600</td>
+        <td>2.05</td>
+        <td class="mono">B580</td>
+      </tr>
+      <tr>
+        <td>Vdd1 (VDD)</td>
+        <td class="mono">h600E</td>
+        <td>3.32</td>
+        <td class="mono">87FF</td>
+        <td>3.32</td>
+        <td class="mono">87FF</td>
+      </tr>
+      <tr>
+        <td>Vout (acceptance spec)</td>
+        <td class="mono">—</td>
+        <td>2.00</td>
+        <td class="mono">—</td>
+        <td>2.00</td>
+        <td class="mono">—</td>
+      </tr>
+      <tr>
+        <td>Drain1</td>
+        <td class="mono">h600A</td>
+        <td>0.010</td>
+        <td class="mono">8006</td>
+        <td>0.010</td>
+        <td class="mono">8006</td>
+      </tr>
+      <tr>
+        <td>CellDrain1</td>
+        <td class="mono">h6008</td>
+        <td>0.010</td>
+        <td class="mono">8006</td>
+        <td>0.010</td>
+        <td class="mono">8006</td>
+      </tr>
+      <tr>
+        <td>VBiasPower1</td>
+        <td class="mono">h6006</td>
+        <td>3.30</td>
+        <td class="mono">87FF</td>
+        <td>3.30</td>
+        <td class="mono">87FF</td>
+      </tr>
+      <tr>
+        <td>Vdda1 (VDDA)</td>
+        <td class="mono">h600C</td>
+        <td>3.32</td>
+        <td class="mono">87FF</td>
+        <td>3.32</td>
+        <td class="mono">87FF</td>
+      </tr>
+      <tr>
+        <td>VRefMain</td>
+        <td class="mono">h602C</td>
+        <td>1.30 (DAC)</td>
+        <td class="mono">8400</td>
+        <td>1.30 (DAC)</td>
+        <td class="mono">8400</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Summary:</strong> All Teledyne acceptance biases match NOTT bench values except
+    <strong>VBiasGate1</strong> — use <span class="mono">h6004 = B580</span> (2.05&nbsp;V) instead of
+    <span class="mono">B600</span> (2.30&nbsp;V).</p>
+
+  <ul class="notes">
+    <li><strong>Vout:</strong> Teledyne acceptance “Vout = 2.0&nbsp;V” is an output-level specification in the test report, not a separate <span class="mono">h6000</span> detector bias DAC. No register change required for NOTT.</li>
+    <li><strong>VDD / VDDA at 3.32&nbsp;V:</strong> DAC quantisation gives <span class="mono">87FF</span> ≈ 3.30&nbsp;V actual; <span class="mono">87E3</span> ≈ 3.25&nbsp;V. Teledyne table often lists 3.32&nbsp;V as the nominal target.</li>
+    <li><strong>VRefMain <span class="mono">h602C = 8400</span>:</strong> SIDECAR main reference (~1.30&nbsp;V at the DAC). Required for valid MSAC reset/readout (values like <span class="mono">8334</span> produced all-zero reset frames in NOTT tests).</li>
+    <li><strong>Verify in MSAC:</strong> After Init, use Telemetry → Calibrated Voltage (see <span class="mono">Readme.MD</span> telemetry procedure; <span class="mono">h6180 = 2232</span> for cal mode).</li>
+    <li><strong>MCD / cfg files:</strong> Detector biases live in <span class="mono">HxRG_Teledyne.mcd</span>; overrides in <span class="mono">teledyne_cold_slow.cfg</span> as <span class="mono">reg_*</span> keys.</li>
+    <li><strong>Odd registers (<span class="mono">h6001</span>, <span class="mono">h6003</span>, …):</span> current/strength pairs — leave at MCD defaults unless Teledyne specifies otherwise.</li>
+  </ul>
+
+  <p class="no-print" style="margin-top:10mm;font-size:10pt;color:#666;">
+    Open in a browser → Print → Save as PDF. File:
+    <span class="mono">nottcontrol/camera/macie/docs/H2RG_Teledyne_bias_reference.html</span>
+  </p>
+</body>
+</html>

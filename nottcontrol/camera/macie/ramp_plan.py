@@ -73,6 +73,11 @@ def calc_ramp_plan(
     CDS / Ramp follow Jarron Leisenring's calc_ramp_settings: nreads stays 1 and
     longer DIT is obtained with drop frames between two groups (ngmax=2).
 
+    CDS requires ``tint_ms >= frametime_ms`` (at least two clocked samples on the
+    full-frame path). Shorter integrations raise ``ValueError``; use
+    ``mode='SingleFrame'`` instead. With ``windowed_cds=True``, short CDS DITs
+    are still promoted to the minimum two-sample Jarron plan.
+
     ``windowed_cds`` applies only to CDS (and SingleFrame) on true WinMode
     (horizontal / XY). It forces a minimum of two clocked samples. Ramp on
     WinMode may be a single read so photon time can equal frame time.
@@ -128,7 +133,10 @@ def calc_ramp_plan(
         return _jarron_two_group_plan(frametime_ms, n_frames=n_frames)
 
     if tint_ms < frametime_ms:
-        return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
+        raise ValueError(
+            f"CDS requires tint_ms >= frametime_ms ({frametime_ms:.1f} ms); "
+            "use mode='SingleFrame' for shorter integrations"
+        )
 
     nftot = int(math.ceil(tint_ms / frametime_ms))
     if ngmax <= 2:
@@ -161,3 +169,12 @@ def calc_ramp_plan(
 
 def exp_mode_for_ramp(mode: RampMode) -> int:
     return EXP_MODE_FOWLER if mode == "Fowler" else EXP_MODE_UTR
+
+
+def preview_reduction_mode(mode: RampMode) -> int:
+    """ZMQ/Live display preview: 0=CDS, 1=Ramp last sample, 2=SingleFrame first."""
+    if mode == "Ramp":
+        return 1
+    if mode == "SingleFrame":
+        return 2
+    return 0

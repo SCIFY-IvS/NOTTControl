@@ -1,9 +1,35 @@
-# Local overrides for this machine — copy to config.local.ini or let the GUI
-# create it when you move ROIs. This file is tracked only as an example;
-# config.local.ini itself is gitignored and survives git pull.
+# Example local overrides (gitignored as config.local.ini).
+# Copy to config.local.ini and fill in your lab values:
+#   cp config.local.ini.example config.local.ini
 #
-# [H2RG DETECTOR]
-# ROI 1 = 333,105,4,105
+# Merged on top of config.ini at startup. Keep IPs/hosts here so the
+# tracked config.ini can change in git without rewriting site addresses.
 #
-# [INFRATEC CAMERA]
-# ROI 1 = 333,105,4,105
+
+[DEFAULT]
+databaseurl = redis://<REDIS-HOST>:6379
+opcuaaddress = opc.tcp://<ICS-SERVER-IP>:4840
+opcuaaddress_cry = opc.tcp://<CRYO-OPC-SERVER-IP>:4840
+
+[SCIFYSIM]
+config = <PATH-TO-SCIFYSIM-NOTT-CONFIG>/nott_config.ini
+
+[FILTERWHEEL]
+ip = <FILTERWHEEL-IP>
+
+[INFRATEC CAMERA]
+frame_directory = \\<FILE-SERVER>\Frames
+linux_frame_directory = <LINUX-INFRATEC-FRAMES-DIR>
+
+[H2RG DETECTOR]
+zmq_address = tcp://<MACIE-ZMQ-HOST>:65534
+zmq_address_alt = tcp://<MACIE-ZMQ-HOST-ALT>:5900
+macie_library_path = <MACIE-LIB-DIR>
+fits_directory = \\<FILE-SERVER>\Data\nott
+linux_fits_directory = <LINUX-FITS-ROOT>
+fits_linux_path_prefix = <LINUX-PATH-PREFIX>
+fits_windows_unc_root = \\<FILE-SERVER>\Data
+
+[connection]
+im_ip = <LUCID-IMAGER-IP>
+pup_ip = <LUCID-PUPIL-IP>

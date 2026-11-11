@@ -198,6 +198,43 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
         printf("Reconfigure failed after ExpMode change\n");
         return false;
     }
+    sync_gige_after_reconfigure(_ptUserData);
+    return true;
+}
+
+extern "C" bool M_set_preview_reduction(unsigned int mode)
+{
+    if (_ptUserData == NULL)
+        return false;
+    return set_display_preview_reduction(_ptUserData, mode);
+}
+
+extern "C" bool M_set_save_rst_frames(bool save)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    if (_ptUserData->RegMap.count("SaveRstFrames") == 0)
+    {
+        printf("SaveRstFrames not in register map; skipping ASIC write (save=%d)\n",
+               save ? 1 : 0);
+        return true;
+    }
+
+    unsigned int want = save ? 1u : 0u;
+    unsigned int current = 0;
+    if (GetASICParameter(_ptUserData, "SaveRstFrames", &current) && current == want)
+        return true;
+
+    if (SetASICParameter(_ptUserData, "SaveRstFrames", want) == false)
+        return false;
+
+    if (ReconfigureASIC(_ptUserData) == false)
+    {
+        printf("Reconfigure failed after SaveRstFrames change\n");
+        return false;
+    }
+    sync_gige_after_reconfigure(_ptUserData);
     return true;
 }
 
@@ -523,6 +560,18 @@ int main () {
             {
                 unsigned int mode = (unsigned int)std::stoi(tokens[1]);
                 result = M_set_exp_mode(mode);
+            }
+            else if (command == "previewreduction")
+            {
+                unsigned int mode = (unsigned int)std::stoi(tokens[1]);
+                result = M_set_preview_reduction(mode);
+            }
+            else if (command == "saverst")
+            {
+                bool save = false;
+                if (tokens.size() > 1 && (tokens[1] == "true" || tokens[1] == "1"))
+                    save = true;
+                result = M_set_save_rst_frames(save);
             }
             else if (command == "rexptiming")
             {

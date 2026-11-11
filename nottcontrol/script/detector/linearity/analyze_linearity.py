@@ -17,7 +17,7 @@ with an inset of the illuminated box, writes a global
 plots fixed random pixels vs DIT.
 
 Frames before 301 are ignored. Illuminated pixels are drawn from a 20×20 box
-centred at image coordinates (X=1045, Y=943); the same box defines the crop.
+centred at image coordinates (X=1020, Y=960); the same box defines the crop.
 """
 
 from __future__ import annotations
@@ -55,8 +55,8 @@ DEFAULT_N_PIXELS = 100
 DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_ILLUM_SIZE = 20
 # Illuminated spot centre in image coordinates (X=column, Y=row).
-DEFAULT_ILLUM_CENTER_X = 1045
-DEFAULT_ILLUM_CENTER_Y = 943
+DEFAULT_ILLUM_CENTER_X = 1020
+DEFAULT_ILLUM_CENTER_Y = 960
 DEFAULT_SEED = 0
 
 # Acquisition log (Full-frame linearity, 2026-08-06):

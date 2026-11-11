@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 import numpy
+from collections import deque
 
 from nottcontrol.camera.macie.h2rg_gui import (
     WINDOW_MODES,
@@ -14,9 +15,11 @@ from nottcontrol.camera.macie.h2rg_gui import (
     window_origin_for_frame,
 )
 from nottcontrol.camera.macie.h2rg_roi_panel import (
+    compute_local_roi_brightness,
     compute_roi_brightness,
     map_roi_full_to_image,
     map_roi_image_to_full,
+    pop_roi_to_image,
     redis_key_for_roi,
     remap_rois_to_image,
     roi_profile_1d,
@@ -174,6 +177,28 @@ class RemapTests(unittest.TestCase):
         )
         self.assertNotIn(1, mapped)
         self.assertIn(2, mapped)
+
+    def test_pop_roi_to_image_centers_in_subframe(self) -> None:
+        local = pop_roi_to_image((333, 105, 40, 30), image_w=512, image_h=256)
+        self.assertEqual(local, (236, 113, 40, 30))
+
+    def test_pop_roundtrip_updates_full_frame(self) -> None:
+        popped = pop_roi_to_image((10, 100, 4, 4), image_w=512, image_h=256)
+        full = map_roi_image_to_full(
+            popped, origin_x=1024, origin_y=512, pad_top=0
+        )
+        self.assertEqual(full, (1278, 638, 4, 4))
+
+    def test_gap_sample_is_non_finite(self) -> None:
+        from nottcontrol.camera.macie.h2rg_roi_panel import H2rgRoiRow
+
+        row = H2rgRoiRow.__new__(H2rgRoiRow)
+        row.min_values = deque(maxlen=10)
+        row.max_values = deque(maxlen=10)
+        row.avg_values = deque(maxlen=10)
+        H2rgRoiRow.add_gap_sample(row)
+        self.assertEqual(len(row.avg_values), 1)
+        self.assertFalse(numpy.isfinite(row.avg_values[0]))
 
 
 if __name__ == "__main__":

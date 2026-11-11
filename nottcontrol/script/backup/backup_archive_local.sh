@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Pull nott-server /archive/nott onto a local computer.
+# Pull nott-server archives onto a local computer.
 #
-# Default local destination: /Volumes/T7 Data/Data/nott
-# Override with --dest or NOTT_BACKUP_DEST.
+# By default syncs two trees (permanent archives on nott-server):
+#   /archive/nott        → /Volumes/T7 Data/Data/nott
+#   /archive/bench_data  → /Volumes/T7 Data/Data/bench_data   (MSAC / H2RG_ASIC)
+#
+# Override destinations with --dest / --bench-dest or env vars below.
 #
 # Usage:
 #   ./nottcontrol/script/backup/backup_archive_local.sh
 #   ./nottcontrol/script/backup/backup_archive_local.sh --dry-run
 #   ./nottcontrol/script/backup/backup_archive_local.sh --dest ~/Data/nott
+#   ./nottcontrol/script/backup/backup_archive_local.sh --skip-bench
+#   ./nottcontrol/script/backup/backup_archive_local.sh --bench-only
 #   ./nottcontrol/script/backup/backup_archive_local.sh --mode day
 #   ./nottcontrol/script/backup/backup_archive_local.sh --mode day --day 20260805
 #
@@ -15,11 +20,13 @@
 #   brew install rsync
 #
 # Environment overrides:
-#   NOTT_BACKUP_DEST    local folder (default: /Volumes/T7 Data/Data/nott)
-#   NOTT_BACKUP_HOST    remote host (default: nott-server)
-#   NOTT_BACKUP_USER    SSH user (default: labo)
-#   NOTT_BACKUP_REMOTE  remote path (default: /archive/nott)
-#   NOTT_BACKUP_RSYNC   path to GNU rsync binary
+#   NOTT_BACKUP_DEST          local /archive/nott folder
+#   NOTT_BACKUP_BENCH_DEST    local /data/bench_data folder
+#   NOTT_BACKUP_HOST          remote host (default: nott-server)
+#   NOTT_BACKUP_USER          SSH user (default: labo)
+#   NOTT_BACKUP_REMOTE        remote /archive/nott (default: /archive/nott)
+#   NOTT_BACKUP_BENCH_REMOTE  remote bench archive (default: /archive/bench_data)
+#   NOTT_BACKUP_RSYNC         path to GNU rsync binary
 
 # Re-exec under bash when invoked as `sh script.sh` (dash has no pipefail).
 if [ -z "${BASH_VERSION:-}" ]; then
@@ -28,7 +35,17 @@ fi
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Recover if the launching shell's cwd was deleted/unmounted (getcwd fails).
+if ! pwd >/dev/null 2>&1; then
+  cd / || cd "${HOME:-/}" || true
+fi
+
+_src="${BASH_SOURCE[0]}"
+case "${_src}" in
+  /*) ;;
+  *) _src="$(pwd)/${_src}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "${_src}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 cd "${REPO_ROOT}"

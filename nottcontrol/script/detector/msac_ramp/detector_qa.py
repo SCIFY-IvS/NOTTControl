@@ -1,0 +1,1214 @@
+"""Detector-quality maps for MSAC H2RG reset and UpTheRamp cubes.
+
+Writes extra PNGs (and slope/noise FITS) next to the flux plot:
+
+* ``{session}_msac_qa_reset.png`` — spatial quality of the reset (or first) frame
+* ``{session}_msac_qa_ramp.png`` — slope, residual RMS, linearity of the CDS cube
+* ``{session}_msac_qa_slope.fits`` / ``{session}_msac_qa_resid_rms.fits`` — maps
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+H2RG_N_OUTPUTS = 32
+H2RG_REF_WIDTH = 4
+DEFAULT_FULL_FRAME = 2048
+REF_PIXEL_COLOR = "#e9c46a"
+# Median flux metric: size×size box at the centre of the delivered image.
+DEFAULT_CENTER_MEDIAN_SIZE = 5
+CENTER_MEDIAN_BOX_COLOR = "#ffe66d"
+
+
+def center_subbox(
+    box: tuple[int, int, int, int],
+    *,
+    size: int = DEFAULT_CENTER_MEDIAN_SIZE,
+) -> tuple[int, int, int, int]:
+    """Return a ``size×size`` box centred inside *box* ``(row0,row1,col0,col1)``.
+
+    Clamped to stay within *box*. If *box* is smaller than *size* on an
+    axis, that axis uses the full *box* span.
+    """
+    if size <= 0:
+        raise ValueError(f"center sub-box size must be positive (got {size})")
+    row0, row1, col0, col1 = (int(v) for v in box)
+    if not (row1 > row0 and col1 > col0):
+        raise ValueError(f"invalid outer box {box}")
+    height = row1 - row0
+    width = col1 - col0
+    use_h = min(int(size), height)
+    use_w = min(int(size), width)
+    cy = (row0 + row1) // 2
+    cx = (col0 + col1) // 2
+    rr0 = max(row0, min(row1 - use_h, cy - use_h // 2))
+    cc0 = max(col0, min(col1 - use_w, cx - use_w // 2))
+    return rr0, rr0 + use_h, cc0, cc0 + use_w
+
+
+def image_center_subbox(
+    shape: tuple[int, ...],
+    *,
+    size: int = DEFAULT_CENTER_MEDIAN_SIZE,
+) -> tuple[int, int, int, int]:
+    """Return a ``size×size`` box at the centre of an image *shape* ``(H, W)``."""
+    height, width = int(shape[0]), int(shape[1])
+    return center_subbox((0, height, 0, width), size=size)
+
+
+def median_in_box(
+    image: np.ndarray,
+    box: tuple[int, int, int, int],
+) -> float:
+    """Finite median of *image* pixels inside *box*."""
+    r0, r1, c0, c1 = box
+    return float(np.nanmedian(np.asarray(image, dtype=np.float64)[r0:r1, c0:c1]))
+
+
+def _finite(image: np.ndarray) -> np.ndarray:
+    work = np.asarray(image, dtype=np.float64)
+    return work[np.isfinite(work)]
+
+
+def _display_limits(image: np.ndarray) -> tuple[float, float]:
+    finite = _finite(image)
+    if finite.size == 0:
+        return 0.0, 1.0
+    lo, hi = np.percentile(finite, (5.0, 99.5))
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = float(np.min(finite)), float(np.max(finite))
+        if hi <= lo:
+            hi = lo + 1.0
+    return float(lo), float(hi)
+
+
+def _stats(image: np.ndarray) -> dict[str, float]:
+    finite = _finite(image)
+    if finite.size == 0:
+        return {
+            "n": 0.0,
+            "median": float("nan"),
+            "mad": float("nan"),
+            "std": float("nan"),
+            "p01": float("nan"),
+            "p99": float("nan"),
+            "min": float("nan"),
+            "max": float("nan"),
+        }
+    med = float(np.median(finite))
+    mad = float(np.median(np.abs(finite - med)))
+    return {
+        "n": float(finite.size),
+        "median": med,
+        "mad": 1.4826 * mad,
+        "std": float(np.std(finite)),
+        "p01": float(np.percentile(finite, 1.0)),
+        "p99": float(np.percentile(finite, 99.0)),
+        "min": float(np.min(finite)),
+        "max": float(np.max(finite)),
+    }
+
+
+def _safe_hist(ax, values: np.ndarray, *, bins: int, range_: tuple[float, float] | None, **kwargs) -> None:
+    work = np.asarray(values, dtype=np.float64)
+    work = work[np.isfinite(work)]
+    if work.size == 0:
+        return
+    if range_ is not None:
+        lo, hi = range_
+        if (
+            not np.isfinite(lo)
+            or not np.isfinite(hi)
+            or hi <= lo
+            or (hi - lo) < 1e-9 * max(1.0, abs(lo), abs(hi))
+        ):
+            ax.axvline(
+                float(np.median(work)),
+                color=kwargs.get("color", "C0"),
+                label=kwargs.get("label"),
+            )
+            return
+    try:
+        if range_ is None:
+            ax.hist(work, bins=bins, **kwargs)
+        else:
+            ax.hist(work, bins=bins, range=range_, **kwargs)
+    except ValueError:
+        ax.axvline(
+            float(np.median(work)),
+            color=kwargs.get("color", "C0"),
+            label=kwargs.get("label"),
+        )
+
+
+def _format_stats(stats: dict[str, float]) -> str:
+    return (
+        f"n={int(stats['n'])}\n"
+        f"med={stats['median']:.4g}\n"
+        f"MAD={stats['mad']:.4g}\n"
+        f"std={stats['std']:.4g}\n"
+        f"p01={stats['p01']:.4g}\n"
+        f"p99={stats['p99']:.4g}"
+    )
+
+
+def h2rg_ref_mask(shape: tuple[int, int], *, width: int = H2RG_REF_WIDTH) -> np.ndarray | None:
+    """True on HxRG reference pixels; None if the frame is too small."""
+    height, width_img = int(shape[0]), int(shape[1])
+    if height < 4 * width or width_img < 4 * width:
+        return None
+    mask = np.zeros((height, width_img), dtype=bool)
+    mask[:width, :] = True
+    mask[-width:, :] = True
+    mask[:, :width] = True
+    mask[:, -width:] = True
+    return mask
+
+
+def n_outputs_for_shape(shape: tuple[int, int]) -> int | None:
+    """Guess SIDECAR output count from image width (32 for full-frame)."""
+    width = int(shape[1])
+    if width == DEFAULT_FULL_FRAME:
+        return H2RG_N_OUTPUTS
+    if width >= 128 and width % H2RG_N_OUTPUTS == 0:
+        return H2RG_N_OUTPUTS
+    return None
+
+
+def channel_ref_masks(
+    shape: tuple[int, int],
+    *,
+    n_out: int | None = None,
+    ref_width: int = H2RG_REF_WIDTH,
+) -> list[np.ndarray] | None:
+    """Per-output boolean masks of HxRG reference pixels (same shape as image).
+
+    Each mask is True on the reference border pixels that fall in that
+    channel's vertical stripe (top/bottom rows, and side columns for the
+    edge channels). Returns ``None`` if the frame has no usable ref border
+    or width is not divisible by the output count.
+    """
+    height, width = int(shape[0]), int(shape[1])
+    ref = h2rg_ref_mask((height, width), width=ref_width)
+    if ref is None:
+        return None
+    if n_out is None:
+        n_out = n_outputs_for_shape((height, width))
+    if n_out is None or n_out <= 0 or width % n_out != 0:
+        return None
+    chan_w = width // n_out
+    masks: list[np.ndarray] = []
+    for ch in range(n_out):
+        m = np.zeros((height, width), dtype=bool)
+        c0 = ch * chan_w
+        c1 = c0 + chan_w
+        m[:, c0:c1] = ref[:, c0:c1]
+        if not bool(m.any()):
+            return None
+        masks.append(m)
+    return masks
+
+
+def subtract_channel_reference_pixels(
+    data: np.ndarray,
+    *,
+    n_out: int | None = None,
+    ref_width: int = H2RG_REF_WIDTH,
+    inplace: bool = False,
+) -> tuple[np.ndarray, bool]:
+    """Subtract per-output reference-pixel mean from each plane / image.
+
+    For every plane and every SIDECAR channel (vertical stripe), estimate
+    the offset as the mean of that channel's HxRG reference pixels and
+    subtract it from the entire channel stripe. No-op (returns a copy and
+    ``False``) when the frame is not full enough for a ref border or the
+    width is not an integer number of outputs.
+
+    Accepts ``(y, x)`` or ``(n, y, x)`` arrays. Preserves floating dtypes
+    (``float32`` / ``float64``); integer inputs are promoted to ``float32``.
+    """
+    arr = np.asarray(data)
+    if arr.dtype.kind not in "fc":
+        arr = np.asarray(arr, dtype=np.float32)
+        inplace = False
+    squeeze = False
+    if arr.ndim == 2:
+        arr = arr[np.newaxis, ...]
+        squeeze = True
+    if arr.ndim != 3:
+        raise ValueError(f"Expected (y, x) or (n, y, x), got shape {arr.shape}")
+
+    masks = channel_ref_masks(arr.shape[1:], n_out=n_out, ref_width=ref_width)
+    if masks is None:
+        out = arr if inplace else np.array(arr, copy=True)
+        return (out[0] if squeeze else out), False
+
+    n_out_eff = len(masks)
+    width = int(arr.shape[2])
+    chan_w = width // n_out_eff
+    out = arr if inplace else np.array(arr, copy=True)
+    offset_dtype = np.float64 if out.dtype == np.float64 else np.float32
+    for ch, mask in enumerate(masks):
+        c0 = ch * chan_w
+        c1 = c0 + chan_w
+        # Mean over ref pixels in this channel, per plane.
+        with np.errstate(all="ignore"):
+            # Boolean index flattens; compute per-plane means explicitly.
+            offsets = np.array(
+                [float(np.nanmean(plane[mask])) for plane in out],
+                dtype=offset_dtype,
+            )
+        bad = ~np.isfinite(offsets)
+        if bool(bad.any()):
+            offsets = np.where(bad, 0.0, offsets)
+        out[:, :, c0:c1] -= offsets[:, np.newaxis, np.newaxis]
+
+    return (out[0] if squeeze else out), True
+
+
+def channel_profile(image: np.ndarray, n_out: int) -> np.ndarray | None:
+    """Mean ADU per output channel (vertical stripes)."""
+    img = np.asarray(image, dtype=np.float64)
+    height, width = img.shape
+    if n_out <= 0 or width % n_out != 0:
+        return None
+    chan_w = width // n_out
+    block = img.reshape(height, n_out, chan_w)
+    with np.errstate(all="ignore"):
+        means = np.nanmean(block, axis=(0, 2))
+    return np.asarray(means, dtype=np.float64)
+
+
+def defect_mask(image: np.ndarray, *, n_sigma: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return ``(hot, cold)`` boolean maps from a robust median/MAD clip."""
+    img = np.asarray(image, dtype=np.float64)
+    finite = np.isfinite(img)
+    stats = _stats(img)
+    scale = stats["mad"]
+    hot = np.zeros(img.shape, dtype=bool)
+    cold = np.zeros(img.shape, dtype=bool)
+    if not np.isfinite(scale) or scale <= 0:
+        return hot, cold
+    med = stats["median"]
+    hot = finite & (img > med + n_sigma * scale)
+    cold = finite & (img < med - n_sigma * scale)
+    return hot, cold
+
+
+def fit_ramp(cube: np.ndarray, sample_index: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per-pixel linear fit of *cube* vs *sample_index*.
+
+    Returns ``(slope, intercept, residual_rms)`` each ``(ny, nx)``.
+    """
+    data = np.asarray(cube, dtype=np.float64)
+    t = np.asarray(sample_index, dtype=np.float64).reshape(-1)
+    if data.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {data.shape}")
+    if t.size != data.shape[0]:
+        raise ValueError(f"sample_index length {t.size} != nplanes {data.shape[0]}")
+    if t.size < 2:
+        nan = np.full(data.shape[1:], np.nan, dtype=np.float64)
+        return nan, nan, nan
+    t_mean = float(np.mean(t))
+    tt = t - t_mean
+    sxx = float(np.dot(tt, tt))
+    if sxx <= 0:
+        nan = np.full(data.shape[1:], np.nan, dtype=np.float64)
+        return nan, nan, nan
+    y_mean = np.mean(data, axis=0)
+    sxy = np.tensordot(tt, data, axes=(0, 0))
+    slope = sxy / sxx
+    intercept = y_mean - slope * t_mean
+    pred = intercept + slope * t[:, None, None]
+    resid = data - pred
+    rms = np.sqrt(np.mean(resid * resid, axis=0))
+    return slope, intercept, rms
+
+
+def ramp_fit_design(sample_index: np.ndarray) -> tuple[np.ndarray, float, float] | None:
+    """Return ``(tt, t_mean, sxx)`` for a streaming per-pixel linear fit, or ``None``."""
+    t = np.asarray(sample_index, dtype=np.float64).reshape(-1)
+    if t.size < 2:
+        return None
+    t_mean = float(np.mean(t))
+    tt = t - t_mean
+    sxx = float(np.dot(tt, tt))
+    if sxx <= 0:
+        return None
+    return tt, t_mean, sxx
+
+
+def ramp_fit_accumulate_plane(
+    sum_y: np.ndarray,
+    sum_ty: np.ndarray,
+    plane: np.ndarray,
+    tt_i: float,
+) -> None:
+    """Add one CDS plane into streaming least-squares accumulators."""
+    p = np.asarray(plane, dtype=np.float64)
+    sum_y += p
+    sum_ty += tt_i * p
+
+
+def ramp_fit_slope_intercept(
+    sum_y: np.ndarray,
+    sum_ty: np.ndarray,
+    *,
+    nplane: int,
+    t_mean: float,
+    sxx: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Finalize slope/intercept from streaming accumulators."""
+    y_mean = sum_y / float(nplane)
+    slope = sum_ty / sxx
+    intercept = y_mean - slope * t_mean
+    return slope, intercept
+
+
+def ramp_fit_accumulate_resid2(
+    sum_resid2: np.ndarray,
+    plane: np.ndarray,
+    *,
+    slope: np.ndarray,
+    intercept: np.ndarray,
+    t_i: float,
+) -> None:
+    """Accumulate squared residual for one plane given a finished linear fit."""
+    p = np.asarray(plane, dtype=np.float64)
+    resid = p - (intercept + slope * t_i)
+    sum_resid2 += resid * resid
+
+
+def ramp_fit_rms(sum_resid2: np.ndarray, nplane: int) -> np.ndarray:
+    return np.sqrt(sum_resid2 / float(nplane))
+
+
+def _draw_box(
+    ax,
+    box: tuple[int, int, int, int] | None,
+    *,
+    color: str,
+    linestyle: str = "-",
+) -> None:
+    if box is None:
+        return
+    from matplotlib.patches import Rectangle
+
+    row0, row1, col0, col1 = box
+    ax.add_patch(
+        Rectangle(
+            (col0 - 0.5, row0 - 0.5),
+            col1 - col0,
+            row1 - row0,
+            fill=False,
+            edgecolor=color,
+            linewidth=1.0,
+            linestyle=linestyle,
+        )
+    )
+
+
+def _overlay_pixels(ax, pixels: np.ndarray | None) -> None:
+    if pixels is None or pixels.size == 0:
+        return
+    ax.scatter(
+        pixels[:, 1],
+        pixels[:, 0],
+        s=12,
+        c="#ff6b6b",
+        marker="o",
+        linewidths=0.4,
+        edgecolors="white",
+        zorder=5,
+    )
+
+
+def _save_png(fig, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=140)
+    plt.close(fig)
+    logging.info("Wrote detector QA plot: %s", path)
+
+
+def save_map_fits(path: Path, image: np.ndarray, *, bunit: str, history: str) -> None:
+    from astropy.io import fits
+
+    path = path.expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = np.asarray(image, dtype=np.float32)
+    header = fits.Header()
+    header["BUNIT"] = bunit
+    header.add_history(history)
+    fits.PrimaryHDU(data=data, header=header).writeto(path, overwrite=True)
+    logging.info("Wrote detector QA map: %s", path)
+
+
+def plot_reset_qa(
+    image: np.ndarray,
+    *,
+    output: Path,
+    title: str,
+    n_sigma: float,
+    illum_box: tuple[int, int, int, int] | None = None,
+    extra_box: tuple[int, int, int, int] | None = None,
+) -> dict[str, float]:
+    """Spatial quality of a reset (or first-sample) frame. Returns summary stats."""
+    img = np.asarray(image, dtype=np.float64)
+    stats = _stats(img)
+    hot, cold = defect_mask(img, n_sigma=n_sigma)
+    n_hot = int(hot.sum())
+    n_cold = int(cold.sum())
+    ref = h2rg_ref_mask(img.shape)
+    n_out = n_outputs_for_shape(img.shape)
+    chan = channel_profile(img, n_out) if n_out else None
+    col_mean = np.nanmean(img, axis=0)
+    row_mean = np.nanmean(img, axis=1)
+    vmin, vmax = _display_limits(img)
+
+    fig = plt.figure(figsize=(14.5, 9.6), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.05, hspace=0.08
+        )
+    except Exception:
+        pass
+    gs = fig.add_gridspec(2, 3)
+    fig.suptitle(title, fontsize=12, fontweight="bold")
+
+    ax_im = fig.add_subplot(gs[0, 0])
+    im = ax_im.imshow(
+        img,
+        origin="upper",
+        cmap="gray",
+        vmin=vmin,
+        vmax=vmax,
+        interpolation="nearest",
+        aspect="equal",
+    )
+    _draw_box(ax_im, illum_box, color="#ff6b6b")
+    _draw_box(
+        ax_im,
+        image_center_subbox(img.shape),
+        color=CENTER_MEDIAN_BOX_COLOR,
+        linestyle="-.",
+    )
+    _draw_box(ax_im, extra_box, color="#4cc9f0", linestyle="--")
+    ax_im.set_title("Reset / reference frame")
+    ax_im.set_xlabel("X [pix]")
+    ax_im.set_ylabel("Y [pix]")
+    fig.colorbar(im, ax=ax_im, fraction=0.035, pad=0.02, label="ADU")
+
+    ax_hist = fig.add_subplot(gs[0, 1])
+    finite = _finite(img)
+    if finite.size:
+        lo, hi = np.percentile(finite, (0.5, 99.5))
+        if hi <= lo:
+            hi = lo + 1.0
+        _safe_hist(
+            ax_hist,
+            finite,
+            bins=80,
+            range_=(lo, hi),
+            color="C0",
+            histtype="stepfilled",
+            alpha=0.7,
+        )
+    ax_hist.set_title("Histogram")
+    ax_hist.set_xlabel("ADU")
+    ax_hist.set_ylabel("Pixels")
+    ax_hist.text(
+        0.98,
+        0.98,
+        _format_stats(stats) + f"\nhot={n_hot} cold={n_cold}",
+        transform=ax_hist.transAxes,
+        va="top",
+        ha="right",
+        fontsize=8,
+        family="monospace",
+        bbox={"facecolor": "white", "alpha": 0.75, "edgecolor": "none"},
+    )
+
+    ax_def = fig.add_subplot(gs[0, 2])
+    defect = np.zeros(img.shape + (3,), dtype=np.float64)
+    defect[..., :] = np.clip((img - vmin) / max(vmax - vmin, 1e-9), 0, 1)[..., None]
+    defect[hot] = (1.0, 0.2, 0.2)
+    defect[cold] = (0.2, 0.5, 1.0)
+    ax_def.imshow(defect, origin="upper", interpolation="nearest", aspect="equal")
+    ax_def.set_title(f"Defects ({n_sigma:.1f}σ MAD): hot red, cold blue")
+    ax_def.set_xlabel("X [pix]")
+    ax_def.set_ylabel("Y [pix]")
+
+    ax_col = fig.add_subplot(gs[1, 0])
+    ax_col.plot(np.arange(col_mean.size), col_mean, color="C0", linewidth=0.8)
+    ax_col.set_title("Column mean (channel stripes)")
+    ax_col.set_xlabel("X [pix]")
+    ax_col.set_ylabel("ADU")
+    ax_col.grid(True, alpha=0.3)
+
+    ax_row = fig.add_subplot(gs[1, 1])
+    ax_row.plot(row_mean, np.arange(row_mean.size), color="C1", linewidth=0.8)
+    ax_row.set_title("Row mean (banding)")
+    ax_row.set_xlabel("ADU")
+    ax_row.set_ylabel("Y [pix]")
+    ax_row.invert_yaxis()
+    ax_row.grid(True, alpha=0.3)
+
+    ax_ch = fig.add_subplot(gs[1, 2])
+    if chan is not None:
+        ax_ch.bar(np.arange(chan.size), chan, color="C2", width=0.85)
+        ax_ch.set_title(f"Per-output mean ({chan.size} channels)")
+        ax_ch.set_xlabel("Output")
+        ax_ch.set_ylabel("ADU")
+        p2p = float(np.nanmax(chan) - np.nanmin(chan))
+        ax_ch.text(
+            0.02,
+            0.98,
+            f"ch p-p={p2p:.4g} ADU",
+            transform=ax_ch.transAxes,
+            va="top",
+            fontsize=8,
+        )
+        stats["channel_p2p"] = p2p
+    elif ref is not None:
+        ref_stats = _stats(img[ref])
+        sci_stats = _stats(img[~ref])
+        ax_ch.bar(
+            [0, 1],
+            [sci_stats["median"], ref_stats["median"]],
+            color=["C0", "C3"],
+            tick_label=["Active", "Ref pix"],
+        )
+        ax_ch.set_title("Active vs reference median")
+        ax_ch.set_ylabel("ADU")
+        stats["ref_median"] = ref_stats["median"]
+        stats["active_median"] = sci_stats["median"]
+    else:
+        work = np.where(np.isfinite(img), img, np.nan)
+        work = work - np.nanmedian(work)
+        spec = np.abs(np.fft.fftshift(np.fft.fft2(np.nan_to_num(work))))
+        ax_ch.imshow(
+            np.log10(spec + 1.0),
+            origin="upper",
+            cmap="magma",
+            interpolation="nearest",
+            aspect="equal",
+        )
+        ax_ch.set_title("log|FFT| (spatial)")
+        ax_ch.set_xlabel("fx")
+        ax_ch.set_ylabel("fy")
+
+    _save_png(fig, output)
+    logging.info(
+        "Reset QA: median=%.4g ADU  MAD=%.4g  std=%.4g  hot=%d  cold=%d",
+        stats["median"],
+        stats["mad"],
+        stats["std"],
+        n_hot,
+        n_cold,
+    )
+    stats["n_hot"] = float(n_hot)
+    stats["n_cold"] = float(n_cold)
+    return stats
+
+
+def _linear_fit_line(
+    t: np.ndarray,
+    y: np.ndarray,
+    *,
+    lowest_frac: float = 0.5,
+) -> tuple[np.ndarray, float] | None:
+    """Fit ``a + b t`` using the lowest *lowest_frac* of *y* values.
+
+    Returns ``(y_line, slope)`` with *y_line* evaluated on the full *t*
+    array, or ``None`` if a fit is not possible.
+    """
+    tt = np.asarray(t, dtype=np.float64).reshape(-1)
+    yy = np.asarray(y, dtype=np.float64).reshape(-1)
+    ok = np.isfinite(tt) & np.isfinite(yy)
+    if int(ok.sum()) < 2:
+        return None
+    tt_ok = tt[ok]
+    yy_ok = yy[ok]
+    n_fit = max(2, int(np.ceil(lowest_frac * tt_ok.size)))
+    n_fit = min(n_fit, int(tt_ok.size))
+    order = np.argsort(yy_ok, kind="mergesort")[:n_fit]
+    tt_fit = tt_ok[order]
+    yy_fit = yy_ok[order]
+    if float(np.ptp(tt_fit)) <= 0:
+        return None
+    slope, intercept = np.polyfit(tt_fit, yy_fit, 1)
+    y_line = slope * tt + intercept
+    return y_line, float(slope)
+
+
+def _plot_linearity_curves(
+    ax,
+    t: np.ndarray,
+    cube: np.ndarray | None = None,
+    *,
+    illum_box: tuple[int, int, int, int] | None,
+    extra_box: tuple[int, int, int, int] | None,
+    pixels: np.ndarray | None,
+    include_ref_pixels: bool,
+    reset_img: np.ndarray | None = None,
+    series: list[tuple[np.ndarray, str, str, str]] | None = None,
+) -> None:
+    """Plot region median/mean ADU series on *ax* from *cube* or *series*.
+
+    Each series gets a thin dashed linear fit to the lowest 50% of ADU
+    values (line drawn over the full sample range, no legend entry), with
+    the fitted slope annotated on the axes.
+    """
+    if series is None:
+        if cube is None:
+            raise ValueError("cube or series is required for linearity curves")
+        data = np.asarray(cube, dtype=np.float64)
+        nplane = int(data.shape[0])
+        series = [
+            (
+                np.array(
+                    [float(np.nanmedian(plane)) for plane in data],
+                    dtype=np.float64,
+                ),
+                "o-",
+                "0.45",
+                "median full",
+            )
+        ]
+        mr0, mr1, mc0, mc1 = image_center_subbox(data.shape[1:])
+        series.append(
+            (
+                np.array(
+                    [
+                        float(np.nanmedian(plane[mr0:mr1, mc0:mc1]))
+                        for plane in data
+                    ],
+                    dtype=np.float64,
+                ),
+                "s-",
+                "C0",
+                f"median {mr1 - mr0}×{mc1 - mc0}",
+            )
+        )
+        if extra_box is not None:
+            er0, er1, ec0, ec1 = extra_box
+            series.append(
+                (
+                    np.array(
+                        [
+                            float(np.nanmedian(plane[er0:er1, ec0:ec1]))
+                            for plane in data
+                        ],
+                        dtype=np.float64,
+                    ),
+                    "d-",
+                    "#4cc9f0",
+                    "median ROI",
+                )
+            )
+        if include_ref_pixels:
+            ref_mask = h2rg_ref_mask(data.shape[1:])
+            if ref_mask is not None and bool(ref_mask.any()):
+                series.append(
+                    (
+                        np.array(
+                            [float(np.nanmean(plane[ref_mask])) for plane in data],
+                            dtype=np.float64,
+                        ),
+                        "v-",
+                        REF_PIXEL_COLOR,
+                        "mean ref pixels",
+                    )
+                )
+        if pixels is not None and pixels.size:
+            series.append(
+                (
+                    np.array(
+                        [
+                            float(np.mean(data[i, pixels[:, 0], pixels[:, 1]]))
+                            for i in range(nplane)
+                        ],
+                        dtype=np.float64,
+                    ),
+                    "^-",
+                    "C3",
+                    "10 brightest",
+                )
+            )
+
+    slope_notes: list[tuple[str, float, str]] = []
+    for y, style, color, label in series:
+        ax.plot(t, y, style, color=color, markersize=5, label=label)
+        fitted = _linear_fit_line(t, y, lowest_frac=0.5)
+        if fitted is not None:
+            y_fit, slope = fitted
+            ax.plot(
+                t,
+                y_fit,
+                linestyle="--",
+                color=color,
+                linewidth=1.0,
+                alpha=0.75,
+                label="_nolegend_",
+            )
+            slope_notes.append((label, slope, color))
+
+    if slope_notes:
+        lines = [
+            f"{name}: {slope:+.3g} ADU/sample" for name, slope, _color in slope_notes
+        ]
+        ax.text(
+            0.02,
+            0.98,
+            "\n".join(lines),
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=7,
+            family="monospace",
+            bbox={
+                "boxstyle": "round,pad=0.25",
+                "facecolor": "white",
+                "edgecolor": "0.75",
+                "alpha": 0.85,
+            },
+        )
+
+    if reset_img is not None:
+        reset_refs: list[tuple[str, float, str]] = [
+            ("reset median full", float(np.nanmedian(reset_img)), "0.45"),
+        ]
+        mr0, mr1, mc0, mc1 = image_center_subbox(reset_img.shape)
+        reset_refs.append(
+            (
+                f"reset median {mr1 - mr0}×{mc1 - mc0}",
+                float(np.nanmedian(reset_img[mr0:mr1, mc0:mc1])),
+                "C0",
+            )
+        )
+        if extra_box is not None:
+            er0, er1, ec0, ec1 = extra_box
+            reset_refs.append(
+                (
+                    "reset median ROI",
+                    float(np.nanmedian(reset_img[er0:er1, ec0:ec1])),
+                    "#4cc9f0",
+                )
+            )
+        if include_ref_pixels:
+            ref_mask = h2rg_ref_mask(reset_img.shape)
+            if ref_mask is not None and bool(ref_mask.any()):
+                reset_refs.append(
+                    (
+                        "reset mean ref pixels",
+                        float(np.nanmean(reset_img[ref_mask])),
+                        REF_PIXEL_COLOR,
+                    )
+                )
+        if pixels is not None and pixels.size:
+            reset_refs.append(
+                (
+                    "reset 10 brightest",
+                    float(np.mean(reset_img[pixels[:, 0], pixels[:, 1]])),
+                    "C3",
+                )
+            )
+        for label, value, color in reset_refs:
+            if not np.isfinite(value):
+                continue
+            ax.axhline(
+                value,
+                color=color,
+                linestyle=":",
+                linewidth=1.2,
+                alpha=0.85,
+                label=label,
+            )
+
+
+def plot_ramp_qa(
+    cube: np.ndarray | None,
+    sample_index: np.ndarray,
+    *,
+    output: Path,
+    title: str,
+    illum_box: tuple[int, int, int, int] | None = None,
+    extra_box: tuple[int, int, int, int] | None = None,
+    pixels: np.ndarray | None = None,
+    slope_fits: Path | None = None,
+    rms_fits: Path | None = None,
+    reset_frame: np.ndarray | None = None,
+    show_reset_levels: bool = False,
+    raw_cube: np.ndarray | None = None,
+    slope: np.ndarray | None = None,
+    rms: np.ndarray | None = None,
+    last: np.ndarray | None = None,
+    corrected_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+    raw_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+) -> dict[str, float]:
+    """Ramp quality: per-pixel slope, residual RMS, and linearity.
+
+    Middle linearity uses *cube* (CDS / channel-ref corrected) or
+    *corrected_series*. Bottom-right uses *raw_cube* / *raw_series*
+    (absolute ADU). Precomputed *slope* / *rms* / *last* skip holding a
+    full cube in memory (streaming fit path).
+    """
+    t = np.asarray(sample_index, dtype=np.float64)
+    data = None if cube is None else np.asarray(cube, dtype=np.float64)
+    if data is not None:
+        nplane = int(data.shape[0])
+        plane_shape = data.shape[1:]
+        if slope is None or rms is None:
+            slope, _intercept, rms = fit_ramp(data, t)
+        if last is None:
+            last = data[-1]
+    else:
+        if slope is None or rms is None or last is None:
+            raise ValueError(
+                "plot_ramp_qa needs cube, or precomputed slope/rms/last"
+            )
+        nplane = int(t.size)
+        plane_shape = np.asarray(last).shape
+
+    slope = np.asarray(slope, dtype=np.float64)
+    rms = np.asarray(rms, dtype=np.float64)
+    last = np.asarray(last, dtype=np.float64)
+    vmin_s, vmax_s = _display_limits(slope)
+    vmin_r, vmax_r = _display_limits(rms)
+    vmin_l, vmax_l = _display_limits(last)
+
+    reset_img: np.ndarray | None = None
+    if show_reset_levels and reset_frame is not None:
+        reset_img = np.asarray(reset_frame, dtype=np.float64)
+        if reset_img.shape != plane_shape:
+            logging.warning(
+                "Reset frame shape %s != ramp plane %s; "
+                "skipping reset reference lines on raw linearity plot",
+                reset_img.shape,
+                plane_shape,
+            )
+            reset_img = None
+
+    if illum_box is not None:
+        r0, r1, c0, c1 = illum_box
+        illum_slope = slope[r0:r1, c0:c1]
+    else:
+        illum_slope = None
+
+    raw = None if raw_cube is None else np.asarray(raw_cube, dtype=np.float64)
+    if raw is not None and (
+        raw.ndim != 3
+        or raw.shape[0] != nplane
+        or raw.shape[1:] != plane_shape
+    ):
+        logging.warning(
+            "raw_cube shape %s incompatible with ramp plane %s; "
+            "raw linearity falls back to corrected series/cube",
+            raw.shape,
+            plane_shape,
+        )
+        raw = data
+
+    fig = plt.figure(figsize=(14.5, 9.8), layout="constrained")
+    try:
+        fig.set_constrained_layout_pads(
+            w_pad=0.02, h_pad=0.02, wspace=0.05, hspace=0.08
+        )
+    except Exception:
+        pass
+    gs = fig.add_gridspec(2, 3)
+    fig.suptitle(title, fontsize=12, fontweight="bold")
+
+    ax_s = fig.add_subplot(gs[0, 0])
+    im_s = ax_s.imshow(
+        slope,
+        origin="upper",
+        cmap="magma",
+        vmin=vmin_s,
+        vmax=vmax_s,
+        interpolation="nearest",
+        aspect="equal",
+    )
+    metric_box = image_center_subbox(plane_shape)
+    _draw_box(ax_s, illum_box, color="#ff6b6b")
+    _draw_box(ax_s, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
+    _draw_box(ax_s, extra_box, color="#4cc9f0", linestyle="--")
+    _overlay_pixels(ax_s, pixels)
+    ax_s.set_title("Slope [ADU / sample]")
+    ax_s.set_xlabel("X [pix]")
+    ax_s.set_ylabel("Y [pix]")
+    fig.colorbar(im_s, ax=ax_s, fraction=0.035, pad=0.02)
+
+    ax_rms = fig.add_subplot(gs[0, 1])
+    im_rms = ax_rms.imshow(
+        rms,
+        origin="upper",
+        cmap="viridis",
+        vmin=vmin_r,
+        vmax=vmax_r,
+        interpolation="nearest",
+        aspect="equal",
+    )
+    _draw_box(ax_rms, illum_box, color="#ff6b6b")
+    _draw_box(ax_rms, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
+    _draw_box(ax_rms, extra_box, color="#4cc9f0", linestyle="--")
+    ax_rms.set_title("Residual RMS [ADU]")
+    ax_rms.set_xlabel("X [pix]")
+    ax_rms.set_ylabel("Y [pix]")
+    fig.colorbar(im_rms, ax=ax_rms, fraction=0.035, pad=0.02)
+
+    ax_last = fig.add_subplot(gs[0, 2])
+    im_l = ax_last.imshow(
+        last,
+        origin="upper",
+        cmap="gray",
+        vmin=vmin_l,
+        vmax=vmax_l,
+        interpolation="nearest",
+        aspect="equal",
+    )
+    _draw_box(ax_last, illum_box, color="#ff6b6b")
+    _draw_box(ax_last, metric_box, color=CENTER_MEDIAN_BOX_COLOR, linestyle="-.")
+    _draw_box(ax_last, extra_box, color="#4cc9f0", linestyle="--")
+    _overlay_pixels(ax_last, pixels)
+    ax_last.set_title("Last CDS sample")
+    ax_last.set_xlabel("X [pix]")
+    ax_last.set_ylabel("Y [pix]")
+    fig.colorbar(im_l, ax=ax_last, fraction=0.035, pad=0.02, label="ADU")
+
+    ax_h = fig.add_subplot(gs[1, 0])
+    s_all = _finite(slope)
+    lo = hi = None
+    if s_all.size:
+        lo, hi = np.percentile(s_all, (1.0, 99.0))
+        if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+            span = max(abs(float(np.mean(s_all))), 1.0) * 1e-3
+            lo, hi = float(np.mean(s_all)) - span, float(np.mean(s_all)) + span
+        n_bins = min(80, max(10, int(np.sqrt(s_all.size))))
+        _safe_hist(
+            ax_h,
+            s_all,
+            bins=n_bins,
+            range_=(lo, hi),
+            color="0.55",
+            histtype="stepfilled",
+            alpha=0.7,
+            label="full frame",
+            density=True,
+        )
+    if illum_slope is not None:
+        s_ill = _finite(illum_slope)
+        if s_ill.size:
+            hist_kw: dict = {
+                "bins": min(40, max(8, s_ill.size)),
+                "color": "C0",
+                "histtype": "step",
+                "linewidth": 1.4,
+                "label": "photonic box",
+                "density": True,
+            }
+            if lo is not None and hi is not None:
+                hist_kw["range_"] = (lo, hi)
+            else:
+                hist_kw["range_"] = None
+            _safe_hist(ax_h, s_ill, **hist_kw)
+    ax_h.set_title("Slope histogram")
+    ax_h.set_xlabel("ADU / sample")
+    ax_h.set_ylabel("Density")
+    ax_h.legend(fontsize=8)
+    ax_h.grid(True, alpha=0.3)
+
+    ax_lin = fig.add_subplot(gs[1, 1])
+    _plot_linearity_curves(
+        ax_lin,
+        t,
+        data,
+        illum_box=illum_box,
+        extra_box=extra_box,
+        pixels=pixels,
+        include_ref_pixels=False,
+        series=corrected_series,
+    )
+    ax_lin.set_title("Linearity (corrected)")
+    ax_lin.set_xlabel("Sample index")
+    ax_lin.set_ylabel("ADU")
+    ax_lin.legend(fontsize=8)
+    ax_lin.grid(True, alpha=0.3)
+
+    ax_raw = fig.add_subplot(gs[1, 2])
+    _plot_linearity_curves(
+        ax_raw,
+        t,
+        raw if raw_series is None else None,
+        illum_box=illum_box,
+        extra_box=extra_box,
+        pixels=pixels,
+        include_ref_pixels=True,
+        reset_img=reset_img,
+        series=raw_series,
+    )
+    ax_raw.set_title(
+        "Linearity (raw absolute)"
+        if reset_img is None
+        else "Linearity (raw absolute; dashed = reset)"
+    )
+    ax_raw.set_xlabel("Sample index")
+    ax_raw.set_ylabel("ADU")
+    ax_raw.legend(fontsize=8)
+    ax_raw.grid(True, alpha=0.3)
+
+    _save_png(fig, output)
+
+    slope_stats = _stats(slope)
+    rms_stats = _stats(rms)
+    summary = {
+        "nplane": float(nplane),
+        "slope_median": slope_stats["median"],
+        "slope_mad": slope_stats["mad"],
+        "resid_rms_median": rms_stats["median"],
+    }
+    if illum_slope is not None:
+        box_stats = _stats(illum_slope)
+        summary["slope_illum_median"] = box_stats["median"]
+        summary["slope_illum_mad"] = box_stats["mad"]
+        logging.info(
+            "Ramp QA: n=%d  slope_med=%.4g ADU/sample  "
+            "illum_slope_med=%.4g  resid_rms_med=%.4g ADU",
+            nplane,
+            slope_stats["median"],
+            box_stats["median"],
+            rms_stats["median"],
+        )
+        if np.isfinite(box_stats["median"]) and abs(box_stats["median"]) < max(
+            1e-6, 0.1 * box_stats["mad"] if np.isfinite(box_stats["mad"]) else 1e-3
+        ):
+            logging.warning(
+                "Photonic-box median slope is consistent with zero — "
+                "pixels may not be integrating"
+            )
+    else:
+        logging.info(
+            "Ramp QA: n=%d  slope_med=%.4g ADU/sample  resid_rms_med=%.4g ADU",
+            nplane,
+            slope_stats["median"],
+            rms_stats["median"],
+        )
+
+    if slope_fits is not None:
+        save_map_fits(
+            slope_fits,
+            slope,
+            bunit="ADU / sample",
+            history="Per-pixel linear slope of CDS-relative UpTheRamp cube",
+        )
+    if rms_fits is not None:
+        save_map_fits(
+            rms_fits,
+            rms,
+            bunit="ADU",
+            history="Per-pixel residual RMS after linear UpTheRamp fit",
+        )
+    return summary
+
+
+def run_detector_qa(
+    *,
+    out_dir: Path,
+    cds_cube: np.ndarray | None,
+    sample_index: np.ndarray,
+    reset_frame: np.ndarray | None,
+    reset_name: str | None,
+    first_science: np.ndarray | None,
+    illum_box: tuple[int, int, int, int] | None,
+    pixels: np.ndarray | None,
+    n_sigma: float,
+    cds_short: str,
+    extra_box: tuple[int, int, int, int] | None = None,
+    session_name: str | None = None,
+    session_slug: str | None = None,
+    show_reset_levels: bool = False,
+    reset_levels_frame: np.ndarray | None = None,
+    raw_cube: np.ndarray | None = None,
+    slope: np.ndarray | None = None,
+    rms: np.ndarray | None = None,
+    last_cds: np.ndarray | None = None,
+    corrected_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+    raw_series: list[tuple[np.ndarray, str, str, str]] | None = None,
+) -> None:
+    """Write reset and ramp QA products into *out_dir*.
+
+    *reset_levels_frame* is accepted for API compatibility and ignored
+    (corrected linearity stays on the CDS/ch-ref cube; dashed reset levels
+    use the raw *reset_frame* on the raw absolute panel).
+
+    *reset_frame* is used for the spatial reset QA and for optional dashed
+    reset levels on the raw absolute linearity panel.
+    *raw_cube* is absolute ADU (no CDS / ref correction) for that raw panel.
+    Streaming callers may omit *cds_cube* and pass *slope* / *rms* /
+    *last_cds* plus linearity *series* instead.
+    """
+    out_dir = out_dir.expanduser().resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    slug = (session_slug or session_name or out_dir.name or "session").strip()
+    slug = slug or "session"
+    folder = session_name or out_dir.name or slug
+
+    if reset_frame is not None:
+        reset_title = f"{folder} — H2RG reset QA ({reset_name or 'reset frame'})"
+        reset_image = reset_frame
+    elif first_science is not None:
+        reset_title = (
+            f"{folder} — H2RG reference QA (first science sample, no reset file)"
+        )
+        reset_image = first_science
+    else:
+        reset_image = None
+        reset_title = ""
+
+    if reset_image is not None:
+        plot_reset_qa(
+            reset_image,
+            output=out_dir / f"{slug}_msac_qa_reset.png",
+            title=reset_title,
+            n_sigma=n_sigma,
+            illum_box=illum_box,
+            extra_box=extra_box,
+        )
+    else:
+        logging.warning("Detector QA: no reset or first-sample frame to analyse")
+
+    nplane = (
+        int(cds_cube.shape[0])
+        if cds_cube is not None
+        else int(np.asarray(sample_index).size)
+    )
+    if nplane < 2:
+        logging.warning("Detector QA: need ≥2 ramp samples for slope maps")
+        return
+
+    plot_ramp_qa(
+        cds_cube,
+        sample_index,
+        output=out_dir / f"{slug}_msac_qa_ramp.png",
+        title=f"{folder} — H2RG ramp QA ({cds_short})",
+        illum_box=illum_box,
+        extra_box=extra_box,
+        pixels=pixels,
+        slope_fits=out_dir / f"{slug}_msac_qa_slope.fits",
+        rms_fits=out_dir / f"{slug}_msac_qa_resid_rms.fits",
+        reset_frame=reset_frame,
+        show_reset_levels=show_reset_levels,
+        raw_cube=raw_cube,
+        slope=slope,
+        rms=rms,
+        last=last_cds,
+        corrected_series=corrected_series,
+        raw_series=raw_series,
+    )
