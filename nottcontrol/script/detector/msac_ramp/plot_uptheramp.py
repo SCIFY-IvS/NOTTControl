@@ -1089,6 +1089,48 @@ def peek_nplanes(path: Path) -> tuple[int, dict]:
     return max(1, int(header.get("NAXIS3", 1) or 1)), header
 
 
+def image_shape_from_header(header: dict) -> tuple[int, int] | None:
+    """Return ``(ny, nx)`` from FITS ``NAXIS2``/``NAXIS1``, or ``None``."""
+    naxis = int(header.get("NAXIS", 0) or 0)
+    if naxis < 2:
+        return None
+    nx = int(header.get("NAXIS1", 0) or 0)
+    ny = int(header.get("NAXIS2", 0) or 0)
+    if nx <= 0 or ny <= 0:
+        return None
+    return ny, nx
+
+
+def keep_sample_refs_matching_shape(
+    refs: list[SampleRef],
+    shape: tuple[int, int],
+) -> list[SampleRef]:
+    """Drop science samples whose spatial size differs from *shape*.
+
+    MACIE dated folders can mix WinMode sizes in one session (full-frame
+    next to a photonic window, or leftover 64×32 after a 21×21 ROI change).
+    Geometry is taken from the last sample; other sizes are skipped so
+    first-NDR CDS and bright-pixel tracking do not crash.
+    """
+    kept: list[SampleRef] = []
+    for ref in refs:
+        ny_nx = image_shape_from_header(peek_nplanes(ref.path)[1])
+        if ny_nx is None:
+            plane, _header = load_sample_absolute(ref)
+            ny_nx = (int(plane.shape[0]), int(plane.shape[1]))
+        if ny_nx == shape:
+            kept.append(ref)
+            continue
+        logging.warning(
+            "Skipping %s: shape %s != session science %s "
+            "(mixed WinMode in one folder)",
+            ref.name,
+            ny_nx,
+            shape,
+        )
+    return kept
+
+
 def build_sample_refs(
     paths: list[Path],
     *,
@@ -1190,7 +1232,13 @@ def make_cds_plane(
     if reset_only:
         pass
     elif first_abs is not None:
-        plane -= np.asarray(first_abs, dtype=np.float32)
+        first = np.asarray(first_abs, dtype=np.float32)
+        if first.shape != plane.shape:
+            raise ValueError(
+                f"CDS pedestal shape {tuple(first.shape)} != sample "
+                f"{tuple(plane.shape)}"
+            )
+        plane -= first
     else:
         raise ValueError("CDS needs first_abs (first science NDR sample)")
     ref_ok = False
@@ -2231,6 +2279,27 @@ def main(argv: list[str] | None = None) -> int:
         ref_header = header0
     last_abs, _ = load_sample_absolute(sample_refs[-1])
     ny, nx = int(last_abs.shape[0]), int(last_abs.shape[1])
+    matching_refs = keep_sample_refs_matching_shape(sample_refs, (ny, nx))
+    if len(matching_refs) != len(sample_refs):
+        if not matching_refs:
+            raise RuntimeError(
+                f"No science samples match last-file shape {(ny, nx)}"
+            )
+        logging.warning(
+            "Using %d/%d science sample(s) at %d×%d; skipped mixed WinMode files",
+            len(matching_refs),
+            len(sample_refs),
+            ny,
+            nx,
+        )
+        sample_refs = matching_refs
+        nplane = len(sample_refs)
+        indices = np.array([r.index for r in sample_refs], dtype=np.int64)
+        names = [r.name for r in sample_refs]
+        index_tag = sample_refs[0].tag
+        first_abs, header0 = load_sample_absolute(sample_refs[0])
+        if ref_header is None:
+            ref_header = header0
     windowed = not is_full_frame((ny, nx))
     do_ref_correct = (not args.no_ref_correct) and (not windowed)
 
@@ -2573,6 +2642,15 @@ def main(argv: list[str] | None = None) -> int:
         abs_plane, header = load_sample_absolute(ref)
         if ref_header is None:
             ref_header = header
+        if tuple(abs_plane.shape) != (ny, nx):
+            logging.warning(
+                "Skipping %s: loaded shape %s != session science (%d, %d)",
+                ref.name,
+                tuple(abs_plane.shape),
+                ny,
+                nx,
+            )
+            continue
         logging.info(
             "%s: shape=%s  NAXIS=%s  index=%s%d",
             ref.name,
