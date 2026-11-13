@@ -188,6 +188,24 @@ def build_flux_series(
         raise RuntimeError("no science or reset FITS with M/N/R file index")
 
     records.sort(key=lambda row: (row[0], row[2].lower()))
+    ny0, nx0 = int(records[-1][3].shape[0]), int(records[-1][3].shape[1])
+    matching = [row for row in records if row[3].shape == (ny0, nx0)]
+    if len(matching) != len(records):
+        for row in records:
+            if row[3].shape != (ny0, nx0):
+                logging.warning(
+                    "Skipping %s: shape %s != session science (%d, %d) "
+                    "(mixed WinMode in one folder)",
+                    row[2],
+                    tuple(int(v) for v in row[3].shape),
+                    ny0,
+                    nx0,
+                )
+        if not matching:
+            raise RuntimeError(
+                f"No science samples match last-file shape {(ny0, nx0)}"
+            )
+        records = matching
     stack = np.stack([row[3] for row in records], axis=0)
     if reset_only:
         cds_cube = np.asarray(stack, dtype=np.float64)
