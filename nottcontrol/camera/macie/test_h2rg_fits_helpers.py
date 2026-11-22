@@ -34,6 +34,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     map_server_fits_path,
     newest_fits_file,
     next_fits_frame_number,
+    prefer_newer_ramp_name,
     ramp_fits_path_for_viewer,
     ramp_fits_sort_key,
     resolve_ramp_fits_path,
@@ -321,6 +322,83 @@ class SelectAcquireRampPathsTests(unittest.TestCase):
                 dir_ok=True,
             )
             self.assertEqual(new_paths, [])
+
+    def test_midburst_server_name_does_not_collect_leftovers(self) -> None:
+        """newestfits readdir tie-break can return a mid-burst leftover.
+
+        The next nseq=1 Acquire would then treat later siblings as new and
+        immediately archive the previous last ramp (wrong DETMODE/cryo stamp).
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            for index in range(10, 19):
+                path = directory / f"nott_20260817_{index:06d}.fits"
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            local_newest = newest_fits_file(directory)
+            self.assertIsNotNone(local_newest)
+            assert local_newest is not None
+            self.assertEqual(local_newest.name, "nott_20260817_000018.fits")
+            watermark = prefer_newer_ramp_name(
+                local_newest.name,
+                "nott_20260817_000012.fits",
+            )
+            self.assertEqual(watermark, "nott_20260817_000018.fits")
+            self.assertEqual(
+                list_new_ramp_fits_in_dir(
+                    directory,
+                    before_mtime=stamp,
+                    before_name=watermark,
+                    dir_ok=True,
+                ),
+                [],
+            )
+            leaked = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name="nott_20260817_000012.fits",
+                dir_ok=True,
+            )
+            self.assertEqual(
+                [path.name for path in leaked],
+                [f"nott_20260817_{index:06d}.fits" for index in range(13, 19)],
+            )
+            selected = select_acquire_ramp_paths(leaked, expected_count=1)
+            self.assertEqual(selected[0].name, "nott_20260817_000018.fits")
+
+
+class PreferNewerRampNameTests(unittest.TestCase):
+    def test_prefers_higher_macie_index(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "nott_20260817_000012.fits",
+                "nott_20260817_000018.fits",
+            ),
+            "nott_20260817_000018.fits",
+        )
+
+    def test_prefers_later_date_prefix(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "nott_20260816_000099.fits",
+                "nott_20260817_000001.fits",
+            ),
+            "nott_20260817_000001.fits",
+        )
+
+    def test_ignores_preview_and_science(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "preview.fits",
+                "nott_20260817_000012_science.fits",
+                "nott_20260817_000012.fits",
+            ),
+            "nott_20260817_000012.fits",
+        )
+
+    def test_empty_inputs(self) -> None:
+        self.assertIsNone(prefer_newer_ramp_name(None, "", "preview.fits"))
 
 
 class MapServerFitsPathTests(unittest.TestCase):
