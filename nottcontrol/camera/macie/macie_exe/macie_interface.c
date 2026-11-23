@@ -5,9 +5,12 @@
 #include "MacieMain.h"
 #include <iostream>
 #include "macie.h"
+#include <cctype>
+#include <cstdlib>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <utility>
 #include <vector>
 
 #include <zmq.hpp>
@@ -309,6 +312,54 @@ std::vector<std::string> split(std::string s, const std::string& delimiter) {
     return tokens;
 }
 
+static std::string fits_basename_lower(const std::string &path)
+{
+    std::string name = path;
+    size_t slash = name.find_last_of("/\\");
+    if (slash != std::string::npos)
+        name = name.substr(slash + 1);
+    for (size_t i = 0; i < name.size(); ++i)
+        name[i] = static_cast<char>(tolower(static_cast<unsigned char>(name[i])));
+    return name;
+}
+
+static bool is_science_or_preview_fits_name(const std::string &name)
+{
+    std::string lowered = fits_basename_lower(name);
+    return lowered == "preview.fits" ||
+           (lowered.size() >= 14 &&
+            lowered.compare(lowered.size() - 14, 14, "_science.fits") == 0);
+}
+
+// Match Python ramp_fits_sort_key: date prefix then numeric MACIE index.
+static std::pair<std::string, long> ramp_name_sort_key(const std::string &path)
+{
+    std::string name = fits_basename_lower(path);
+    std::string stem = name;
+    size_t dot = stem.rfind('.');
+    if (dot != std::string::npos)
+        stem = stem.substr(0, dot);
+    if (stem.size() >= 8 && stem.compare(stem.size() - 8, 8, "_science") == 0)
+        stem = stem.substr(0, stem.size() - 8);
+    size_t us = stem.rfind('_');
+    if (us != std::string::npos && us + 1 < stem.size())
+    {
+        std::string label = stem.substr(us + 1);
+        bool digits = !label.empty();
+        for (size_t i = 0; i < label.size(); ++i)
+        {
+            if (!isdigit(static_cast<unsigned char>(label[i])))
+            {
+                digits = false;
+                break;
+            }
+        }
+        if (digits)
+            return std::make_pair(stem.substr(0, us), std::strtol(label.c_str(), NULL, 10));
+    }
+    return std::make_pair(name, -1L);
+}
+
 static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
 {
     if (ptUserData == NULL || ptUserData->saveDir.empty())
@@ -326,6 +377,7 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
     struct dirent *ent;
     std::string newest_path;
     time_t newest_mtime = 0;
+    std::pair<std::string, long> newest_key = std::make_pair(std::string(), -1L);
     while ((ent = readdir(dir)) != NULL)
     {
         std::string name = ent->d_name;
@@ -338,13 +390,9 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
         {
             continue;
         }
-        if (name.size() >= 14)
+        if (is_science_or_preview_fits_name(name))
         {
-            std::string suffix = name.substr(name.size() - 14);
-            if (suffix == "_science.fits" || suffix == "_science.FITS")
-            {
-                continue;
-            }
+            continue;
         }
 
         std::string full = strDir + name;
@@ -353,9 +401,13 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
         {
             continue;
         }
-        if (newest_path.empty() || st.st_mtime >= newest_mtime)
+        std::pair<std::string, long> key = ramp_name_sort_key(name);
+        if (newest_path.empty() ||
+            st.st_mtime > newest_mtime ||
+            (st.st_mtime == newest_mtime && key > newest_key))
         {
             newest_mtime = st.st_mtime;
+            newest_key = key;
             newest_path = full;
         }
     }

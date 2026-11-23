@@ -1069,6 +1069,25 @@ def ramp_fits_sort_key(name: str | None) -> tuple[str, int]:
     return (str(name).lower(), -1)
 
 
+def prefer_newer_ramp_name(*names: str | None) -> str | None:
+    """Return the later MACIE ramp basename (date prefix, then numeric index).
+
+    ``newestfits`` on the server breaks mtime ties by readdir order, which can
+    be a mid-burst leftover. The acquire snapshot must keep the true last
+    index so the next nseq=1 Acquire does not immediately archive that file.
+    """
+    best: str | None = None
+    for name in names:
+        if not name or is_science_fits_name(name):
+            continue
+        if Path(name).name.lower() == "preview.fits":
+            continue
+        basename = Path(name).name
+        if best is None or ramp_fits_sort_key(basename) > ramp_fits_sort_key(best):
+            best = basename
+    return best
+
+
 def next_fits_frame_number(
     directory: Path, *, dir_ok: bool | None = None, width: int = 6
 ) -> str:
@@ -3327,17 +3346,16 @@ class H2rgMainWindow(QMainWindow):
     def _fits_snapshot_before_acquire(self, macie) -> tuple[float, str | None]:
         self._sync_save_dir_from_server(macie)
         before_mtime = self._latest_fits_mtime()
-        before_name = fits_basename(self._newest_fits_file(allow_probe=True))
-        # Prefer the server's newest ramp name so a wrong/stale local fits_directory
-        # does not poison the "is this file new?" checks used for ZMQ fetch.
+        local_name = fits_basename(self._newest_fits_file(allow_probe=True))
+        # Also consider the server's newest ramp so a stale/wrong local
+        # fits_directory does not poison ZMQ "is this file new?" checks.
+        # Take the later MACIE index: newestfits breaks equal-mtime ties by
+        # readdir order and can return a mid-burst leftover (#55 hole).
         try:
             server_path = macie.get_newest_fits_path()
         except Exception:
             server_path = None
-        if server_path:
-            server_name = fits_basename(server_path)
-            if server_name and not is_science_fits_name(server_name):
-                before_name = server_name
+        before_name = prefer_newer_ramp_name(local_name, fits_basename(server_path))
         return before_mtime, before_name
 
     def _on_detector_mode_changed(self, index: int) -> None:
