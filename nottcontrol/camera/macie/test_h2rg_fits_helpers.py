@@ -21,6 +21,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     _channel_window,
     acquire_archive_science_params,
     apply_window_geometry,
+    science_image_for_archive,
     central_value_median,
     cube_reset_kwargs,
     fits_basename,
@@ -458,6 +459,34 @@ class AcquireArchiveScienceParamsTests(unittest.TestCase):
         )
         self.assertEqual(cube_reset_kwargs({"nresets": "x"}), {})
         self.assertEqual(cube_reset_kwargs(None), {})
+
+    def test_last_ramp_science_uses_snapshot_not_live_combo(self) -> None:
+        """Display load follows the live combo; archive must re-reduce as CDS.
+
+        Trigger: Acquire CDS, GUI re-enables when ZMQ returns, operator
+        switches to Fowler before the last ramp is written as science FITS.
+        """
+        from nottcontrol.camera.macie.fits_science import science_image_from_cube
+
+        cube = numpy.array(
+            [
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[1.0, 2.0], [3.0, 4.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        header = {"NAXIS": 3, "NAXIS3": 4}
+        params = acquire_archive_science_params(
+            {"ramp_mode": "CDS", "fowler_pairs": 2}
+        )
+        live = science_image_from_cube(
+            cube, header, reduction="Fowler", fowler_pairs=2
+        )
+        archived = science_image_for_archive(cube, header, params)
+        numpy.testing.assert_allclose(archived, [[11.0, 22.0], [33.0, 44.0]])
+        self.assertFalse(numpy.allclose(live, archived))
 
     def test_invalid_pairs_and_missing_mode_fall_back(self) -> None:
         params = acquire_archive_science_params(
