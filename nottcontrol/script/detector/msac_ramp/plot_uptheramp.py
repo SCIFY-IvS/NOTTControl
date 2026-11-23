@@ -2234,10 +2234,21 @@ def main(argv: list[str] | None = None) -> int:
     windowed = not is_full_frame((ny, nx))
     do_ref_correct = (not args.no_ref_correct) and (not windowed)
 
-    if reset_frame is not None and reset_frame.shape != (ny, nx):
-        raise RuntimeError(
-            f"Reset frame {reset_fits_path.name} shape {reset_frame.shape} "
-            f"does not match science {(ny, nx)}"
+    reset_shape_ok = (
+        reset_frame is not None and reset_frame.shape == (ny, nx)
+    )
+    if reset_frame is not None and not reset_shape_ok:
+        # Destructive _R frames are QA-only; a windowed reset next to
+        # full-frame science (or the reverse) must not abort the flux plot.
+        reset_name = (
+            reset_fits_path.name if reset_fits_path is not None else "reset"
+        )
+        logging.warning(
+            "Reset frame %s shape %s != science %s; "
+            "keeping it for reset QA only (not used as CDS pedestal)",
+            reset_name,
+            reset_frame.shape,
+            (ny, nx),
         )
 
     reset_frame_raw = (
@@ -2266,7 +2277,7 @@ def main(argv: list[str] | None = None) -> int:
             "(%d outputs)",
             n_outputs_for_shape((ny, nx)) or H2RG_N_OUTPUTS,
         )
-        if reset_frame is not None:
+        if reset_shape_ok:
             # Optional ch-ref copy for dashed reset levels on the raw QA panel.
             reset_levels_frame, reset_ref_ok = subtract_channel_reference_pixels(
                 reset_frame
