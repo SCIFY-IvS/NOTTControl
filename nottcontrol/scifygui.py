@@ -707,7 +707,7 @@ class MainWindow(QMainWindow):
 
     def _store_asic_hs_temp(self, saved_at) -> None:
         """Poll SIDECAR on-chip HS_TEMP and write Kelvin to Redis when enabled."""
-        if not config.getboolean("MACIE", "asic_temp_to_redis", fallback=True):
+        if not config.getboolean("H2RG DETECTOR", "asic_temp_to_redis", fallback=True):
             return
         if not self.redis_client.is_available():
             return
@@ -724,7 +724,9 @@ class MainWindow(QMainWindow):
             temp_k = query_asic_hs_temp(address, timeout_ms=5_000)
             if temp_k is None:
                 return
-            key = config.get("MACIE", "asic_temp_redis_key", fallback="asic_hs_temp_k")
+            key = config.get(
+                "H2RG DETECTOR", "asic_temp_redis_key", fallback="asic_hs_temp_k"
+            )
             self.redis_client.add_asic_hs_temp(saved_at, temp_k, key=key)
         except Exception as exc:
             # ASIC may be powered off or busy; do not fail the cryo sensor loop.
