@@ -53,6 +53,7 @@ class ExposureSettingsRelatchTests(unittest.TestCase):
         iface = MacieInterface.__new__(MacieInterface)
         sent: list[str] = []
         iface._last_frame_settings = None
+        iface._live_restore_exposure = None
         iface._request = lambda message: sent.append(message) or True
         return iface, sent
 
