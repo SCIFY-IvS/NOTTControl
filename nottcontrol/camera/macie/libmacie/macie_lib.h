@@ -114,7 +114,7 @@ typedef struct MACIE_Settings
   bool         bSaveData;           // Write FITS file to disk?
   std::string  saveDir;             // Directory to save FITS files
   std::string  filePrefix;          // Filename prefix: LMIR_YYYMMDD_*.fits
-  unsigned int uiFileNum;           // Ramp file number for incrementing; only use for test data offset...
+  unsigned int uiFileNum;           // Next free ramp FITS index (high-water mark)
 
   // MACIE and ASIC card selection
   // Nominally updated during MACIE and ASIC init
@@ -148,6 +148,9 @@ typedef struct MACIE_Settings
   unsigned long  nPixBuffer;        // Number of pixels currently set for a given buffer size
   bool           bUseSciDataFunc;  // Use MACIE_ReadUSBScienceData() instead of MACIE_ReadUSBScienceFrame()
   bool           bScienceInterfaceOpen; // Science data interface configured for acquisition
+  // Live / continuous: leave GigE science interface open between ramps.
+  bool           bKeepScienceInterface;
+  unsigned long  nPixBufferScienceConfigured; // Buffer size used for open science I/F
 
   // MACIE error counters
   unsigned short errArr[MACIE_ERROR_COUNTERS];
@@ -165,6 +168,15 @@ typedef struct MACIE_Settings
   bool bStripeModeAllowed;
   bool bStripeMode;
 
+  // In-memory 2D CDS/single-frame preview for ZMQ acquire multipart reply.
+  // Owned by this struct; freed by ClearDisplayPreview / free_resources.
+  float *pDisplayPreview;
+  int displayPreviewNx;
+  int displayPreviewNy;
+  bool bDisplayPreviewValid;
+  // ZMQ/Live preview reduction: 0=CDS (last-first), 1=Ramp (last), 2=SingleFrame (first)
+  unsigned int displayPreviewReduction;
+
   // Pixel clocking scheme for full frame and subarray window
   // Normal (0) or Enhanced (1)
   // Only here until Enhanced+Window works correctly in future ASIC microcode
@@ -179,6 +191,9 @@ typedef struct MACIE_Settings
 
 extern void delay(int ms);
 extern ushort subtract_ushort(ushort x, ushort y);
+
+/// Create directory and parents (mkdir -p). Returns false on failure.
+extern bool EnsureDirectoryExists(const std::string &path);
 
 // Parameter structure handling
 extern bool SettingsCheckNULL(MACIE_Settings *ptUserData);
@@ -202,6 +217,7 @@ extern unsigned long CalcBuffSize(MACIE_Settings *ptUserData);
 extern unsigned long CalcBuffSize(MACIE_Settings *ptUserData, unsigned int mode);
 extern short CalcNBuffers(MACIE_Settings *ptUserData);
 extern void ConfigBuffers(MACIE_Settings *ptUserData);
+extern void sync_gige_after_reconfigure(MACIE_Settings *ptUserData);
 extern bool VerifyBuffers(MACIE_Settings *ptUserData);
 extern double MemBufferFrac(MACIE_Settings *ptUserData);
 
@@ -218,6 +234,14 @@ extern bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger);
 extern bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger);
 extern bool HaltCameraAcq(MACIE_Settings *ptUserData);
 extern bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData);
+extern void ClearDisplayPreview(MACIE_Settings *ptUserData);
+extern bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
+                                   int xpix, int ypix, int nframes_ramp,
+                                   const unsigned short *pU16);
+extern bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
+                                   int xpix, int ypix, int nframes_ramp,
+                                   const float *pF32);
+extern bool set_display_preview_reduction(MACIE_Settings *ptUserData, unsigned int mode);
 extern bool DownloadRampUSB(MACIE_Settings *ptUserData, unsigned short pData[], long framesize, 
                             long nframes_save, int triggerTimeout, int wait_delta);
 extern bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], long framesize,
@@ -229,6 +253,7 @@ extern bool DownloadFrameUSB(MACIE_Settings *ptUserData, unsigned short pData[],
 extern bool CloseUSBScienceInterface(MACIE_Settings *ptUserData);
 extern bool CloseGigEScienceInterface(MACIE_Settings *ptUserData);
 extern bool CloseScienceInterface(MACIE_Settings *ptUserData);
+extern void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep);
 extern bool WriteFITSFile(MACIE_Settings *ptUserData, unsigned short *pData, char *fileName);
 extern bool WriteFITSRamp(void *pData, std::vector <long> naxis, int bitpix, std::string filename);
 extern void exposure_test_data(MACIE_Settings *ptUserData, unsigned short pData[], long SIZE);

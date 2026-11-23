@@ -46,6 +46,7 @@ from nottcontrol.components.device_polling import (
     split_motor_status_values,
 )
 from nottcontrol.shutters_window import ShutterWindow
+from nottcontrol.filterwheel_window import FilterWheelWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
 from nottcontrol.cryostat_window import CryostatWindow
@@ -91,7 +92,7 @@ PRESSURE_PANEL_H = 200
 TT_PANEL_H = 285
 SHUTTER_PANEL_H = 165
 TEMP_PANEL_H = 96
-CAMERA_PANEL_H = 115
+CAMERA_PANEL_H = 140
 NAV_BUTTONS_TOP_Y = 118
 
 
@@ -104,10 +105,13 @@ class MainWindow(QMainWindow):
         self.camera_window = None
         self.h2rg_window = None
         self._h2rg_opening = False
+        # Last camera opened for dashboard status when both windows exist.
+        self._dashboard_camera: str | None = None
         self.delayline_window = None
         self.shutter_window = None
         self.tiptilt_window = None
         self.piezos_window = None
+        self.filterwheel_window = None
         self.cryostat_window = None
         self.ldc_window = None
 
@@ -128,6 +132,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
         self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
         self.ui.pushButton_piezos.clicked.connect(self.open_piezos_window)
+        self.ui.pushButton_filter_wheel.clicked.connect(self.open_filterwheel_window)
         self.ui.pushButton_cryostat.clicked.connect(self.open_cryostat_window)
         self.ui.pushButton_ldc.clicked.connect(self.open_ldc_window)
 
@@ -178,7 +183,12 @@ class MainWindow(QMainWindow):
         opcuaddress_cry = config["DEFAULT"]["opcuaaddress_cry"]
         opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
         self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
-        self.opcua_conn_cry.connect()
+        # Soft-connect: cryo CU offline must not block GUI (detector-only use, etc.).
+        if not self.opcua_conn_cry.try_connect():
+            print(
+                f"Cryo OPC UA unavailable ({opcuaddress_cry}); "
+                "temps/pressures will reconnect when the cryo CU is back."
+            )
 
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
 
@@ -219,11 +229,14 @@ class MainWindow(QMainWindow):
 
         self._layout_title()
 
-        # Dl status on main window
-        self.load_dl_status()
-        self.load_tt_status()
-        self.load_shutter_status()
-        self.load_camera_status()
+        # Status panels: tolerate offline ICS / cryo CUs at startup.
+        try:
+            self.load_dl_status()
+            self.load_tt_status()
+            self.load_shutter_status()
+            self.load_camera_status()
+        except Exception as e:
+            print(f"Initial ICS status load skipped (OPC offline?): {e}")
         self._poll_cryo_opc()
         self._apply_cryo_cache_to_display()
 
@@ -370,6 +383,7 @@ class MainWindow(QMainWindow):
                 self.camera_window.closing.connect(self.clear_camera_window)
             else:
                 self.camera_window.activateWindow()
+            self._dashboard_camera = "INFRATEC"
             self.load_camera_status()
 
         except Exception as e:
@@ -377,11 +391,15 @@ class MainWindow(QMainWindow):
     
     def clear_camera_window(self):
         self.camera_window = None
+        if self._dashboard_camera == "INFRATEC":
+            self._dashboard_camera = "H2RG" if self.h2rg_window is not None else None
         self.load_camera_status()
 
     def open_h2rg_interface(self):
         if self.h2rg_window is not None:
             self.h2rg_window.activateWindow()
+            self._dashboard_camera = "H2RG"
+            self.load_camera_status()
             return
         if self._h2rg_opening:
             return
@@ -408,8 +426,10 @@ class MainWindow(QMainWindow):
         try:
             from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 
-            self.h2rg_window = H2rgMainWindow()
+            self.h2rg_window = H2rgMainWindow(opcua_conn=self.opcua_conn)
             self.h2rg_window.closing.connect(self.clear_h2rg_window)
+            self._dashboard_camera = "H2RG"
+            self.load_camera_status()
         except Exception as exc:
             self._on_h2rg_open_failed(str(exc))
         else:
@@ -427,16 +447,42 @@ class MainWindow(QMainWindow):
 
     def clear_h2rg_window(self):
         self.h2rg_window = None
+        if self._dashboard_camera == "H2RG":
+            self._dashboard_camera = (
+                "INFRATEC" if self.camera_window is not None else None
+            )
+        self.load_camera_status()
 
     def load_camera_status(self):
         try:
-            status = camera_status_snapshot(self.camera_window)
+            window = None
+            mode = self._dashboard_camera
+            if mode == "H2RG" and self.h2rg_window is not None:
+                window = self.h2rg_window
+            elif mode == "INFRATEC" and self.camera_window is not None:
+                window = self.camera_window
+            elif self.h2rg_window is not None:
+                window = self.h2rg_window
+                mode = "H2RG"
+            elif self.camera_window is not None:
+                window = self.camera_window
+                mode = "INFRATEC"
+
+            if window is not None:
+                status = window.get_dashboard_status()
+            else:
+                status = camera_status_snapshot(None)
+                mode = "—"
+
             self.camera_status_panel.update_status(
                 connected=bool(status.get("connected")),
                 recording=bool(status.get("recording")),
+                live=bool(status.get("live")),
+                acquiring=bool(status.get("acquiring")),
                 files_today=status.get("files_today"),
                 frame_size=str(status.get("frame_size", "—")),
                 utc_day=status.get("utc_day"),
+                mode=str(status.get("mode") or mode or "—"),
             )
         except Exception as e:
             print(f"Camera status: {e}")
@@ -518,6 +564,17 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error opening piezos window: {e}")
 
+    def open_filterwheel_window(self):
+        try:
+            if self.filterwheel_window is None:
+                self.filterwheel_window = FilterWheelWindow(self, self.redis_client)
+                self.filterwheel_window.closing.connect(self.clear_filterwheel_window)
+                self.filterwheel_window.show()
+            else:
+                self.filterwheel_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening filterwheel window: {e}")
+
     def _warn_redis_unavailable(self, context: str) -> None:
         if self._redis_warned:
             return
@@ -553,6 +610,9 @@ class MainWindow(QMainWindow):
 
     def clear_piezos_window(self):
         self.piezos_window = None
+
+    def clear_filterwheel_window(self):
+        self.filterwheel_window = None
 
     def clear_cryostat_window(self):
         self.cryostat_window = None
@@ -591,6 +651,7 @@ class MainWindow(QMainWindow):
 
     def load_shutter_status(self):
         values = self.opcua_conn.read_nodes(self.shutter_status_opc_nodes)
+        now = datetime.utcnow()
         for index, shutter_key in enumerate(self.shutter_status_keys):
             status = values[index * 3]
             state = values[index * 3 + 1]
@@ -598,6 +659,23 @@ class MainWindow(QMainWindow):
             self.shutter_status_panel.update_status(
                 shutter_key, status, state, position_mm
             )
+            if position_mm is None or not self.redis_client.is_available():
+                continue
+            # Same Redis keys as ShutterWindow widgets ("Shutter 1_pos", …).
+            name = f"Shutter {index + 1}"
+            last = getattr(self, "_last_shutter_redis_pos", None)
+            if last is None:
+                last = {}
+                self._last_shutter_redis_pos = last
+            previous = last.get(name)
+            if (
+                previous is None
+                or abs(float(position_mm) - previous) >= 0.05
+            ):
+                self.redis_client.add_shutter_position(
+                    name, now, float(position_mm)
+                )
+                last[name] = float(position_mm)
     
     def read_and_store_sensor_values(self):
         try:

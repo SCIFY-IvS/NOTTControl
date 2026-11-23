@@ -5,9 +5,12 @@
 #include "MacieMain.h"
 #include <iostream>
 #include "macie.h"
+#include <cctype>
+#include <cstdlib>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <utility>
 #include <vector>
 
 #include <zmq.hpp>
@@ -23,6 +26,20 @@ static std::string format_double(double value)
     oss.imbue(std::locale::classic());
     oss << value;
     return oss.str();
+}
+
+// GUI polls these often (newestfits especially). Keep the ZMQ log for
+// commands that change state or start long work.
+static bool zmq_command_is_quiet(const std::string &command)
+{
+    return command == "newestfits" ||
+           command == "getsavedir" ||
+           command == "getpower" ||
+           command == "getmode" ||
+           command == "readinttime" ||
+           command == "rexptiming" ||
+           command == "rexpsettings" ||
+           command == "rframesettings";
 }
 
 extern "C" int M_initialize(const char* configFile, bool offline_mode)
@@ -56,6 +73,12 @@ extern "C" bool M_halt_acquisition()
 {
     std::cout << "Calling halt" << std::endl;;
     return halt_acquisition(_ptUserData);
+}
+
+extern "C" bool M_set_keep_science_interface(bool keep)
+{
+    set_keep_science_interface(_ptUserData, keep);
+    return true;
 }
 
 extern "C" bool M_initCamera()
@@ -170,6 +193,14 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
     if (_ptUserData == NULL)
         return false;
 
+    // Fast DevBrd microcode (H2RG_12bit_32output_5MHz) has no ExpMode bit.
+    // CDS/Fowler/UTR are expressed via NumGroups/NumReads only; treat as no-op.
+    if (_ptUserData->RegMap.count("ExpMode") == 0)
+    {
+        printf("ExpMode not in register map; skipping ASIC write (mode=%u)\n", mode);
+        return true;
+    }
+
     if (SetASICParameter(_ptUserData, "ExpMode", mode) == false)
         return false;
 
@@ -178,6 +209,43 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
         printf("Reconfigure failed after ExpMode change\n");
         return false;
     }
+    sync_gige_after_reconfigure(_ptUserData);
+    return true;
+}
+
+extern "C" bool M_set_preview_reduction(unsigned int mode)
+{
+    if (_ptUserData == NULL)
+        return false;
+    return set_display_preview_reduction(_ptUserData, mode);
+}
+
+extern "C" bool M_set_save_rst_frames(bool save)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    if (_ptUserData->RegMap.count("SaveRstFrames") == 0)
+    {
+        printf("SaveRstFrames not in register map; skipping ASIC write (save=%d)\n",
+               save ? 1 : 0);
+        return true;
+    }
+
+    unsigned int want = save ? 1u : 0u;
+    unsigned int current = 0;
+    if (GetASICParameter(_ptUserData, "SaveRstFrames", &current) && current == want)
+        return true;
+
+    if (SetASICParameter(_ptUserData, "SaveRstFrames", want) == false)
+        return false;
+
+    if (ReconfigureASIC(_ptUserData) == false)
+    {
+        printf("Reconfigure failed after SaveRstFrames change\n");
+        return false;
+    }
+    sync_gige_after_reconfigure(_ptUserData);
     return true;
 }
 
@@ -252,6 +320,54 @@ std::vector<std::string> split(std::string s, const std::string& delimiter) {
     return tokens;
 }
 
+static std::string fits_basename_lower(const std::string &path)
+{
+    std::string name = path;
+    size_t slash = name.find_last_of("/\\");
+    if (slash != std::string::npos)
+        name = name.substr(slash + 1);
+    for (size_t i = 0; i < name.size(); ++i)
+        name[i] = static_cast<char>(tolower(static_cast<unsigned char>(name[i])));
+    return name;
+}
+
+static bool is_science_or_preview_fits_name(const std::string &name)
+{
+    std::string lowered = fits_basename_lower(name);
+    return lowered == "preview.fits" ||
+           (lowered.size() >= 14 &&
+            lowered.compare(lowered.size() - 14, 14, "_science.fits") == 0);
+}
+
+// Match Python ramp_fits_sort_key: date prefix then numeric MACIE index.
+static std::pair<std::string, long> ramp_name_sort_key(const std::string &path)
+{
+    std::string name = fits_basename_lower(path);
+    std::string stem = name;
+    size_t dot = stem.rfind('.');
+    if (dot != std::string::npos)
+        stem = stem.substr(0, dot);
+    if (stem.size() >= 8 && stem.compare(stem.size() - 8, 8, "_science") == 0)
+        stem = stem.substr(0, stem.size() - 8);
+    size_t us = stem.rfind('_');
+    if (us != std::string::npos && us + 1 < stem.size())
+    {
+        std::string label = stem.substr(us + 1);
+        bool digits = !label.empty();
+        for (size_t i = 0; i < label.size(); ++i)
+        {
+            if (!isdigit(static_cast<unsigned char>(label[i])))
+            {
+                digits = false;
+                break;
+            }
+        }
+        if (digits)
+            return std::make_pair(stem.substr(0, us), std::strtol(label.c_str(), NULL, 10));
+    }
+    return std::make_pair(name, -1L);
+}
+
 static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
 {
     if (ptUserData == NULL || ptUserData->saveDir.empty())
@@ -269,6 +385,7 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
     struct dirent *ent;
     std::string newest_path;
     time_t newest_mtime = 0;
+    std::pair<std::string, long> newest_key = std::make_pair(std::string(), -1L);
     while ((ent = readdir(dir)) != NULL)
     {
         std::string name = ent->d_name;
@@ -281,13 +398,9 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
         {
             continue;
         }
-        if (name.size() >= 14)
+        if (is_science_or_preview_fits_name(name))
         {
-            std::string suffix = name.substr(name.size() - 14);
-            if (suffix == "_science.fits" || suffix == "_science.FITS")
-            {
-                continue;
-            }
+            continue;
         }
 
         std::string full = strDir + name;
@@ -296,9 +409,13 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
         {
             continue;
         }
-        if (newest_path.empty() || st.st_mtime >= newest_mtime)
+        std::pair<std::string, long> key = ramp_name_sort_key(name);
+        if (newest_path.empty() ||
+            st.st_mtime > newest_mtime ||
+            (st.st_mtime == newest_mtime && key > newest_key))
         {
             newest_mtime = st.st_mtime;
+            newest_key = key;
             newest_path = full;
         }
     }
@@ -339,7 +456,6 @@ int main () {
     while (true) {
         //  Wait for next request from client
         std::string request = s_recv(socket);
-        std::cout << "Received request " << request << std::endl;
 
         //Did the operation succeed?
         bool result;
@@ -347,12 +463,19 @@ int main () {
         std::string answer = "";
         bool send_binary = false;
         std::string binary_payload;
+        std::string command;
+        bool quiet = false;
 
         try{
             auto tokens = split(request, ";");
 
-            std::string command = tokens[0];
-            std::cout << "Received command " << command << std::endl;
+            command = tokens[0];
+            quiet = zmq_command_is_quiet(command);
+            if (!quiet)
+            {
+                std::cout << "Received request " << request << std::endl;
+                std::cout << "Received command " << command << std::endl;
+            }
 
             
 
@@ -388,10 +511,36 @@ int main () {
                     norecon = true;
                 }
                 result = M_acquire(norecon);
+                if (!result)
+                    answer = "acquire failed (check zmq_server log: GigE/download)";
+                if (result && _ptUserData != NULL &&
+                    _ptUserData->bDisplayPreviewValid &&
+                    _ptUserData->pDisplayPreview != NULL &&
+                    _ptUserData->displayPreviewNx > 0 &&
+                    _ptUserData->displayPreviewNy > 0)
+                {
+                    const int nx = _ptUserData->displayPreviewNx;
+                    const int ny = _ptUserData->displayPreviewNy;
+                    const size_t nbytes =
+                        (size_t)nx * (size_t)ny * sizeof(float);
+                    binary_payload.assign(
+                        reinterpret_cast<const char *>(_ptUserData->pDisplayPreview),
+                        nbytes);
+                    answer = "preview;" + std::to_string(nx) + ";" +
+                             std::to_string(ny) + ";float32";
+                    send_binary = true;
+                }
             }
             else if (command == "halt")
             {
                 result = M_halt_acquisition();
+            }
+            else if (command == "livesession")
+            {
+                bool keep = false;
+                if (tokens.size() > 1 && (tokens[1] == "true" || tokens[1] == "1"))
+                    keep = true;
+                result = M_set_keep_science_interface(keep);
             }
             else if (command == "poweron")
             {
@@ -478,6 +627,18 @@ int main () {
             {
                 unsigned int mode = (unsigned int)std::stoi(tokens[1]);
                 result = M_set_exp_mode(mode);
+            }
+            else if (command == "previewreduction")
+            {
+                unsigned int mode = (unsigned int)std::stoi(tokens[1]);
+                result = M_set_preview_reduction(mode);
+            }
+            else if (command == "saverst")
+            {
+                bool save = false;
+                if (tokens.size() > 1 && (tokens[1] == "true" || tokens[1] == "1"))
+                    save = true;
+                result = M_set_save_rst_frames(save);
             }
             else if (command == "rexptiming")
             {
@@ -577,7 +738,9 @@ int main () {
         std::string resultString = result ? "ok" : "nok";
         std::string kReplyString = resultString + ";" + answer;
 
-        std::cout << "Sending answer " << kReplyString << std::endl;
+        // Always log failures; skip success spam for status-poll commands.
+        if (!quiet || !result)
+            std::cout << "Sending answer " << kReplyString << std::endl;
 
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());

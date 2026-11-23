@@ -21,11 +21,13 @@ import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient
 from platform import system
 
+INFRATEC_SECTION = "INFRATEC CAMERA"
+
 class Diagnostics(object):
     
-    pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
-    low_lamb = float(nott_config['CAMERA']['low_lamb'])
-    up_lamb = float(nott_config['CAMERA']['up_lamb']) 
+    pix_to_lamb = nott_config.getarray(INFRATEC_SECTION,'pix_to_lamb')
+    low_lamb = float(nott_config[INFRATEC_SECTION]['low_lamb'])
+    up_lamb = float(nott_config[INFRATEC_SECTION]['up_lamb']) 
     dlamb = up_lamb-low_lamb    
 
     def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5):    

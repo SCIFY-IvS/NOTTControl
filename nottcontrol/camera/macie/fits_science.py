@@ -2,26 +2,141 @@
 
 from __future__ import annotations
 
+import logging
+import time
+import warnings
 from io import BytesIO
 from pathlib import Path
 from typing import Literal
 
 import numpy
 
+logger = logging.getLogger(__name__)
+
 RampReduction = Literal["SingleFrame", "Ramp", "CDS", "Fowler"]
+
+# Stashed on the ramp header when leading reset planes are dropped; consumed by
+# save_science_fits to write a COMMENT card (not a public FITS keyword).
+_STRIPPED_RESET_PLANES_KEY = "_STRIPPED_RESET_PLANES"
+
+
+class TruncatedFitsError(OSError):
+    """Raised when a FITS file is still being written or is incomplete."""
+
+
+def wait_for_file_size_stable(
+    path: Path,
+    *,
+    settle_s: float = 0.45,
+    timeout_s: float = 45.0,
+    poll_s: float = 0.1,
+    min_bytes: int = 2880,
+) -> bool:
+    """Wait until *path* exists and its size is unchanged for *settle_s*.
+
+    SMB copies of MACIE full-frame ramps often appear before the write finishes.
+    Opening early triggers Astropy "File may have been truncated" warnings.
+    """
+    path = Path(path)
+    deadline = time.monotonic() + max(0.1, float(timeout_s))
+    last_size = -1
+    stable_since: float | None = None
+    while time.monotonic() < deadline:
+        try:
+            size = int(path.stat().st_size)
+        except OSError:
+            last_size = -1
+            stable_since = None
+            time.sleep(poll_s)
+            continue
+        if size < int(min_bytes):
+            last_size = size
+            stable_since = None
+            time.sleep(poll_s)
+            continue
+        if size == last_size:
+            if stable_since is None:
+                stable_since = time.monotonic()
+            elif (time.monotonic() - stable_since) >= float(settle_s):
+                return True
+        else:
+            last_size = size
+            stable_since = None
+        time.sleep(poll_s)
+    return False
+
+
+def _fits_data_nbytes_expected(header: dict) -> int | None:
+    try:
+        naxis = int(header.get("NAXIS", 0) or 0)
+        if naxis < 2:
+            return None
+        bitpix = abs(int(header.get("BITPIX", 16) or 16))
+        if bitpix not in (8, 16, 32, 64):
+            return None
+        n = 1
+        for i in range(1, naxis + 1):
+            n *= max(1, int(header.get(f"NAXIS{i}", 1) or 1))
+        return n * (bitpix // 8)
+    except (TypeError, ValueError):
+        return None
 
 
 def load_fits_data(source: Path | bytes) -> tuple[numpy.ndarray, dict]:
+    """Load primary HDU image data and header from a path or bytes.
+
+    Raises TruncatedFitsError if the file is incomplete (common while MACIE is
+    still writing a full-frame ramp over SMB).
+    """
     from astropy.io import fits
 
-    if isinstance(source, bytes):
-        handle = fits.open(BytesIO(source), memmap=False)
-    else:
-        handle = fits.open(source, memmap=False)
+    handle = None
+    caught: list = []
+    header: dict | None = None
+    data: numpy.ndarray | None = None
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            if isinstance(source, bytes):
+                handle = fits.open(BytesIO(source), memmap=False)
+            else:
+                handle = fits.open(source, memmap=False)
+            hdu = handle[0]
+            if hdu.data is None:
+                raise TruncatedFitsError("FITS primary HDU has no image data")
+            header = dict(hdu.header)
+            data = numpy.asarray(hdu.data)
+    except TruncatedFitsError:
+        raise
+    except OSError:
+        raise
+    except (ValueError, EOFError) as exc:
+        raise TruncatedFitsError(str(exc)) from exc
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "truncat" in msg or "smaller than the expected" in msg:
+            raise TruncatedFitsError(str(exc)) from exc
+        raise
+    finally:
+        if handle is not None:
+            try:
+                handle.close()
+            except Exception:
+                pass
 
-    with handle as hdul:
-        header = dict(hdul[0].header)
-        data = numpy.asarray(hdul[0].data)
+    for warning in caught:
+        text = str(warning.message).lower()
+        if "truncat" in text or "smaller than the expected" in text:
+            raise TruncatedFitsError(str(warning.message))
+
+    if header is None or data is None:
+        raise TruncatedFitsError("FITS primary HDU has no image data")
+
+    expected = _fits_data_nbytes_expected(header)
+    if expected is not None and int(data.nbytes) < int(expected):
+        raise TruncatedFitsError(
+            f"FITS image incomplete: got {data.nbytes} bytes, expected {expected}"
+        )
     return data, header
 
 
@@ -35,6 +150,115 @@ def ramp_sample_axis(header: dict, shape: tuple[int, ...]) -> int:
     if len(shape) == 3 and shape[-1] == naxis3:
         return 2
     return 0
+
+
+def _header_int(header: dict | None, *keys: str) -> int | None:
+    if not header:
+        return None
+    for key in keys:
+        raw = header.get(key)
+        if raw is None:
+            continue
+        if isinstance(raw, (tuple, list)):
+            raw = raw[0]
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def leading_reset_planes(
+    header: dict | None,
+    shape: tuple[int, ...],
+    *,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+) -> int:
+    """Count leading reset planes MACIE prepends when SaveRstFrames is on.
+
+    The science stream is ``[reset × NRESETS] + [group reads]`` only when
+    those reset planes were actually written. CDS/Fowler must skip them;
+    otherwise last-minus-first is last-minus-reset and SingleFrame returns
+    the reset instead of the science read. If NAXIS3 already equals
+    NGROUPS×NREADS, the cube has no reset planes (SaveRstFrames off).
+    """
+    if len(shape) <= 2:
+        return 0
+    axis = ramp_sample_axis(header or {}, shape)
+    nsamples = int(shape[axis])
+    if nsamples <= 1:
+        return 0
+
+    if ngroups is None:
+        ngroups = _header_int(header, "NGROUPS")
+    if nreads is None:
+        nreads = _header_int(header, "NREADS")
+    if nresets is None:
+        nresets = _header_int(header, "NRESETS", "NRESET")
+
+    if ngroups is not None and nreads is not None:
+        science = max(1, int(ngroups)) * max(1, int(nreads))
+        extra = nsamples - science
+        if extra > 0:
+            logger.warning(
+                "Stripping %d leading reset plane(s) from FITS cube "
+                "(NAXIS3=%d, science=%d)",
+                extra,
+                nsamples,
+                science,
+            )
+            return extra
+        # Cube already matches the science stream (SaveRstFrames off, or a
+        # file that never stored reset planes). Do not fall through to
+        # NRESETS: that keyword is ASIC NumResets, not "planes in this cube".
+        return 0
+
+    if nresets is not None:
+        extra = max(0, min(int(nresets), nsamples - 1))
+        if extra > 0:
+            logger.warning(
+                "Stripping %d leading reset plane(s) from FITS cube "
+                "(NAXIS3=%d, science=%d)",
+                extra,
+                nsamples,
+                nsamples - extra,
+            )
+        return extra
+    return 0
+
+
+def cube_without_reset_planes(
+    data: numpy.ndarray,
+    header: dict | None = None,
+    *,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+) -> tuple[numpy.ndarray, dict]:
+    """Drop leading reset planes and keep NAXIS3 in sync for axis detection."""
+    arr = numpy.asarray(data)
+    hdr = dict(header or {})
+    skip = leading_reset_planes(
+        hdr,
+        arr.shape,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
+    )
+    if skip <= 0 or arr.ndim <= 2:
+        return arr, hdr
+    # Annotate the caller header so save_science_fits can record a COMMENT.
+    if header is not None:
+        header[_STRIPPED_RESET_PLANES_KEY] = int(skip)
+    hdr[_STRIPPED_RESET_PLANES_KEY] = int(skip)
+    axis = ramp_sample_axis(hdr, arr.shape)
+    sl: list[slice] = [slice(None)] * arr.ndim
+    sl[axis] = slice(skip, None)
+    trimmed = arr[tuple(sl)]
+    hdr["NAXIS3"] = int(trimmed.shape[axis])
+    return trimmed, hdr
 
 
 def cds_science_image(
@@ -106,14 +330,24 @@ def science_image_from_cube(
     *,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
 ) -> numpy.ndarray:
+    arr, hdr = cube_without_reset_planes(
+        data,
+        header,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
+    )
     if reduction == "Fowler":
-        return fowler_science_image(data, header, fowler_pairs=fowler_pairs)
+        return fowler_science_image(arr, hdr, fowler_pairs=fowler_pairs)
     if reduction == "Ramp":
-        return ramp_science_image(data, header)
+        return ramp_science_image(arr, hdr)
     if reduction == "SingleFrame":
-        return raw_science_image(data, header)
-    return cds_science_image(data, header)
+        return raw_science_image(arr, hdr)
+    return cds_science_image(arr, hdr)
 
 
 def load_science_image(
@@ -121,10 +355,19 @@ def load_science_image(
     *,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
 ) -> numpy.ndarray:
     data, header = load_fits_data(source)
     return science_image_from_cube(
-        data, header, reduction=reduction, fowler_pairs=fowler_pairs
+        data,
+        header,
+        reduction=reduction,
+        fowler_pairs=fowler_pairs,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
     )
 
 
@@ -143,12 +386,17 @@ def save_science_fits(
     tint_ms: float | None = None,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    extra_cards: list | dict | None = None,
 ) -> Path:
     from astropy.io import fits
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     header = fits.Header()
     header["IMTYPE"] = ("SCIENCE", "Reduced science image")
+    from nottcontrol.camera.macie.fits_header_meta import detector_mode_fits_card
+
+    mode_key, mode_val, mode_comment = detector_mode_fits_card(reduction)
+    header[mode_key] = (mode_val, mode_comment)
     if reduction == "Fowler":
         header["REDUCT"] = (f"Fowler{fowler_pairs}", "Mean pair-difference ramp")
     elif reduction == "SingleFrame":
@@ -163,6 +411,26 @@ def save_science_fits(
         for key in ("DATE-OBS", "AMPGAIN", "AMPINPUT", "DETTYPE", "SMPLMODE"):
             if key in source_header:
                 header[key] = source_header[key]
+
+    from nottcontrol.camera.macie.fits_header_meta import apply_fits_header_cards
+
+    if extra_cards:
+        apply_fits_header_cards(header, extra_cards)
+    stripped = (
+        source_header.get(_STRIPPED_RESET_PLANES_KEY) if source_header else None
+    )
+    if stripped:
+        apply_fits_header_cards(
+            header,
+            [
+                (
+                    "COMMENT",
+                    None,
+                    f"Stripped {int(stripped)} leading reset plane(s) "
+                    "before science reduction",
+                )
+            ],
+        )
 
     hdu = fits.PrimaryHDU(data=image.astype(numpy.float32), header=header)
     hdu.writeto(output_path, overwrite=True)

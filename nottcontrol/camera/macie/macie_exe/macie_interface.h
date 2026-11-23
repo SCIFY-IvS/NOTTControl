@@ -5,6 +5,7 @@ using std::string;
 extern "C" int M_initialize(const char* configFile, bool offline_mode);
 extern "C" bool M_acquire(const bool no_recon);
 extern "C" bool M_halt_acquisition();
+extern "C" bool M_set_keep_science_interface(bool keep);
 extern "C" bool M_initCamera();
 extern "C" bool M_powerOff();
 extern "C" bool M_powerOn();
@@ -20,6 +21,7 @@ extern "C" bool M_read_integration_time(double *tint_ms);
 extern "C" bool M_read_exposure_timing(double *inttime_ms, double *ramptime_ms, double *execution_sec,
                                       double *efficiency, double *frametime_ms);
 extern "C" bool M_set_exp_mode(unsigned int mode);
+extern "C" bool M_set_save_rst_frames(bool save);
 extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2);
 extern "C" bool M_read_frame_settings(bool &xWindowing, bool &yWindowing, uint &x1, uint &x2, uint &y1, uint &y2);
 extern "C" CAMERA_MODE M_get_detector_mode();

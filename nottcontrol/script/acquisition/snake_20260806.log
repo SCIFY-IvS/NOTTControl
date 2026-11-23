@@ -1,0 +1,12 @@
+# Optional manual scan log for average_snake_positions.py (--log).
+# Default mode does NOT use this file: open/closed comes from FITS
+# shutter positions SH1POS…SH4POS (open≈5 mm, closed≈35 mm).
+#
+# Day presets (see average_snake_positions.py DAY_FRAME_RANGES):
+#   20260806 → frames 301–889
+#   20260807 → frames 51–last on disk
+#
+# Format: START-END  LABEL  SHUTTER
+# Example:
+# 51-55  background  close
+# 56-60  snake       open

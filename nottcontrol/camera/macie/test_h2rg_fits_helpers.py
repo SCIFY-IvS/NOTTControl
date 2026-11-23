@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -11,19 +13,33 @@ from unittest.mock import patch
 import numpy
 
 from nottcontrol.camera.macie.h2rg_gui import (
+    WINDOW_MODES,
+    H2rgMainWindow,
+    _bottom_vertical_stripe,
     _centered_vertical_stripe,
+    _centered_window,
     _channel_window,
+    acquire_archive_science_params,
+    apply_window_geometry,
+    science_image_for_archive,
     central_value_median,
+    cube_reset_kwargs,
     fits_basename,
+    fits_frame_number_label,
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
+    list_new_ramp_fits_in_dir,
     list_ramp_fits_in_dir,
     local_fits_file_for_viewer,
     map_server_fits_path,
     newest_fits_file,
+    next_fits_frame_number,
+    prefer_newer_ramp_name,
     ramp_fits_path_for_viewer,
+    ramp_fits_sort_key,
     resolve_ramp_fits_path,
+    select_acquire_ramp_paths,
 )
 
 
@@ -47,6 +63,50 @@ class StripeWindowTests(unittest.TestCase):
 
     def test_centered_stripe_1024_rows(self) -> None:
         self.assertEqual(_centered_vertical_stripe(1024), (0, 2047, 512, 1535))
+
+    def test_bottom_stripe_128_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(128), (0, 2047, 0, 127))
+
+    def test_bottom_stripe_256_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(256), (0, 2047, 0, 255))
+
+    def test_sc_presets_are_centered_burst(self) -> None:
+        by_label = {mode.label: mode for mode in WINDOW_MODES}
+        for label, height in (
+            ("SC 128", 128),
+            ("SC 256", 256),
+            ("SC 512", 512),
+            ("SC 1024", 1024),
+        ):
+            mode = by_label[label]
+            self.assertFalse(mode.x_window)
+            self.assertTrue(mode.y_window)
+            self.assertEqual(
+                (mode.x1, mode.x2, mode.y1, mode.y2),
+                _centered_vertical_stripe(height),
+            )
+
+    def test_center_xy_presets(self) -> None:
+        by_label = {mode.label: mode for mode in WINDOW_MODES}
+        for label, size in (
+            ("Center 128x128", 128),
+            ("Center 256x256", 256),
+            ("Center 512x512", 512),
+            ("Center 1024x1024", 1024),
+        ):
+            mode = by_label[label]
+            self.assertTrue(mode.x_window)
+            self.assertTrue(mode.y_window)
+            self.assertEqual(
+                (mode.x1, mode.x2, mode.y1, mode.y2),
+                _centered_window(size),
+            )
+
+    def test_photonic_chip_window(self) -> None:
+        mode = {m.label: m for m in WINDOW_MODES}["Photonic chip"]
+        self.assertTrue(mode.x_window)
+        self.assertTrue(mode.y_window)
+        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1010, 1030, 950, 970))
 
 
 class CentralValueTests(unittest.TestCase):
@@ -81,6 +141,38 @@ class ScienceFitsNameTests(unittest.TestCase):
     def test_ramp_names_are_not_science(self) -> None:
         self.assertFalse(is_science_fits_name("frame_001.fits"))
         self.assertFalse(is_science_fits_name("ramp.fits"))
+
+
+class FitsFrameNumberLabelTests(unittest.TestCase):
+    def test_extracts_trailing_index(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00001.fits"),
+            "00001",
+        )
+
+    def test_science_suffix_stripped(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00018_science.fits"),
+            "00018",
+        )
+
+    def test_preview_label(self) -> None:
+        self.assertEqual(fits_frame_number_label("preview.fits"), "—")
+
+
+class NextFitsFrameNumberTests(unittest.TestCase):
+    def test_empty_directory_starts_at_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(next_fits_frame_number(Path(tmp)), "000000")
+
+    def test_increments_past_highest_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / "nott_20260805_000003.fits").write_bytes(b"")
+            (directory / "nott_20260805_000018.fits").write_bytes(b"")
+            (directory / "nott_20260805_000018_science.fits").write_bytes(b"")
+            (directory / "preview.fits").write_bytes(b"")
+            self.assertEqual(next_fits_frame_number(directory), "000019")
 
 
 class ViewerFitsPathTests(unittest.TestCase):
@@ -123,6 +215,16 @@ class NewRampFitsTests(unittest.TestCase):
             )
         )
 
+    def test_same_name_newer_mtime_is_new(self) -> None:
+        self.assertTrue(
+            is_new_ramp_fits(
+                "ramp001.fits",
+                200.0,
+                before_name="ramp001.fits",
+                before_mtime=100.0,
+            )
+        )
+
     def test_science_file_is_never_new(self) -> None:
         self.assertFalse(
             is_new_ramp_fits(
@@ -142,6 +244,162 @@ class NewRampFitsTests(unittest.TestCase):
                 before_mtime=100.0,
             )
         )
+
+    def test_later_macie_index_with_same_mtime_is_new(self) -> None:
+        self.assertTrue(
+            is_new_ramp_fits(
+                "nott_20260817_000019.fits",
+                100.0,
+                before_name="nott_20260817_000018.fits",
+                before_mtime=100.0,
+            )
+        )
+
+    def test_earlier_macie_index_with_same_mtime_is_not_new(self) -> None:
+        """SMB 1 s mtime: leftover siblings from the last burst are not new."""
+        self.assertFalse(
+            is_new_ramp_fits(
+                "nott_20260817_000010.fits",
+                100.0,
+                before_name="nott_20260817_000018.fits",
+                before_mtime=100.0,
+            )
+        )
+
+    def test_older_different_name_is_not_new(self) -> None:
+        # Regression: Live used to flip between latest and previous because any
+        # different basename was treated as new regardless of mtime.
+        self.assertFalse(
+            is_new_ramp_fits(
+                "ramp001.fits",
+                100.0,
+                before_name="ramp002.fits",
+                before_mtime=200.0,
+            )
+        )
+
+
+class SelectAcquireRampPathsTests(unittest.TestCase):
+    def test_sort_key_orders_macie_indices_numerically(self) -> None:
+        self.assertLess(
+            ramp_fits_sort_key("nott_20260817_000009.fits"),
+            ramp_fits_sort_key("nott_20260817_000010.fits"),
+        )
+        self.assertLess(
+            ramp_fits_sort_key("nott_20260816_000099.fits"),
+            ramp_fits_sort_key("nott_20260817_000001.fits"),
+        )
+
+    def test_overflow_keeps_newest_not_oldest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            leftovers = [
+                directory / f"nott_20260817_{index:06d}.fits"
+                for index in range(10, 18)
+            ]
+            current = [
+                directory / f"nott_20260817_{index:06d}.fits"
+                for index in range(19, 24)
+            ]
+            for path in leftovers + current:
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            selected = select_acquire_ramp_paths(leftovers + current, 5)
+            self.assertEqual([path.name for path in selected], [p.name for p in current])
+
+    def test_same_mtime_siblings_are_not_collected_as_new(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            for index in range(10, 19):
+                path = directory / f"nott_20260817_{index:06d}.fits"
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            new_paths = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name="nott_20260817_000018.fits",
+                dir_ok=True,
+            )
+            self.assertEqual(new_paths, [])
+
+    def test_midburst_server_name_does_not_collect_leftovers(self) -> None:
+        """newestfits readdir tie-break can return a mid-burst leftover.
+
+        The next nseq=1 Acquire would then treat later siblings as new and
+        immediately archive the previous last ramp (wrong DETMODE/cryo stamp).
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            for index in range(10, 19):
+                path = directory / f"nott_20260817_{index:06d}.fits"
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            local_newest = newest_fits_file(directory)
+            self.assertIsNotNone(local_newest)
+            assert local_newest is not None
+            self.assertEqual(local_newest.name, "nott_20260817_000018.fits")
+            watermark = prefer_newer_ramp_name(
+                local_newest.name,
+                "nott_20260817_000012.fits",
+            )
+            self.assertEqual(watermark, "nott_20260817_000018.fits")
+            self.assertEqual(
+                list_new_ramp_fits_in_dir(
+                    directory,
+                    before_mtime=stamp,
+                    before_name=watermark,
+                    dir_ok=True,
+                ),
+                [],
+            )
+            leaked = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name="nott_20260817_000012.fits",
+                dir_ok=True,
+            )
+            self.assertEqual(
+                [path.name for path in leaked],
+                [f"nott_20260817_{index:06d}.fits" for index in range(13, 19)],
+            )
+            selected = select_acquire_ramp_paths(leaked, expected_count=1)
+            self.assertEqual(selected[0].name, "nott_20260817_000018.fits")
+
+
+class PreferNewerRampNameTests(unittest.TestCase):
+    def test_prefers_higher_macie_index(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "nott_20260817_000012.fits",
+                "nott_20260817_000018.fits",
+            ),
+            "nott_20260817_000018.fits",
+        )
+
+    def test_prefers_later_date_prefix(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "nott_20260816_000099.fits",
+                "nott_20260817_000001.fits",
+            ),
+            "nott_20260817_000001.fits",
+        )
+
+    def test_ignores_preview_and_science(self) -> None:
+        self.assertEqual(
+            prefer_newer_ramp_name(
+                "preview.fits",
+                "nott_20260817_000012_science.fits",
+                "nott_20260817_000012.fits",
+            ),
+            "nott_20260817_000012.fits",
+        )
+
+    def test_empty_inputs(self) -> None:
+        self.assertIsNone(prefer_newer_ramp_name(None, "", "preview.fits"))
 
 
 class MapServerFitsPathTests(unittest.TestCase):
@@ -177,6 +435,19 @@ class MapServerFitsPathTests(unittest.TestCase):
     def test_linux_path_unchanged_on_posix(self) -> None:
         mapped = map_server_fits_path("/data/fits/frame.fits")
         self.assertEqual(mapped, Path("/data/fits/frame.fits"))
+
+    def test_linux_does_not_apply_unc_mapping(self) -> None:
+        with patch("nottcontrol.camera.macie.h2rg_gui.sys.platform", "linux"):
+            with patch(
+                "nottcontrol.camera.macie.h2rg_gui.FITS_LINUX_PATH_PREFIX",
+                "/data",
+            ):
+                with patch(
+                    "nottcontrol.camera.macie.h2rg_gui.FITS_WINDOWS_UNC_ROOT",
+                    r"\\nott-server.ster.kuleuven.be\Data",
+                ):
+                    mapped = map_server_fits_path("/data/nott/20260805/")
+        self.assertEqual(mapped, Path("/data/nott/20260805"))
 
     def test_basename_helper(self) -> None:
         self.assertEqual(fits_basename("/tmp/a/b.fits"), "b.fits")
@@ -237,6 +508,176 @@ class ResolveRampFitsPathTests(unittest.TestCase):
                 search_dirs=[Path(tmp)],
             )
             self.assertIsNone(resolved)
+
+
+class AcquireArchiveScienceParamsTests(unittest.TestCase):
+    def test_snapshot_is_not_the_live_gui_mode(self) -> None:
+        ctx = {
+            "ramp_mode": "CDS",
+            "fowler_pairs": 2,
+            "tint_ms": 12.5,
+            "keep_files": True,
+            "exposure": {"ngroups": 4, "nreads": 1, "ndrops": 0},
+        }
+        params = acquire_archive_science_params(ctx)
+        # Operator switches Fowler / unchecks Save after ZMQ returns.
+        live_gui = {"ramp_mode": "Fowler", "fowler_pairs": 8, "keep_files": False}
+        self.assertEqual(params["ramp_mode"], "CDS")
+        self.assertEqual(params["fowler_pairs"], 2)
+        self.assertEqual(params["tint_ms"], 12.5)
+        self.assertTrue(params["keep_files"])
+        self.assertEqual(params["exposure_report"]["ngroups"], 4)
+        self.assertNotEqual(params["ramp_mode"], live_gui["ramp_mode"])
+        self.assertNotEqual(params["keep_files"], live_gui["keep_files"])
+
+    def test_cube_reset_kwargs_from_exposure_report(self) -> None:
+        self.assertEqual(
+            cube_reset_kwargs({"ngroups": 2, "nreads": 1, "nresets": 1}),
+            {"ngroups": 2, "nreads": 1, "nresets": 1},
+        )
+        self.assertEqual(cube_reset_kwargs({"nresets": "x"}), {})
+        self.assertEqual(cube_reset_kwargs(None), {})
+
+    def test_last_ramp_science_uses_snapshot_not_live_combo(self) -> None:
+        """Display load follows the live combo; archive must re-reduce as CDS.
+
+        Trigger: Acquire CDS, GUI re-enables when ZMQ returns, operator
+        switches to Fowler before the last ramp is written as science FITS.
+        """
+        from nottcontrol.camera.macie.fits_science import science_image_from_cube
+
+        cube = numpy.array(
+            [
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[1.0, 2.0], [3.0, 4.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        header = {"NAXIS": 3, "NAXIS3": 4}
+        params = acquire_archive_science_params(
+            {"ramp_mode": "CDS", "fowler_pairs": 2}
+        )
+        live = science_image_from_cube(
+            cube, header, reduction="Fowler", fowler_pairs=2
+        )
+        archived = science_image_for_archive(cube, header, params)
+        numpy.testing.assert_allclose(archived, [[11.0, 22.0], [33.0, 44.0]])
+        self.assertFalse(numpy.allclose(live, archived))
+
+    def test_invalid_pairs_and_missing_mode_fall_back(self) -> None:
+        params = acquire_archive_science_params(
+            {"fowler_pairs": "x", "tint_ms": "bad"}
+        )
+        self.assertEqual(params["ramp_mode"], "CDS")
+        self.assertEqual(params["fowler_pairs"], 2)
+        self.assertIsNone(params["tint_ms"])
+        self.assertTrue(params["keep_files"])
+
+    def test_archive_holds_operation_lock_until_fits_finish(self) -> None:
+        """Second Acquire must wait; overlapping archive mixed ramp files."""
+        lock = threading.Lock()
+        archive_started = threading.Event()
+        release_archive = threading.Event()
+        events: list[str] = []
+
+        def worker() -> None:
+            with lock:
+                events.append("zmq-done")
+                archive_started.set()
+                release_archive.wait(timeout=2.0)
+                events.append("archive-done")
+
+        thread = threading.Thread(target=worker)
+        thread.start()
+        self.assertTrue(archive_started.wait(timeout=2.0))
+        self.assertTrue(lock.locked())
+        self.assertFalse(lock.acquire(timeout=0.05))
+        release_archive.set()
+        thread.join(timeout=2.0)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(events, ["zmq-done", "archive-done"])
+
+
+class ApplyWindowGeometryTests(unittest.TestCase):
+    def test_forwards_full_frame_and_sc_args(self) -> None:
+        class FakeMacie:
+            def __init__(self) -> None:
+                self.args = None
+
+            def frame_settings(self, *args) -> None:
+                self.args = args
+
+        macie = FakeMacie()
+        full = WINDOW_MODES[0]
+        apply_window_geometry(macie, full)
+        self.assertEqual(
+            macie.args,
+            (full.x_window, full.y_window, full.x1, full.x2, full.y1, full.y2),
+        )
+
+        sc = next(mode for mode in WINDOW_MODES if mode.label == "SC 256")
+        apply_window_geometry(macie, sc)
+        self.assertEqual(
+            macie.args,
+            (sc.x_window, sc.y_window, sc.x1, sc.x2, sc.y1, sc.y2),
+        )
+        self.assertTrue(sc.y_window)
+        self.assertFalse(sc.x_window)
+
+    def test_exposure_reconfigure_is_followed_by_geometry_latch(self) -> None:
+        """Set/Acquire/Live share _apply_exposure_settings; it must relatch.
+
+        configure_ramp_exposure ReconfigureASIC poisons full-frame GigE
+        (~65535 ADU) until frame_settings runs again. Window toggle already
+        did this; Set and Acquire did not.
+        """
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow._apply_exposure_settings)
+        configure_at = source.index("configure_ramp_exposure")
+        latch_at = source.index("apply_window_geometry")
+        self.assertGreater(
+            latch_at,
+            configure_at,
+            "WinMode/stripe/XY must be re-latched after the ramp-plan write",
+        )
+
+    def test_live_clicked_sets_starting_flag_before_worker(self) -> None:
+        """Second Live click during ZMQ arm must not start another session."""
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow.live_clicked)
+        flag_at = source.index("self._live_starting = True")
+        thread_at = source.index("threading.Thread")
+        self.assertGreater(
+            thread_at,
+            flag_at,
+            "Live start must latch _live_starting before the ZMQ worker",
+        )
+        acquire_src = inspect.getsource(H2rgMainWindow.acquire)
+        self.assertIn("_live_session_busy()", acquire_src)
+
+    def test_live_stop_drops_fingerprint_so_next_acquire_relatches_nseq(self) -> None:
+        """Take Background already drops the fingerprint after override_nseq.
+
+        Live restore can fail (ReconfigureASIC after livesession close) and
+        leave nseq=1. Without this, the next Acquire skips reconfigure and
+        silently records 1 of N.
+        """
+        import inspect
+
+        stop_src = inspect.getsource(H2rgMainWindow._stop_live_ui)
+        self.assertIn("self._applied_exposure_fingerprint = None", stop_src)
+        live_src = inspect.getsource(H2rgMainWindow.live_clicked)
+        arm_at = live_src.index("start_continuous_acquisition")
+        drop_at = live_src.index("self._applied_exposure_fingerprint = None")
+        self.assertGreater(
+            drop_at,
+            arm_at,
+            "Live must drop the N-ramp fingerprint after forcing nseq=1",
+        )
 
 
 if __name__ == "__main__":

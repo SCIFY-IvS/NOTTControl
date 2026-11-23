@@ -37,6 +37,28 @@ def fits_wait_timeout_s(
     return total
 
 
+def _jarron_two_group_plan(
+    frametime_ms: float,
+    *,
+    n_frames: int,
+) -> dict[str, float | int]:
+    """Jarron-style CDS/Ramp: two groups × one read, stretch DIT with drops.
+
+    Matches macie_lib calc_ramp_settings for ngmax=2: nreads is always 1;
+    intermediate time is spent in ndrops (not saved). Callers that need a
+    minimum of two clocked samples pass n_frames ≥ 2 → ngroups=2, nreads=1,
+    ndrops=n_frames-2.
+    """
+    n_frames = max(2, int(n_frames))
+    return {
+        "ngroups": 2,
+        "nreads": 1,
+        "ndrops": n_frames - 2,
+        "fowler_pairs": 0,
+        "tint_ms": n_frames * frametime_ms,
+    }
+
+
 def calc_ramp_plan(
     tint_ms: float,
     frametime_ms: float,
@@ -48,18 +70,23 @@ def calc_ramp_plan(
 ) -> dict[str, int]:
     """Return ngroups, nreads, ndrops for a ramp at the requested integration time.
 
-    CDS uses two correlated samples with drop frames when tint exceeds one frame
-    time. Full frame: two groups × one read. Window/stripe modes: one group × two
-    reads so both samples share the same detector geometry.
+    CDS / Ramp follow Jarron Leisenring's calc_ramp_settings: nreads stays 1 and
+    longer DIT is obtained with drop frames between two groups (ngmax=2).
+
+    CDS requires ``tint_ms >= frametime_ms`` (at least two clocked samples on the
+    full-frame path). Shorter integrations raise ``ValueError``; use
+    ``mode='SingleFrame'`` instead. With ``windowed_cds=True``, short CDS DITs
+    are still promoted to the minimum two-sample Jarron plan.
+
+    ``windowed_cds`` applies only to CDS (and SingleFrame) on true WinMode
+    (horizontal / XY). It forces a minimum of two clocked samples. Ramp on
+    WinMode may be a single read so photon time can equal frame time.
 
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
 
-    SingleFrame uses one group × one read with no drop frames (one clocked frame).
-
-    Ramp uses two groups × one read with drop frames between groups (same MACIE
-    timing as CDS) so the requested DIT is actually clocked; the saved/displayed
-    sample is the last raw read, not a CDS difference.
+    SingleFrame uses one group × one read on full frame / SC. On WinMode with
+    ``windowed_cds`` it is promoted to the minimum two-sample Jarron plan.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -73,21 +100,43 @@ def calc_ramp_plan(
         return {"ngroups": 1, "nreads": nreads, "ndrops": 0, "fowler_pairs": fowler_pairs}
 
     if mode == "SingleFrame":
+        if windowed_cds:
+            # WinMode: one read can mis-clock — use minimum Jarron CDS pair.
+            return _jarron_two_group_plan(frametime_ms, n_frames=2)
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
     if mode == "Ramp":
-        if tint_ms < frametime_ms:
-            return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
-        nftot = max(2, int(math.ceil(tint_ms / frametime_ms)))
-        return {"ngroups": 2, "nreads": 1, "ndrops": max(0, nftot - 2), "fowler_pairs": 0}
+        # Photon time quantized to whole frame times. WinMode may be 1 sample;
+        # the CDS two-sample floor does not apply here.
+        n_frames = max(1, int(round(tint_ms / frametime_ms)))
+        tint_rounded = n_frames * frametime_ms
+        if n_frames == 1:
+            return {
+                "ngroups": 1,
+                "nreads": 1,
+                "ndrops": 0,
+                "fowler_pairs": 0,
+                "tint_ms": tint_rounded,
+            }
+        return {
+            "ngroups": 2,
+            "nreads": 1,
+            "ndrops": n_frames - 2,
+            "fowler_pairs": 0,
+            "tint_ms": tint_rounded,
+        }
 
-    # CDS — mirror calc_ramp_settings (ngmax=2 path)
-    if tint_ms < frametime_ms:
-        return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
-
+    # CDS — Jarron: nreads=1, stretch with ndrops between two groups.
     if windowed_cds:
-        # NDrops only apply between groups; keep one group so both reads are spatially aligned.
-        return {"ngroups": 1, "nreads": 2, "ndrops": 0, "fowler_pairs": 0}
+        # WinMode: never a 1-read plan.
+        n_frames = max(2, int(math.ceil(tint_ms / frametime_ms)))
+        return _jarron_two_group_plan(frametime_ms, n_frames=n_frames)
+
+    if tint_ms < frametime_ms:
+        raise ValueError(
+            f"CDS requires tint_ms >= frametime_ms ({frametime_ms:.1f} ms); "
+            "use mode='SingleFrame' for shorter integrations"
+        )
 
     nftot = int(math.ceil(tint_ms / frametime_ms))
     if ngmax <= 2:
@@ -111,10 +160,21 @@ def calc_ramp_plan(
                 nf_diff_prev = nf_diff
         ng, nd = ng_best, nd_best
     else:
-        nd = max(0, nftot - ng * nr)
+        # Match Jarron: when requested frames fit in ngmax, use that many groups.
+        ng = nftot
+        nd = 0
 
     return {"ngroups": ng, "nreads": nr, "ndrops": nd, "fowler_pairs": 0}
 
 
 def exp_mode_for_ramp(mode: RampMode) -> int:
     return EXP_MODE_FOWLER if mode == "Fowler" else EXP_MODE_UTR
+
+
+def preview_reduction_mode(mode: RampMode) -> int:
+    """ZMQ/Live display preview: 0=CDS, 1=Ramp last sample, 2=SingleFrame first."""
+    if mode == "Ramp":
+        return 1
+    if mode == "SingleFrame":
+        return 2
+    return 0

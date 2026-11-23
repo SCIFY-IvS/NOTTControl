@@ -1,0 +1,12 @@
+[Unit]
+Description=MACIE GigE direct link on enp2s0f1
+After=sys-subsystem-net-devices-enp2s0f1.device NetworkManager.service
+Requires=sys-subsystem-net-devices-enp2s0f1.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/macie-gige-up.sh
+
+[Install]
+WantedBy=multi-user.target
