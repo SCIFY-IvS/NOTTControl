@@ -57,8 +57,10 @@ class SensorFitOptions:
     """Per-sensor overrides for the exponential cooling fit."""
 
     n_exp_terms: int | None = None
-    weight_recent: bool = False
-    cooling_fit: bool = False
+    weight_recent: bool = True
+    # Keep T_asymp below the latest sample so flattened cool-downs cannot
+    # report an unphysical asymptote above the live temperature.
+    cooling_fit: bool = True
 
 
 MONITOR_SENSOR_FIT_OPTIONS: dict[str, SensorFitOptions] = {
@@ -331,19 +333,30 @@ def fit_exponential_sum(
     t_hours = (times - times[0]) / 3600.0
     model = build_exponential_model(n_terms)
     p0 = initial_guess(times, values, n_terms)
-    if cooling_fit and values[-1] < values[0] - 0.5:
+    # Treat as cooling whenever the series is not clearly warming, so a
+    # near-flat late plateau still keeps T_asymp below the live sample.
+    is_cooling = cooling_fit and float(values[-1]) <= float(values[0]) + 0.05
+    if is_cooling:
         p0[0] = min(p0[0], float(values[-1]) - 0.05)
 
     value_span = max(float(values.max() - values.min()), 1.0)
     max_tau = max(t_hours[-1], 0.1) * 20
-    lower = [values.min() - value_span]
-    upper = [values.max() + value_span]
-    if cooling_fit and values[-1] < values[0] - 0.5:
+    lower = [float(values.min()) - value_span]
+    upper = [float(values.max()) + value_span]
+    if is_cooling:
+        # Flat late cool-downs under-constrain T_asymp from below (many
+        # (T_a, A, tau) triples fit a plateau). Keep it near the recent data:
+        # at or below live T, and not more than 0.5 K under the recent minimum.
+        recent = values[-max(10, values.size // 10) :]
+        recent_min = float(np.min(recent))
         upper[0] = min(upper[0], float(values[-1]) - 0.01)
+        lower[0] = max(lower[0], recent_min - 0.5)
         if upper[0] <= lower[0]:
-            upper[0] = lower[0] + 0.1
+            lower[0] = upper[0] - 0.05
+        p0[0] = min(p0[0], float(values[-1]) - 0.05)
+        p0[0] = max(p0[0], lower[0])
     for _ in range(n_terms):
-        if cooling_fit:
+        if is_cooling:
             lower.extend([0.0, 1e-3])
             upper.extend([value_span * 2, max(max_tau, 1.0)])
         else:
@@ -359,7 +372,12 @@ def fit_exponential_sum(
         "maxfev": 5_000,
     }
     if weight_recent and t_hours.size > 1:
-        weights = np.linspace(0.35, 1.0, t_hours.size) ** 2
+        # Emphasize the late cool-down / plateau so asymptote and model_now
+        # track the live temperature instead of early fast drop.
+        if is_cooling:
+            weights = np.exp(np.linspace(-3.5, 0.0, t_hours.size))
+        else:
+            weights = np.linspace(0.35, 1.0, t_hours.size) ** 2
         fit_kwargs["sigma"] = 1.0 / weights
         fit_kwargs["absolute_sigma"] = False
 
