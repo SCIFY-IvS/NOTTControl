@@ -368,6 +368,51 @@ class SelectAcquireRampPathsTests(unittest.TestCase):
             selected = select_acquire_ramp_paths(leaked, expected_count=1)
             self.assertEqual(selected[0].name, "nott_20260817_000018.fits")
 
+    def test_prefetch_last_index_must_not_become_watermark(self) -> None:
+        """nseq≥2, SMB 1 s mtime: ZMQ newestfits returns the last ramp first.
+
+        If ``_wait_for_acquire_frames`` then sets before_name to that fetched
+        basename, same-mtime earlier ramps from the current acquire fail
+        ``is_new_ramp_fits`` and never archive.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            stamp = 1_700_000_000.0
+            snapshot = directory / "nott_20260817_000010.fits"
+            current = [
+                directory / f"nott_20260817_{index:06d}.fits"
+                for index in range(11, 19)
+            ]
+            for path in [snapshot, *current]:
+                path.write_bytes(b"SIMPLE  =                    T")
+                os.utime(path, (stamp, stamp))
+            kept = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name=snapshot.name,
+                dir_ok=True,
+            )
+            self.assertEqual([path.name for path in kept], [path.name for path in current])
+            selected = select_acquire_ramp_paths(kept, expected_count=8)
+            self.assertEqual([path.name for path in selected], [path.name for path in current])
+            dropped = list_new_ramp_fits_in_dir(
+                directory,
+                before_mtime=stamp,
+                before_name=current[-1].name,
+                dir_ok=True,
+            )
+            self.assertEqual(dropped, [])
+
+    def test_wait_loop_does_not_rewind_snapshot_watermark(self) -> None:
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow._wait_for_acquire_frames)
+        self.assertNotIn(
+            "before_name = path.name",
+            source,
+            "ZMQ prefetch of newestfits must not replace the pre-acquire watermark",
+        )
+
 
 class PreferNewerRampNameTests(unittest.TestCase):
     def test_prefers_higher_macie_index(self) -> None:
