@@ -5501,7 +5501,11 @@ class H2rgMainWindow(QMainWindow):
                             _frame, path = fetched
                             seen[path.name] = path
                             zmq_seen.add(path.name)
-                            before_name = path.name
+                            # Keep the pre-acquire snapshot watermark. newestfits
+                            # returns the last index; advancing before_name to
+                            # that file would make same-mtime earlier ramps from
+                            # this nseq look like leftover siblings (#68 tie-break)
+                            # and they would never enter seen.
                             preview_seen()
                 if len(seen) >= expected_count:
                     break
